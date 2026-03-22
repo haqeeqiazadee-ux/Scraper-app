@@ -35,7 +35,12 @@
 - [x] **OBS-001:** Structured logging — JSON formatter, configure_logging()
 - [x] **SEC-001:** Secrets management — SecretsManager with provider chain (10 tests)
 
-## Test Status: 210 passed, 0 failed (4.44s)
+- [x] **STORAGE-004:** SQLite desktop adapter
+- [x] **AI-002:** URL classifier — pattern-based lane prediction (12 tests)
+- [x] **AI-003:** Extraction prompt templates (5 templates + builders)
+- [x] **NORM-002:** Deduplication engine — SKU/URL/fuzzy match + merge (12 tests)
+
+## Test Status: 234 passed, 0 failed (4.50s)
 
 ## Pending (Next Up)
 - [ ] WORKER-002: Browser lane worker

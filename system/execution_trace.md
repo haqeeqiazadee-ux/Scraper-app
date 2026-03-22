@@ -172,6 +172,21 @@
 - **Blockers found:** None
 - **Next action:** Commit, push, continue with remaining tasks
 
+## Work Cycle 011 — 2026-03-22
+
+- **Timestamp:** 2026-03-22
+- **Active Task IDs:** STORAGE-004, AI-002, AI-003, NORM-002
+- **What was read before action:** system/todo.md, docs/tasks_breakdown.md
+- **Action taken:** SQLite desktop adapter, AI classifier, prompts, dedup engine
+- **Outputs produced:**
+  - **STORAGE-004:** SQLiteDesktopStore — wraps Database with SQLite config, auto-creates dirs
+  - **AI-002:** URLClassifier — pattern-based lane prediction, cached. 12 tests.
+  - **AI-003:** ai_prompts.py — 5 prompt templates + builder functions
+  - **NORM-002:** DedupEngine — SKU/URL exact + fuzzy name match, merge strategy. 12 tests.
+  - **Total: 234 tests, all passing in 4.50s**
+- **Blockers found:** Short product names too similar for 0.85 threshold — used distinct names
+- **Next action:** Commit and push
+
 ## Work Cycle 010 — 2026-03-22
 
 - **Timestamp:** 2026-03-22
