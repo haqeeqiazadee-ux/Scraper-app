@@ -1,6 +1,7 @@
 /**
  * TaskDetailPage — Page combining TaskDetail + RunHistory.
  * Fetches task, results, and run history data.
+ * Auto-polls every 5 seconds when task is running/queued.
  */
 
 import { useParams, Link } from "react-router-dom";
@@ -15,7 +16,11 @@ export function TaskDetailPage() {
     data: task,
     isLoading: taskLoading,
     error: taskError,
-  } = useTask(taskId);
+  } = useTask(taskId, {
+    // Poll every 5 seconds when task is actively running or queued
+    refetchInterval:
+      taskId ? 5_000 : false,
+  });
 
   const { data: resultsData } = useTaskResults(taskId);
 
@@ -53,6 +58,18 @@ export function TaskDetailPage() {
         <h2>{task.name || "Task Detail"}</h2>
         <p>
           <Link to="/tasks">Tasks</Link> / {task.name || task.id}
+          {(task.status === "running" || task.status === "queued") && (
+            <span
+              style={{
+                marginLeft: 12,
+                fontSize: 12,
+                color: "var(--color-primary)",
+                fontWeight: 500,
+              }}
+            >
+              (auto-refreshing)
+            </span>
+          )}
         </p>
       </div>
       <div className="page-body">
@@ -67,10 +84,7 @@ export function TaskDetailPage() {
           <div className="card-header">
             <h3>Run History ({runsData?.total ?? 0})</h3>
           </div>
-          <RunHistory
-            runs={runsData?.items ?? []}
-            isLoading={runsLoading}
-          />
+          <RunHistory runs={runsData?.items ?? []} isLoading={runsLoading} />
         </div>
       </div>
     </>

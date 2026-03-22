@@ -34,6 +34,7 @@ class TaskCreate(BaseModel):
     priority: int = Field(default=5, ge=0, le=10)
     schedule: Optional[str] = None
     callback_url: Optional[HttpUrl] = None
+    webhook_secret: Optional[str] = None
     metadata: dict = Field(default_factory=dict)
 
 
@@ -44,6 +45,7 @@ class TaskUpdate(BaseModel):
     priority: Optional[int] = Field(default=None, ge=0, le=10)
     schedule: Optional[str] = None
     callback_url: Optional[HttpUrl] = None
+    webhook_secret: Optional[str] = None
     metadata: Optional[dict] = None
 
 
@@ -58,6 +60,7 @@ class Task(BaseModel):
     priority: int = Field(default=5, ge=0, le=10)
     schedule: Optional[str] = None
     callback_url: Optional[HttpUrl] = None
+    webhook_secret: Optional[str] = None
     metadata: dict = Field(default_factory=dict)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: Optional[datetime] = None

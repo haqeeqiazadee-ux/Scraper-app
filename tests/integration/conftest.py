@@ -37,11 +37,24 @@ async def test_db():
 async def client(test_db):
     """Create a FastAPI test client backed by the in-memory database."""
     from services.control_plane.app import create_app
+    from services.control_plane.middleware.rate_limit import set_rate_limiter
+    from packages.core.rate_limiter import InMemoryRateLimiter, RateLimitConfig
+
+    # Use very generous rate limits for tests
+    test_limiter = InMemoryRateLimiter(
+        default_config=RateLimitConfig(
+            requests_per_minute=10000,
+            requests_per_hour=100000,
+            burst_size=10000,
+        )
+    )
+    set_rate_limiter(test_limiter)
 
     app = create_app()
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as c:
         yield c
+    set_rate_limiter(None)  # type: ignore[arg-type]
 
 
 # ---------------------------------------------------------------------------

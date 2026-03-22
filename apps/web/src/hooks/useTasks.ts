@@ -5,7 +5,12 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { tasks } from "../api/client";
-import type { TaskCreate, TaskUpdate, TaskStatus } from "../api/types";
+import type {
+  TaskCreate,
+  TaskUpdate,
+  TaskListItem,
+  PaginatedResponse,
+} from "../api/types";
 
 /* ── Query Keys ── */
 
@@ -26,6 +31,8 @@ export function useTaskList(params?: {
   status?: string;
   limit?: number;
   offset?: number;
+  /** Auto-refresh interval in milliseconds. Set to 0 or false to disable. */
+  refetchInterval?: number | false;
 }) {
   return useQuery({
     queryKey: TASK_KEYS.list(params ?? {}),
@@ -35,16 +42,21 @@ export function useTaskList(params?: {
         limit: params?.limit ?? 20,
         offset: params?.offset ?? 0,
       }),
+    refetchInterval: params?.refetchInterval,
   });
 }
 
 /* ── useTask ── */
 
-export function useTask(taskId: string | undefined) {
+export function useTask(
+  taskId: string | undefined,
+  options?: { refetchInterval?: number | false },
+) {
   return useQuery({
     queryKey: TASK_KEYS.detail(taskId ?? ""),
     queryFn: () => tasks.get(taskId!),
     enabled: !!taskId,
+    refetchInterval: options?.refetchInterval,
   });
 }
 
@@ -105,7 +117,19 @@ export function useDeleteTask() {
 
   return useMutation({
     mutationFn: (taskId: string) => tasks.delete(taskId),
-    onSuccess: () => {
+    onSuccess: (_result, taskId) => {
+      // Optimistically remove the task from cached lists
+      queryClient.setQueriesData<PaginatedResponse<TaskListItem>>(
+        { queryKey: TASK_KEYS.lists() },
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            items: old.items.filter((t) => t.id !== taskId),
+            total: old.total - 1,
+          };
+        },
+      );
       queryClient.invalidateQueries({ queryKey: TASK_KEYS.lists() });
     },
   });
@@ -119,6 +143,19 @@ export function useExecuteTask() {
   return useMutation({
     mutationFn: (taskId: string) => tasks.execute(taskId),
     onSuccess: (_result, taskId) => {
+      // Optimistically update the task status to "queued" in cached lists
+      queryClient.setQueriesData<PaginatedResponse<TaskListItem>>(
+        { queryKey: TASK_KEYS.lists() },
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            items: old.items.map((t) =>
+              t.id === taskId ? { ...t, status: "queued" as const } : t,
+            ),
+          };
+        },
+      );
       queryClient.invalidateQueries({
         queryKey: TASK_KEYS.detail(taskId),
       });
@@ -136,6 +173,19 @@ export function useCancelTask() {
   return useMutation({
     mutationFn: (taskId: string) => tasks.cancel(taskId),
     onSuccess: (_result, taskId) => {
+      // Optimistically update the task status to "cancelled" in cached lists
+      queryClient.setQueriesData<PaginatedResponse<TaskListItem>>(
+        { queryKey: TASK_KEYS.lists() },
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            items: old.items.map((t) =>
+              t.id === taskId ? { ...t, status: "cancelled" as const } : t,
+            ),
+          };
+        },
+      );
       queryClient.invalidateQueries({
         queryKey: TASK_KEYS.detail(taskId),
       });

@@ -12,7 +12,7 @@ import { useState, useCallback } from "react";
 import { useTaskList, useTask } from "../hooks/useTasks";
 import { TaskTable } from "../components/TaskTable";
 import { TaskForm } from "../components/TaskForm";
-import type { TaskStatus } from "../api/types";
+
 
 const STATUS_FILTERS: { label: string; value: string | undefined }[] = [
   { label: "All", value: undefined },
@@ -37,6 +37,7 @@ export function TasksPage() {
     status: statusFilter,
     limit: PAGE_SIZE,
     offset: page * PAGE_SIZE,
+    refetchInterval: 15_000, // Poll every 15 seconds for live updates
   });
 
   // Fetch the task being edited (if any)

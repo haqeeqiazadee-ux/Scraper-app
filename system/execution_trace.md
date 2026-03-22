@@ -583,3 +583,62 @@
   - **background/service-worker.js:** Integrated cloud-sync module, selector picker relay, sendToCloud message handling.
 - **Blockers found:** None
 - **Next action:** All 68 implementation tasks complete. Only TEST-002/003/004 remain as already completed.
+
+## Work Cycle 031 — 2026-03-22 (Phase 4+ Gap Analysis & Implementation)
+
+- **Timestamp:** 2026-03-22
+- **Active Task IDs:** GAP-001 through GAP-005
+- **What was read before action:** system/todo.md (69/69 complete), system/lessons.md (43 lessons), system/execution_trace.md (30 work cycles), Claude Prompt for Scraper.txt (full requirements), all source modules audited for functional completeness
+- **Action taken:** Comprehensive gap analysis revealed platform is ~70-75% functionally complete. Identified 5 critical gaps and launched parallel implementation:
+  1. GAP-001: Redis distributed queue consumer + worker consumption loops (no distributed task processing)
+  2. GAP-002: Hard-target execution lane (referenced in router but not implemented)
+  3. GAP-003: Rate limit enforcement + quota management (schemas exist but not enforced)
+  4. GAP-004: Callback webhook executor + task scheduler (fields exist but no implementation)
+  5. GAP-005: Web UI API integration (React hooks and API client are skeleton)
+- **Why:** Audit showed core infrastructure is solid but distributed execution, enforcement, and UI integration gaps prevent production readiness
+- **Outputs produced:**
+  - 20+ new files across packages/core, packages/connectors, services/, apps/web, tests/
+  - 6 new test files with 1655 total lines
+  - Test count: 525 → 648 passed
+- **Blockers found:** Rate limiter default burst_size=10 caused test failures — fixed by env-var config and generous test fixtures
+- **Next action:** Final commit and push
+
+## Work Cycle — GAP-003: Rate Limit Enforcement + Quota Management
+
+- **Timestamp:** 2026-03-22
+- **Task:** GAP-003 — Implement rate limiting and quota enforcement
+- **Decision:** Token bucket algorithm for rate limiting, in-memory quota manager with daily reset
+- **Why:** Policy schemas had rate_limit fields and billing had TenantQuota, but no enforcement existed
+- **Outputs produced:**
+  1. packages/core/rate_limiter.py — InMemoryRateLimiter with token bucket (per-tenant + per-policy)
+  2. packages/core/quota_manager.py — QuotaManager with usage tracking and QuotaExceededError
+  3. services/control-plane/middleware/rate_limit.py — FastAPI middleware returning 429 with headers
+  4. services/control-plane/middleware/quota.py — FastAPI middleware returning 402 with headers
+  5. Updated packages/core/router.py — route_with_checks() method on ExecutionRouter
+  6. Updated services/control-plane/app.py — wired both middleware
+  7. tests/unit/test_rate_limiter.py — 16 tests (5 TokenBucket + 11 limiter)
+  8. tests/unit/test_quota_manager.py — 12 tests
+  9. Fixed tests/unit/test_api_execution.py — permissive rate limiter for test fixture
+- **Blockers found:** None
+- **Test results:** 601 passed, 1 skipped, 0 failed
+- **Next action:** Continue with remaining gaps
+
+## Work Cycle 032 — 2026-03-22 (Gap Closure Complete)
+
+- **Timestamp:** 2026-03-22
+- **Active Task IDs:** GAP-001 through GAP-008
+- **Action taken:** All 5 gap closure agents completed. Integrated outputs, fixed test failures (rate limiter burst size), ran full test suite, updated all system tracking files.
+- **Results:**
+  - GAP-001: Redis queue + worker loops — 7 new files
+  - GAP-002: Hard-target lane — 5 new files + symlink
+  - GAP-003: Rate limit + quota — 6 new files + 3 updated (28 tests)
+  - GAP-004: Webhooks + scheduler — 5 new files + 1 updated (18+ tests)
+  - GAP-005: Web UI API — 5 new files + 10 updated
+  - GAP-006: System tracking — all 5 system files updated
+  - GAP-007: Test suite — 648 passed, 6 skipped, 0 failed
+  - GAP-008: Final commit and push
+- **Total new files:** ~30
+- **Total test count:** 648 passed (up from 525)
+- **Blockers found:** None
+- **Next action:** Commit and push to remote
+

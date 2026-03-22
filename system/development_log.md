@@ -991,3 +991,109 @@ Background Service Worker  <-- chrome.runtime.sendMessage -->
 - Health checks use AbortSignal.timeout(5000) to avoid blocking on unresponsive servers
 - Selector picker uses capture-phase event listeners to intercept clicks before page handlers
 - ExtractPanel confidence display derived from selector match ratio (successful/total selectors)
+
+---
+
+## 2026-03-22 — Phase 4+ Gap Closure: Production Readiness
+
+### Gap Analysis
+
+Performed comprehensive codebase audit. Found:
+- **70-75% functionally complete** — solid core infrastructure
+- **Contracts, router, storage, API, workers:** Production-quality
+- **525 tests passing**, 6 skipped, 0 failed
+
+### Critical Gaps Identified
+
+| Gap ID | Component | Issue |
+|--------|-----------|-------|
+| GAP-001 | Distributed Queue | No Redis queue consumer; workers can't process distributed tasks |
+| GAP-002 | Hard-Target Lane | Referenced in router but no implementation |
+| GAP-003 | Rate Limiting | Policy.rate_limit field exists but not enforced |
+| GAP-003b | Quota Management | TenantQuota schema exists but not enforced in API |
+| GAP-004 | Webhooks | Task.callback_url field exists but no webhook executor |
+| GAP-004b | Scheduler | Task.schedule field exists but no scheduler service |
+| GAP-005 | Web UI | React components exist but API client is incomplete |
+
+### Implementation Plan
+
+5 parallel agents launched:
+1. **Redis queue + worker loops** — redis_queue.py, redis_cache.py, queue_factory.py, worker main.py files
+2. **Hard-target lane** — hard_target_worker.py, stealth browser settings, CAPTCHA detection
+3. **Rate limit + quota** — rate_limiter.py, quota_manager.py, middleware, router integration
+4. **Webhooks + scheduler** — webhook.py, scheduler.py, schedules router
+5. **Web UI API** — api-client.ts, React hooks, auth context, component wiring
+
+### Architectural Decisions
+
+- Redis queue uses LPUSH/BRPOP pattern for reliable FIFO ordering
+- Token bucket algorithm for rate limiting (proven, simple, thread-safe)
+- Webhook executor uses HMAC-SHA256 signatures for security
+- Cron scheduler supports standard 5-field cron expressions
+- Hard-target lane adds stealth Playwright with fingerprint randomization
+
+## GAP-003: Rate Limit Enforcement + Quota Management
+
+### Implementation
+
+Implemented full rate limiting and quota enforcement stack:
+
+1. **Token bucket rate limiter** (packages/core/rate_limiter.py): Per-tenant and per-policy rate limiting with configurable requests_per_minute, requests_per_hour, and burst_size. Uses asyncio.Lock for thread safety. Tenant-level buckets are created from tenant config (not policy config) to ensure isolation.
+
+2. **Quota manager** (packages/core/quota_manager.py): Tracks 5 resource types (tasks, browser_minutes, ai_tokens, storage, proxy_requests). Auto-resets daily counters on date rollover. Raises QuotaExceededError with details on tenant/resource/current/limit.
+
+3. **Rate limit middleware** (services/control-plane/middleware/rate_limit.py): Returns 429 with Retry-After, X-RateLimit-Remaining, X-RateLimit-Limit headers. Skips health/docs/metrics paths.
+
+4. **Quota middleware** (services/control-plane/middleware/quota.py): Returns 402 on POST to task creation/execution endpoints when quota exceeded. Includes X-Quota-* headers.
+
+5. **ExecutionRouter integration**: Added route_with_checks() async method that checks rate limit then quota before routing.
+
+### Key Design Decisions
+
+- Tenant-level buckets use tenant config, not policy config, to avoid bucket pollution when policy-specific calls create tenant state
+- Sentinel values (-1.0) for TokenBucket defaults instead of 0.0 to distinguish "not set" from "intentionally zero"
+- Module-level singletons with set_*() functions for test injection
+- Existing test fixtures updated with permissive rate limiter to avoid interference
+
+
+### Implementation Complete — All Gaps Closed
+
+**New Files Created (Phase 4+ Gap Closure):**
+
+| File | Lines | Purpose |
+|------|-------|---------|
+| packages/core/storage/redis_queue.py | 214 | Redis-backed distributed queue (LPUSH/BRPOP + pending hash) |
+| packages/core/storage/redis_cache.py | 141 | Redis-backed cache (SETEX + JSON) |
+| packages/core/queue_factory.py | 77 | Queue backend factory (env-based selection) |
+| packages/connectors/hard_target_worker.py | 521 | Stealth browser connector (fingerprinting, CAPTCHA, proxy) |
+| packages/core/rate_limiter.py | 251 | Token bucket per-tenant/per-policy rate limiter |
+| packages/core/quota_manager.py | ~150 | Quota tracking and enforcement |
+| packages/core/webhook.py | 250 | Webhook executor (HMAC-SHA256, retry, async) |
+| packages/core/scheduler.py | 344 | Task scheduler (cron + interval + one-time) |
+| services/worker-http/main.py | 181 | HTTP worker consumption loop |
+| services/worker-browser/main.py | 182 | Browser worker consumption loop |
+| services/worker-ai/main.py | 172 | AI normalization worker consumption loop |
+| services/worker-hard-target/ | ~200 | Hard-target lane worker service |
+| services/control-plane/middleware/rate_limit.py | ~100 | Rate limit FastAPI middleware (429 + headers) |
+| services/control-plane/middleware/quota.py | ~80 | Quota enforcement FastAPI middleware (402) |
+| services/control-plane/routers/schedules.py | 172 | Schedule CRUD API |
+| apps/web/src/hooks/useAuth.ts | 76 | Auth React hook |
+| apps/web/src/hooks/usePolicies.ts | 90 | Policy CRUD React hook |
+| apps/web/src/contexts/AuthContext.tsx | 137 | Auth context provider |
+| apps/web/src/pages/Login.tsx | 186 | Login page |
+| tests/unit/test_redis_queue.py | 346 | Redis queue tests |
+| tests/unit/test_hard_target.py | 444 | Hard-target lane tests |
+| tests/unit/test_rate_limiter.py | 181 | Rate limiter tests |
+| tests/unit/test_quota_manager.py | 154 | Quota manager tests |
+| tests/unit/test_webhook.py | 237 | Webhook tests |
+| tests/unit/test_scheduler.py | 293 | Scheduler tests |
+
+**Updated Files:**
+- packages/core/router.py — Added hard-target lane + rate limit checks
+- services/control-plane/app.py — Wired rate limit, quota, schedules
+- tests/integration/conftest.py — Rate limiter reset for tests
+- tests/e2e/conftest.py — Rate limiter reset for tests
+- apps/web/src/* — Multiple React components wired to real API
+
+**Test Results:** 648 passed, 6 skipped, 0 failed (up from 525)
+

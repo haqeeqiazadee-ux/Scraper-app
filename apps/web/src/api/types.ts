@@ -280,6 +280,76 @@ export interface TenantQuota {
   billing_cycle_end: string;
 }
 
+/* ── Auth ── */
+
+export interface TokenRequest {
+  username: string;
+  password: string;
+}
+
+export interface TokenResponse {
+  access_token: string;
+  token_type: string;
+}
+
+export interface UserProfile {
+  sub: string;
+  tenant_id: string;
+  roles: string[];
+}
+
+/* ── Schedule ── */
+
+export interface Schedule {
+  id: string;
+  task_id: string;
+  cron: string;
+  enabled: boolean;
+  next_run: string | null;
+  created_at: string;
+}
+
+export interface ScheduleCreate {
+  task_id: string;
+  cron: string;
+  enabled?: boolean;
+}
+
+/* ── Health / Metrics ── */
+
+export interface HealthStatus {
+  status: string;
+  service: string;
+  version: string;
+  timestamp: string;
+}
+
+export interface MetricsResponse {
+  [key: string]: unknown;
+}
+
+/* ── API Error ── */
+
+export interface ApiErrorResponse {
+  detail: string;
+  status: number;
+}
+
+/* ── Route Decision ── */
+
+export interface RouteDecision {
+  lane: string;
+  reason: string;
+  fallback_lanes: string[];
+  confidence: number;
+}
+
+export interface ExecuteResponse {
+  task_id: string;
+  status: string;
+  route: RouteDecision;
+}
+
 /* ── Paginated responses ── */
 
 export interface PaginatedResponse<T> {
