@@ -15,6 +15,8 @@ export type TaskStatus =
 
 export type TaskType = "scrape" | "monitor" | "extract";
 
+export type ExtractionType = "css" | "xpath" | "ai" | "auto";
+
 export type LanePreference = "api" | "http" | "browser" | "hard_target" | "auto";
 
 export type SessionStatus = "active" | "degraded" | "expired" | "invalidated";
@@ -37,21 +39,29 @@ export type PlanTier = "free" | "starter" | "pro" | "enterprise";
 export interface Task {
   id: string;
   tenant_id: string;
+  name: string;
   url: string;
   task_type: TaskType;
+  extraction_type: ExtractionType;
+  selectors: string[];
   policy_id: string | null;
   priority: number;
   schedule: string | null;
   callback_url: string | null;
   metadata: Record<string, unknown>;
   status: TaskStatus;
+  last_run: string | null;
+  next_run: string | null;
   created_at: string;
   updated_at: string | null;
 }
 
 export interface TaskCreate {
+  name: string;
   url: string;
   task_type?: TaskType;
+  extraction_type?: ExtractionType;
+  selectors?: string[];
   policy_id?: string;
   priority?: number;
   schedule?: string;
@@ -60,9 +70,14 @@ export interface TaskCreate {
 }
 
 export interface TaskUpdate {
+  name?: string;
+  url?: string;
+  extraction_type?: ExtractionType;
+  selectors?: string[];
   status?: TaskStatus;
+  policy_id?: string | null;
   priority?: number;
-  schedule?: string;
+  schedule?: string | null;
   callback_url?: string;
   metadata?: Record<string, unknown>;
 }
@@ -70,11 +85,29 @@ export interface TaskUpdate {
 /** Shape returned by GET /api/v1/tasks (list items) */
 export interface TaskListItem {
   id: string;
+  name: string;
   url: string;
   task_type: TaskType;
+  extraction_type: ExtractionType;
   priority: number;
   status: TaskStatus;
+  last_run: string | null;
+  next_run: string | null;
   created_at: string;
+}
+
+/** Shape returned by GET /api/v1/tasks/{id}/runs */
+export interface RunListItem {
+  id: string;
+  task_id: string;
+  lane: string;
+  started_at: string;
+  completed_at: string | null;
+  duration_ms: number;
+  status: RunStatus;
+  status_code: number | null;
+  bytes_downloaded: number;
+  records_found: number;
 }
 
 /* ── Policy ── */

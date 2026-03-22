@@ -42,11 +42,54 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "resources": [
+      "../../installer/license.rtf"
+    ],
+    "fileAssociations": [
+      {
+        "ext": ["scraper-task"],
+        "mimeType": "application/x-scraper-task",
+        "description": "AI Scraper Task File",
+        "role": "Editor"
+      }
+    ],
     "windows": {
       "webviewInstallMode": {
         "type": "embedBootstrapper"
+      },
+      "wix": {
+        "license": "../../installer/license.rtf",
+        "bannerPath": "../../installer/banner.bmp",
+        "dialogImagePath": "../../installer/dialog.bmp",
+        "language": "en-US",
+        "template": null,
+        "fragmentPaths": [],
+        "componentGroupRefs": [],
+        "componentRefs": [],
+        "customActionRefs": [],
+        "featureGroupRefs": [],
+        "featureRefs": [],
+        "mergeRefs": [],
+        "skipWebviewInstall": false,
+        "fipsCompliant": false
+      },
+      "nsis": {
+        "headerImage": "../../installer/header.bmp",
+        "sidebarImage": "../../installer/sidebar.bmp",
+        "license": "../../installer/license.rtf",
+        "installerIcon": "icons/icon.ico",
+        "displayLanguageSelector": false,
+        "languages": ["English"],
+        "installMode": "currentUser",
+        "startMenuFolder": "AI Scraper",
+        "template": null
       }
-    }
+    },
+    "shortDescription": "AI-powered web scraping platform",
+    "longDescription": "AI Scraper is a production-grade, cloud-agnostic AI-powered web scraping platform. It provides intelligent extraction with automatic lane routing, fallback chains, and AI normalization.",
+    "copyright": "Copyright (c) 2026 AI Scraper Team",
+    "category": "Utility",
+    "publisher": "AI Scraper Team"
   },
   "plugins": {
     "shell": {

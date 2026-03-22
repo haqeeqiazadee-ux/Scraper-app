@@ -15,6 +15,7 @@ import type {
   PolicyListItem,
   Result,
   ResultListItem,
+  RunListItem,
   PaginatedResponse,
 } from "./types";
 
@@ -99,6 +100,18 @@ export const tasks = {
   results(taskId: string): Promise<{ items: ResultListItem[]; total: number }> {
     return request(`/tasks/${taskId}/results`);
   },
+
+  runs(taskId: string): Promise<{ items: RunListItem[]; total: number }> {
+    return request(`/tasks/${taskId}/runs`);
+  },
+
+  delete(taskId: string): Promise<void> {
+    return request(`/tasks/${taskId}`, { method: "DELETE" });
+  },
+
+  execute(taskId: string): Promise<{ id: string; status: string }> {
+    return request(`/tasks/${taskId}/execute`, { method: "POST" });
+  },
 };
 
 /* ── Policies ── */
@@ -141,8 +154,63 @@ export const policies = {
 /* ── Results ── */
 
 export const results = {
+  list(params?: {
+    limit?: number;
+    offset?: number;
+    min_confidence?: number;
+    sort_by?: string;
+    sort_order?: "asc" | "desc";
+  }): Promise<PaginatedResponse<ResultListItem>> {
+    const query = new URLSearchParams();
+    if (params?.limit != null) query.set("limit", String(params.limit));
+    if (params?.offset != null) query.set("offset", String(params.offset));
+    if (params?.min_confidence != null) query.set("min_confidence", String(params.min_confidence));
+    if (params?.sort_by) query.set("sort_by", params.sort_by);
+    if (params?.sort_order) query.set("sort_order", params.sort_order);
+    const qs = query.toString();
+    return request(`/results${qs ? `?${qs}` : ""}`);
+  },
+
   get(resultId: string): Promise<Result> {
     return request(`/results/${resultId}`);
+  },
+
+  export(params: {
+    format: "json" | "csv" | "xlsx";
+    min_confidence?: number;
+    date_from?: string;
+    date_to?: string;
+    destination: "download" | "s3" | "webhook";
+    webhook_url?: string;
+    s3_path?: string;
+  }): Promise<Blob | { status: string; message: string }> {
+    if (params.destination === "download") {
+      return fetch(`${BASE}/results/export`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(params),
+      }).then((res) => {
+        if (!res.ok) throw new ApiError(res.status, res.statusText);
+        return res.blob();
+      });
+    }
+    return request("/results/export", {
+      method: "POST",
+      body: JSON.stringify(params),
+    });
+  },
+
+  exportCount(params: {
+    min_confidence?: number;
+    date_from?: string;
+    date_to?: string;
+  }): Promise<{ count: number }> {
+    const query = new URLSearchParams();
+    if (params.min_confidence != null) query.set("min_confidence", String(params.min_confidence));
+    if (params.date_from) query.set("date_from", params.date_from);
+    if (params.date_to) query.set("date_to", params.date_to);
+    const qs = query.toString();
+    return request(`/results/export/count${qs ? `?${qs}` : ""}`);
   },
 };
 
