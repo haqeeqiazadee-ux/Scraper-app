@@ -560,3 +560,26 @@
 - **Test results:** 47 passed, 5 skipped (auth tests — PyJWT/cryptography not loadable in environment), 0 failed
 - **Blockers found:** PyJWT import fails due to cffi_backend issue — auth tests correctly skip via pytestmark
 - **Next action:** Continue with remaining pending tasks
+
+## Work Cycle — 2026-03-22 (EXT-002)
+
+- **Timestamp:** 2026-03-22
+- **Active Task IDs:** EXT-002
+- **What was read before action:** apps/extension/manifest.json, apps/extension/background/service-worker.js, apps/extension/content/content.js, apps/extension/popup/popup.html, apps/extension/popup/popup.js, apps/extension/popup/popup.css, apps/extension/lib/api.js, apps/extension/lib/extractor.js, apps/extension/options/options.html, apps/extension/options/options.js, system/todo.md
+- **Action taken:** Implemented cloud-connected extraction for the Chrome extension
+- **Why:** EXT-002 in task breakdown — cloud API integration, client-side extraction service, visual selector picker, and background cloud sync needed for full extension functionality
+- **Outputs produced:**
+  - **src/services/api.ts:** Cloud API client — login(apiKey), createTask(config), executeTask(taskId), getResults(taskId), getStatus(), getTaskStatus(), sendForNormalization(). Auth token management with refresh. Configurable base URL via chrome.storage.local.
+  - **src/services/extraction.ts:** Client-side extraction service — extractByCSS(selector, attribute, multiple), extractByXPath(expression, multiple), extractAll(config), getPageMetadata(). Returns structured ExtractionResult with confidence scoring based on selector match rate.
+  - **src/components/ExtractPanel.ts:** Popup UI panel — detected data types, extraction preview (key-value display), "Send to Cloud" button, selector picker toggle. Renders via DOM manipulation (no framework). Injects scoped CSS styles. Listens for selectorPicked messages.
+  - **src/services/selector-picker.ts:** Visual selector picker — hover highlighting, click-to-select, optimal CSS selector generation (ID > unique class > attribute > nth-child path). Tooltip shows selector preview. Escape to cancel. Communicates selections via chrome.runtime messages.
+  - **src/background/cloud-sync.ts:** Background cloud sync — 30s health checks, 10s task polling, 15s queue flushing, offline queue (max 50, persisted to storage), task watching with notifications, exponential retry (max 5). Handles sendToCloud with automatic queue fallback.
+  - **content/selector-picker.js:** Compiled JS version of selector picker for content script injection.
+  - **lib/cloud-sync.js:** Compiled JS version of cloud sync for service worker import.
+  - **manifest.json:** Added scripting, notifications, alarms permissions. Added <all_urls> host permission. Added selector-picker.js to content_scripts.
+  - **popup/popup.html:** Added picker button, cloud status indicator, detected types section, cloud actions section.
+  - **popup/popup.css:** Added styles for actions row, secondary/cloud buttons, cloud status indicator, queue badge, detected type tags.
+  - **popup/popup.js:** Rewrote with cloud status polling, detected types display, Send to Cloud handler, selector picker toggle, task status notifications.
+  - **background/service-worker.js:** Integrated cloud-sync module, selector picker relay, sendToCloud message handling.
+- **Blockers found:** None
+- **Next action:** All 68 implementation tasks complete. Only TEST-002/003/004 remain as already completed.
