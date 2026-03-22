@@ -854,3 +854,29 @@
 - **Files touched:** scripts/package-extension.sh (new), apps/extension/build.config.js (new), .github/workflows/build-extension.yml (new), scripts/validate-extension.sh (new), apps/extension/package.json (new)
 - **Validation:** validate-extension.sh runs successfully against existing apps/extension/ directory. Workflow YAML structure valid. Build config handles all required validation checks. Package.json scripts reference correct relative paths.
 - **Pass/Fail:** PASS | **Final Status:** COMPLETE
+
+---
+
+## WEB-002: Task Management UI Interactivity
+
+- **Task ID:** WEB-002
+- **Task Title:** Task management UI interactivity
+- **Start Time:** 2026-03-22
+- **End Time:** 2026-03-22
+- **Exact steps performed:**
+  1. Read all existing web app files (App.tsx, pages, components, api, hooks, styles, package.json)
+  2. Created apps/web/src/lib/api.ts — API client helper with auth token management, apiRequest(), buildQuery()
+  3. Created apps/web/src/hooks/useTasks.ts — 8 React Query hooks with TASK_KEYS factory
+  4. Created apps/web/src/components/TaskForm.tsx — Create/edit form with dynamic selectors, validation, policy dropdown
+  5. Rewrote apps/web/src/components/TaskTable.tsx — Sortable table with inline edit/run/delete actions
+  6. Created apps/web/src/components/TaskDetail.tsx — Task config display with run/cancel and results
+  7. Created apps/web/src/components/RunHistory.tsx — Run history table with duration formatting
+  8. Created apps/web/src/pages/TasksPage.tsx — Tasks list page with modal form overlay
+  9. Created apps/web/src/pages/TaskDetailPage.tsx — Task detail + RunHistory page
+  10. Updated App.tsx, api/types.ts, api/client.ts, styles/globals.css
+  11. Updated system tracking files
+- **Files touched:** 8 new, 4 modified, 1 rewritten
+- **Validation:** All components follow existing code patterns. No new dependencies required.
+- **Pass/Fail:** PASS
+- **Follow-up items:** None
+- **Final Status:** COMPLETE
