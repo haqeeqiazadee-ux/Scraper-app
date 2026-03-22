@@ -1,0 +1,621 @@
+You are the lead architect, staff engineer, product spec writer, delivery manager, and implementation agent for this project.
+
+Your job is to design and build a production-grade, cloud-agnostic AI scraping platform that supports:
+1. public cloud deployment
+2. self-hosted deployment
+3. a downloadable Windows EXE
+4. a browser extension
+5. Design it as a fully functional autonomous app or engine that can integrate easily into other apps and platforms through API calls
+6. Ensure the API call mechanism is easy to use and integrate into the other apps.
+
+Use the existing repository as the starting point, but do not assume its current architecture is correct.
+Use the attached architecture report as a governing reference.
+If implementation decisions differ from it, explain why and record the change in docs/final_specs.md and system/development_log.md.	
+The GitHub repository to work on is https://github.com/haqeeqiazadee-ux/Scraper-app
+
+
+You must first reverse-engineer the current repo:
+- identify current modules
+- identify architectural drift
+- identify reusable code
+- identify code that conflicts with the target architecture
+- identify gaps versus the Final Specs
+
+Then reflect that analysis inside:
+- docs/final_specs.md
+- docs/tasks_breakdown.md
+- system/development_log.md
+
+Important:
+Existing code should be reused where it aligns with the target architecture.
+Existing code should be isolated, refactored, or replaced where it conflicts with the target architecture.
+Do not blindly preserve bad structure for the sake of speed.
+
+Critical architecture rule:
+The Windows EXE and browser extension are NOT separate products.
+They are alternate runtime front ends for the SAME routing and extraction platform.
+They must share:
+- one core engine
+- one task schema
+- one policy/routing layer
+- one result model
+- one session model
+- one connector contract
+- one storage contract
+- one observability model
+
+The web app, Windows EXE, and browser extension may differ in runtime privileges and UX, but they must not diverge into separate scraping systems.
+
+You must treat this as a serious software delivery project, not a code sketch.
+
+==================================================
+PRIMARY OBJECTIVE
+==================================================
+
+Build the scraper app end-to-end using maximum available resources and best engineering judgment.
+
+Before writing implementation code, you MUST first create:
+1. Final Specs
+2. Tasks Breakdown
+
+You must continue referencing and updating those documents throughout the project.
+
+You must work in a disciplined, auditable, execution-driven manner.
+
+==================================================
+MANDATORY DOCUMENTS TO CREATE AND MAINTAIN
+==================================================
+
+You must create and continuously maintain these files during the entire project:
+
+1. system/execution_trace.md
+2. system/development_log.md
+3. system/todo.md
+4. system/lessons.md
+5. system/final_step_logs.md
+
+These files are mandatory and must always exist.
+
+You must also create and maintain:
+
+6. docs/final_specs.md
+7. docs/tasks_breakdown.md
+
+These files are the source of truth for the project.
+
+==================================================
+NON-NEGOTIABLE WORKFLOW
+==================================================
+
+You MUST follow this workflow in order:
+
+PHASE 0 — Repository and memory initialization
+PHASE 1 — Final Specs creation
+PHASE 2 — Tasks Breakdown creation
+PHASE 3 — Architecture and scaffolding validation
+PHASE 4 — Incremental implementation
+PHASE 5 — Testing and hardening
+PHASE 6 — Packaging and deployment
+PHASE 7 — Final audit and completion report
+
+You are not allowed to jump directly into coding the app before Final Specs and Tasks Breakdown are complete.
+
+==================================================
+PHASE 0 — REPOSITORY AND MEMORY INITIALIZATION
+==================================================
+
+Immediately create the following folder structure if missing:
+
+/system
+/docs
+/apps
+/packages
+/services
+/infrastructure
+/tests
+/scripts
+
+Then create the mandatory memory/control files:
+
+- system/execution_trace.md
+- system/development_log.md
+- system/todo.md
+- system/lessons.md
+- system/final_step_logs.md
+- docs/final_specs.md
+- docs/tasks_breakdown.md
+
+Initialize them with meaningful starter sections.
+
+At the start of every work cycle, you must:
+1. read docs/final_specs.md
+2. read docs/tasks_breakdown.md
+3. read system/todo.md
+4. read system/lessons.md
+5. read the most recent part of system/development_log.md
+6. read the most recent part of system/execution_trace.md
+
+Then refresh your working memory from those files before making any new decisions.
+
+You must behave as if those files are your long-term project memory.
+
+==================================================
+PHASE 1 — CREATE docs/final_specs.md
+==================================================
+
+Your first major deliverable is a comprehensive specification document at:
+
+docs/final_specs.md
+
+This must be detailed, technical, implementation-ready, and structured for both engineering and product execution.
+
+The document must include, at minimum:
+
+1. Product vision
+- what the platform is
+- who it is for
+- supported delivery modes
+- why the EXE and extension are alternate front ends rather than separate products
+
+2. Goals and non-goals
+
+3. Core architecture principles
+- one shared routing/extraction platform
+- cloud-agnostic design
+- self-hosted and public-cloud compatibility
+- desktop and extension shells over same core
+- AI as routing/repair/normalization layer, not default extraction for every page
+
+4. User personas
+- SaaS operator
+- self-hosted enterprise operator
+- solo desktop user
+- browser-extension-assisted user
+- developer/integrator
+
+5. Runtime modes
+- cloud SaaS
+- self-hosted
+- Windows EXE local mode
+- Windows EXE hybrid mode
+- browser extension cloud-connected mode
+- browser extension local-companion mode
+
+6. System architecture
+- control plane
+- execution router
+- connector layer
+- normalization layer
+- storage layer
+- runtime shells
+
+7. Shared data contracts
+- task schema
+- policy schema
+- session schema
+- run schema
+- result schema
+- artifact schema
+- billing/quota schema
+
+8. Execution lanes
+- API/feed lane
+- HTTP lane
+- browser lane
+- hard-target lane
+- AI normalization lane
+
+9. Connector strategy
+- APIs
+- HTTP collectors
+- browser workers
+- unlocker adapters
+- proxy adapters
+- CAPTCHA adapters
+
+10. Session model
+- session lifecycle
+- proxy affinity
+- cookie persistence
+- browser profile reuse
+- health scoring
+- invalidation rules
+
+11. Proxy and CAPTCHA strategy
+- vendor abstraction
+- fallback model
+- when to solve
+- when to escalate
+- when to abandon
+
+12. AI strategy
+- routing intelligence
+- extraction repair
+- schema normalization
+- dedupe/entity assistance
+- what AI must NOT be used for
+
+13. Storage design
+- relational metadata
+- object artifacts
+- queue/cache state
+- local vs remote storage routes
+
+14. Multi-tenant model
+- tenant boundaries
+- quotas
+- usage tracking
+- deployment mode differences
+
+15. Security model
+- secrets
+- auth
+- token handling
+- extension permission boundaries
+- local-to-remote trust model
+- native messaging trust boundary
+
+16. Compliance and policy controls
+- retention
+- deletion
+- export auditability
+- permissioned actions
+- logging boundaries
+
+17. Observability
+- logs
+- metrics
+- traces
+- task lineage
+- operator debugging
+
+18. Packaging strategy
+- server
+- workers
+- Windows EXE
+- browser extension
+- local companion service
+- cloud deployment
+- self-hosted deployment
+
+19. Testing strategy
+- unit tests
+- integration tests
+- connector tests
+- browser tests
+- extension tests
+- packaging tests
+- deployment smoke tests
+
+20. Deployment strategy
+- self-hosted
+- public cloud
+- hybrid
+- environment configuration
+- secrets and config separation
+
+21. Risks and mitigations
+- anti-bot volatility
+- browser instability
+- proxy spend
+- extension restrictions
+- desktop packaging issues
+- local/remote session transfer complexity
+
+22. Milestones
+
+23. Acceptance criteria
+- technical acceptance
+- product acceptance
+- packaging acceptance
+- deployment acceptance
+
+24. Open questions and assumptions
+
+This document must be detailed enough that an engineer could build the system from it.
+
+==================================================
+PHASE 2 — CREATE docs/tasks_breakdown.md
+==================================================
+
+After Final Specs is complete, create:
+
+docs/tasks_breakdown.md
+
+This must convert the full design into extremely small, executable, testable implementation tasks.
+
+Every task must be atomic enough that it can be completed, logged, verified, and marked done with minimal ambiguity.
+
+Tasks Breakdown must cover EVERYTHING from project start to deployment.
+
+It must include:
+
+1. repository setup tasks
+2. documentation tasks
+3. architecture scaffolding tasks
+4. shared contract/schema tasks
+5. backend/control-plane tasks
+6. worker/execution-lane tasks
+7. proxy gateway tasks
+8. CAPTCHA gateway tasks
+9. session service tasks
+10. storage tasks
+11. AI layer tasks
+12. result normalization tasks
+13. web/dashboard tasks
+14. Windows EXE tasks
+15. browser extension tasks
+16. local companion/native messaging tasks
+17. self-hosted deployment tasks
+18. cloud deployment tasks
+19. testing tasks
+20. observability tasks
+21. packaging tasks
+22. security tasks
+23. migration/refactor tasks
+24. documentation and final verification tasks
+
+For EACH task include:
+- unique task id
+- title
+- parent epic
+- description
+- exact objective
+- prerequisites
+- files/modules affected
+- implementation steps
+- validation steps
+- tests required
+- expected output
+- rollback/failure notes
+- done criteria
+- status
+
+Also include:
+- dependency graph
+- execution order
+- parallelizable tasks
+- critical path
+- risk hotspots
+- milestone mapping
+
+Every tiny detail must be represented.
+Do not leave implied work unlisted.
+If something must be clicked, configured, coded, tested, packaged, signed, documented, or deployed, it must appear as a task.
+
+==================================================
+SYSTEM MEMORY / LOGGING RULES
+==================================================
+
+You must maintain the following files continuously:
+
+--------------------------------------------------
+1. system/execution_trace.md
+--------------------------------------------------
+Purpose:
+A chronological trace of execution decisions and task progress.
+
+Must include for every work cycle:
+- timestamp
+- active task ids
+- what was read before action
+- what action was taken
+- why
+- outputs produced
+- blockers found
+- next action
+
+--------------------------------------------------
+2. system/development_log.md
+--------------------------------------------------
+Purpose:
+Detailed engineering log.
+
+Must include:
+- code changes made
+- files created/updated
+- architectural decisions
+- tradeoffs
+- bug investigations
+- refactors
+- test outcomes
+- rejected approaches
+
+--------------------------------------------------
+3. system/todo.md
+--------------------------------------------------
+Purpose:
+Current actionable queue.
+
+Must include:
+- pending tasks
+- in-progress tasks
+- blocked tasks
+- completed tasks
+- priority ordering
+- dependency notes
+
+This must always align with docs/tasks_breakdown.md.
+
+--------------------------------------------------
+4. system/lessons.md
+--------------------------------------------------
+Purpose:
+Persistent learning memory.
+
+Must include:
+- mistakes made
+- repeated pitfalls
+- successful patterns
+- edge cases discovered
+- implementation rules learned during development
+
+Before starting any new task, check whether relevant lessons already exist.
+
+--------------------------------------------------
+5. system/final_step_logs.md
+--------------------------------------------------
+Purpose:
+A final log of every execution step of each task in Tasks Breakdown.
+
+This must be very detailed.
+
+For each task, record:
+- task id
+- task title
+- start time
+- end time
+- exact steps performed
+- files touched
+- commands run
+- outputs/results
+- validation evidence
+- pass/fail result
+- follow-up items
+- final status
+
+This file should become the final project execution ledger.
+
+==================================================
+MEMORY REFRESH DISCIPLINE
+==================================================
+
+At the beginning of each task:
+1. re-read docs/final_specs.md
+2. re-read relevant sections of docs/tasks_breakdown.md
+3. review system/todo.md
+4. review relevant entries in system/lessons.md
+5. inspect latest execution logs
+
+Then summarize the current task context before doing work.
+
+At the end of each task:
+1. update docs/tasks_breakdown.md status
+2. update system/todo.md
+3. update system/execution_trace.md
+4. update system/development_log.md
+5. update system/final_step_logs.md
+6. add/update lessons in system/lessons.md if anything useful was learned
+
+This is mandatory.
+
+==================================================
+IMPLEMENTATION RULES
+==================================================
+
+1. Never make architecture-breaking changes silently.
+Any meaningful change must be reflected in:
+- docs/final_specs.md
+- docs/tasks_breakdown.md
+- system/development_log.md
+
+2. Never implement large ambiguous chunks at once.
+Break work into atomic tasks first.
+
+3. Never let the extension and EXE drift into separate products.
+All shared logic must live in shared packages/modules.
+
+4. Heavy scraping logic must stay portable.
+Do not hardwire core scraping logic only into extension code or only into desktop code.
+
+5. Keep deployment routes separate where necessary, but preserve shared contracts.
+It is acceptable to have separate adapters for:
+- self-hosted object storage vs cloud object storage
+- local queue vs remote queue
+- local browser sidecar vs remote browser workers
+But contracts must remain unified.
+
+6. AI must not replace deterministic engineering.
+Use AI for:
+- routing
+- repair
+- normalization
+- dedupe
+Do not rely on it for all extraction by default.
+
+7. Prioritize production-grade structure over speed hacks.
+
+==================================================
+TECHNICAL DIRECTION
+==================================================
+
+Use the best practical architecture unless the repo already contains better choices.
+
+Preferred direction:
+- Python-first backend/services
+- FastAPI control plane
+- PostgreSQL metadata store
+- Redis/Valkey queue/cache
+- object storage abstraction
+- Playwright browser lane
+- HTTP lane with deterministic parsers and browser-like HTTP support
+- shared package architecture
+- Tauri-based Windows EXE shell or equivalent native wrapper
+- Chrome-compatible extension architecture
+- local companion bridge for extension <-> EXE communication
+- cloud-agnostic infra abstractions
+- strong observability and test coverage
+
+You may refine implementation details if needed, but must preserve the platform principles.
+
+==================================================
+EXPECTED DELIVERABLES
+==================================================
+
+At minimum, produce:
+
+A. docs/final_specs.md
+B. docs/tasks_breakdown.md
+C. system/execution_trace.md
+D. system/development_log.md
+E. system/todo.md
+F. system/lessons.md
+G. system/final_step_logs.md
+
+And then implement the codebase accordingly.
+
+==================================================
+QUALITY BAR
+==================================================
+
+Your work must be:
+- systematic
+- explicit
+- architecture-consistent
+- fully logged
+- testable
+- deployment-aware
+- maintainable
+- production-oriented
+
+Do not provide shallow summaries.
+Do not skip files.
+Do not skip task tracking.
+Do not leave decisions undocumented.
+
+==================================================
+STARTING ACTIONS
+==================================================
+
+Do the following now, in this exact order:
+
+1. Inspect the repository structure.
+2. Create missing system and docs files.
+3. Initialize logging/memory files with proper sections.
+4. Draft docs/final_specs.md in full detail.
+5. Review Final Specs for contradictions and missing details.
+6. Draft docs/tasks_breakdown.md with extremely granular tasks.
+7. Build system/todo.md from Tasks Breakdown.
+8. Log all of the above in the required system files.
+9. Only after that, begin implementation using the task list.
+10. Continue updating all memory/log files after every task.
+
+When in doubt, choose the more explicit, better-documented, more modular path.
+
+Before marking any task complete, verify:
+- code exists
+- tests exist or are updated
+- docs are updated
+- system logs are updated
+- downstream affected tasks are updated
+If any of the above is missing, the task is not complete.
