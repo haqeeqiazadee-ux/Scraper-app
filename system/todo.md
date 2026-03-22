@@ -27,7 +27,11 @@
 - [x] **WORKER-004:** Lane escalation manager (11 tests)
 - [x] **NORM-001:** Schema mapping / normalizer (25 tests)
 
-## Test Status: 186 passed, 0 failed (4.40s)
+- [x] **SESSION-001:** Session manager — lifecycle, health scoring, auto-invalidation (14 tests)
+- [x] **API-005:** Result and export endpoints
+- [x] **SELFHOST-001:** Docker Compose stack (control-plane + PostgreSQL + Redis)
+
+## Test Status: 200 passed, 0 failed (4.50s)
 
 ## Pending (Next Up)
 - [ ] WORKER-002: Browser lane worker

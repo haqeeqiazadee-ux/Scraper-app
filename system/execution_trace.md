@@ -157,3 +157,17 @@
   - **Total: 186 tests, all passing in 4.40s**
 - **Blockers found:** Price cleaning edge case (comma disambiguation — thousands vs decimal)
 - **Next action:** Commit and push, continue with SESSION-001, API-005
+
+## Work Cycle 009 — 2026-03-22
+
+- **Timestamp:** 2026-03-22
+- **Active Task IDs:** SESSION-001, API-005, SELFHOST-001
+- **What was read before action:** system/todo.md, docs/final_specs.md (sections 10, 18)
+- **Action taken:** Implemented session manager, result endpoints, Docker Compose
+- **Outputs produced:**
+  - **SESSION-001:** SessionManager class — create, get, get_for_domain (best health), record_success/failure, invalidate, expire, cleanup, stats. Health scoring drives automatic ACTIVE → DEGRADED → INVALIDATED transitions. 14 tests.
+  - **API-005:** Result API endpoints — GET /results/{id}, GET /tasks/{task_id}/results. Registered in app.py.
+  - **SELFHOST-001:** Docker Compose stack — control-plane (FastAPI), PostgreSQL 15, Redis 7 with health checks, volumes. Dockerfile.control-plane with non-root user.
+  - **Total: 200 tests, all passing in 4.50s**
+- **Blockers found:** None
+- **Next action:** Commit, push, continue with remaining tasks

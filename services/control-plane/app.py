@@ -18,7 +18,7 @@ from typing import AsyncGenerator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from services.control_plane.routers import health, tasks, policies  # noqa: E402 — uses symlink
+from services.control_plane.routers import health, tasks, policies, results  # noqa: E402 — uses symlink
 from services.control_plane.dependencies import init_database, get_database
 from services.control_plane.config import settings
 
@@ -60,6 +60,7 @@ def create_app() -> FastAPI:
     app.include_router(health.router, tags=["Health"])
     app.include_router(tasks.router, prefix="/api/v1", tags=["Tasks"])
     app.include_router(policies.router, prefix="/api/v1", tags=["Policies"])
+    app.include_router(results.router, prefix="/api/v1", tags=["Results"])
 
     return app
 

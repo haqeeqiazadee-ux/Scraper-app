@@ -1,0 +1,71 @@
+version: "3.8"
+
+services:
+  # ==========================================================================
+  # Control Plane — FastAPI API server
+  # ==========================================================================
+  control-plane:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.control-plane
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://scraper:scraper@postgres:5432/scraper_db
+      - REDIS_URL=redis://redis:6379/0
+      - STORAGE_TYPE=filesystem
+      - STORAGE_PATH=/app/artifacts
+      - LOG_LEVEL=INFO
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - artifacts:/app/artifacts
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ==========================================================================
+  # PostgreSQL — metadata storage
+  # ==========================================================================
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: scraper_db
+      POSTGRES_USER: scraper
+      POSTGRES_PASSWORD: scraper
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U scraper -d scraper_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ==========================================================================
+  # Redis — queue and cache
+  # ==========================================================================
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  pgdata:
+  redisdata:
+  artifacts:

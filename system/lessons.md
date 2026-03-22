@@ -71,3 +71,7 @@
 30. **Comma disambiguation in prices** — "5,000" vs "29,99": use regex `^\d{1,3}(,\d{3})+$` to detect thousands separator. If it matches, remove commas. Otherwise treat comma as decimal. This handles USD, EUR, PKR formats correctly.
 
 31. **Escalation context must be per-task** — Each task gets its own EscalationContext tracking depth and attempts. Don't use global state — concurrent tasks would interfere with each other.
+
+32. **Session health drives automatic status transitions** — Health score thresholds (0.7 degraded, 0.3 invalid) combined with consecutive failure count give reliable session lifecycle management without manual intervention.
+
+33. **Docker health checks are essential** — Use `pg_isready` for PostgreSQL, `redis-cli ping` for Redis, and HTTP health endpoint for the API. Docker Compose `depends_on: condition: service_healthy` ensures proper startup order.

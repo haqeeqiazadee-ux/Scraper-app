@@ -365,3 +365,33 @@
 - **Steps:** Created packages/core/normalizer.py with field aliases (30+), type coercion, price cleaning (multi-format comma handling). 25 tests.
 - **Validation:** 25/25 tests passing. Total suite: 186 tests, 0 failures.
 - **Pass/Fail:** PASS | **Final Status:** COMPLETE
+
+---
+
+## SESSION-001: Session Manager
+
+- **Task ID:** SESSION-001
+- **Start/End:** 2026-03-22
+- **Steps:** Created packages/core/session_manager.py. SessionManager with create, get, get_for_domain (best health), record_success/failure, invalidate, expire, cleanup, stats. Auto-transitions: ACTIVE→DEGRADED→INVALIDATED. 14 tests.
+- **Validation:** 14/14 tests passing
+- **Pass/Fail:** PASS | **Final Status:** COMPLETE
+
+---
+
+## API-005: Result and Export Endpoints
+
+- **Task ID:** API-005
+- **Start/End:** 2026-03-22
+- **Steps:** Created services/control-plane/routers/results.py. GET /results/{id}, GET /tasks/{task_id}/results. Registered in app.py.
+- **Validation:** Endpoints registered, app starts
+- **Pass/Fail:** PASS | **Final Status:** COMPLETE
+
+---
+
+## SELFHOST-001: Docker Compose Stack
+
+- **Task ID:** SELFHOST-001
+- **Start/End:** 2026-03-22
+- **Steps:** Created infrastructure/docker/docker-compose.yml (control-plane + PostgreSQL 15 + Redis 7), Dockerfile.control-plane (Python 3.11-slim, non-root user). Health checks for all services. Volumes for persistence.
+- **Validation:** Files created with correct syntax
+- **Pass/Fail:** PASS | **Final Status:** COMPLETE
