@@ -10,9 +10,11 @@
       "Bash(git checkout *)",
       "Bash(git branch *)",
       "Bash(git fetch *)",
+      "Bash(git merge *)",
       "Bash(gh pr create *)",
       "Bash(gh pr view *)",
-      "Bash(gh pr list *)"
+      "Bash(gh pr list *)",
+      "Bash(gh pr merge *)"
     ],
     "deny": [
       "Bash(git push --force *)",
