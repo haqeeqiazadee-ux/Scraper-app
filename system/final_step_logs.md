@@ -287,3 +287,22 @@
 - **Validation:** 18/18 queue+cache tests passing. Total suite: 103 tests, 0 failures.
 - **Pass/Fail:** PASS
 - **Final Status:** COMPLETE
+
+---
+
+## STORAGE-001: SQLAlchemy Metadata Store
+
+- **Task ID:** STORAGE-001
+- **Start Time:** 2026-03-22
+- **End Time:** 2026-03-22
+- **Steps:**
+  1. Installed sqlalchemy + aiosqlite
+  2. Created packages/core/storage/models.py: 6 ORM models (Task, Policy, Session, Run, Result, Artifact) with composite indexes, JSON columns for nested data, foreign key relationships
+  3. Created packages/core/storage/database.py: Database class with async engine, session factory, create/drop tables
+  4. Created packages/core/storage/repositories.py: TaskRepository, PolicyRepository, RunRepository, ResultRepository — all with tenant_id isolation on every query
+  5. Created tests/unit/test_database.py: 14 tests (table creation, session, task CRUD, policy CRUD, tenant isolation, status filtering)
+  6. All 14 database tests passing with SQLite in-memory
+- **Files touched:** models.py, database.py, repositories.py, test_database.py
+- **Validation:** 117 total tests passing (103 previous + 14 new)
+- **Pass/Fail:** PASS
+- **Final Status:** COMPLETE

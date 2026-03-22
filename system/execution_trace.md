@@ -108,3 +108,19 @@
   - **Total: 103 tests, all passing**
 - **Blockers found:** Router domain matching needed suffix support (fixed)
 - **Next action:** Update tracking files, commit, push; then STORAGE-001 (SQLAlchemy metadata store) and API wiring
+
+## Work Cycle 006 — 2026-03-22
+
+- **Timestamp:** 2026-03-22
+- **Active Task IDs:** STORAGE-001
+- **What was read before action:** system/todo.md, docs/tasks_breakdown.md (STORAGE-001 spec)
+- **Action taken:** Implemented SQLAlchemy metadata store with ORM models, database engine, and repository pattern
+- **Why:** Critical path — all API endpoints need database persistence
+- **Outputs produced:**
+  - **models.py:** 6 SQLAlchemy ORM models (TaskModel, PolicyModel, SessionModel, RunModel, ResultModel, ArtifactModel) with indexes, relationships, JSON columns
+  - **database.py:** Database class with async engine, session factory, create_tables/drop_tables
+  - **repositories.py:** 4 repository classes (TaskRepo, PolicyRepo, RunRepo, ResultRepo) with tenant isolation on all queries
+  - **test_database.py:** 14 tests — table creation, CRUD for tasks and policies, tenant isolation, status filtering, pagination
+  - **Total: 117 tests, all passing in 3.22s**
+- **Blockers found:** None
+- **Next action:** Commit and push, then continue with API wiring and workers

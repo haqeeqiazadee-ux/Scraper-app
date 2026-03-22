@@ -55,3 +55,7 @@
 22. **Queue ack/nack pattern** — Track dequeued messages as "pending" until ack'd. On nack, re-enqueue the message. This matches Redis/RabbitMQ semantics and enables reliable message processing.
 
 23. **Test early, test often** — Writing tests alongside implementation (not after) caught the router domain matching bug immediately. The 103-test suite now validates all contracts, router logic, and storage backends.
+
+24. **SQLite in-memory for fast tests** — Using `sqlite+aiosqlite:///:memory:` gives instant test databases with zero cleanup. Each test gets a fresh database via fixtures. This is much faster than testcontainers for unit tests.
+
+25. **Tenant isolation via repository pattern** — Every repository method takes `tenant_id` as a parameter and includes it in WHERE clauses. This is the single enforcement point for multi-tenant data isolation. Never query without tenant_id.

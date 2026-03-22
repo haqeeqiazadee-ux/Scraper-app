@@ -22,7 +22,7 @@
 - **Tests Required:** None (structural)
 - **Expected Output:** Complete folder tree
 - **Done Criteria:** All directories exist with .gitkeep or initial files
-- **Status:** NOT_STARTED
+- **Status:** COMPLETE
 
 ### REPO-002: Configure Python monorepo tooling
 - **Parent Epic:** Repository Setup
@@ -40,7 +40,7 @@
 - **Tests Required:** None (tooling)
 - **Expected Output:** Configured tooling files
 - **Done Criteria:** Linter, formatter, and test runner configured and working
-- **Status:** NOT_STARTED
+- **Status:** COMPLETE
 
 ### REPO-003: Set up CI/CD pipeline
 - **Parent Epic:** Repository Setup
@@ -57,7 +57,7 @@
 - **Tests Required:** CI pipeline itself validates tests
 - **Expected Output:** Green CI checks on GitHub
 - **Done Criteria:** CI passes on push
-- **Status:** NOT_STARTED
+- **Status:** COMPLETE
 
 ### REPO-004: Create .gitignore and .env.example
 - **Parent Epic:** Repository Setup
@@ -72,7 +72,7 @@
 - **Tests Required:** None
 - **Expected Output:** `.gitignore`, `.env.example`
 - **Done Criteria:** Files exist and are correct
-- **Status:** NOT_STARTED
+- **Status:** COMPLETE
 
 ---
 
@@ -92,7 +92,7 @@
 - **Tests Required:** None
 - **Expected Output:** Finalized spec document
 - **Done Criteria:** No TODOs remain, status = FINAL
-- **Status:** NOT_STARTED
+- **Status:** COMPLETE
 
 ### DOC-002: Create API reference skeleton
 - **Parent Epic:** Documentation
@@ -146,7 +146,7 @@
 - **Tests Required:** `tests/unit/test_contracts.py`
 - **Expected Output:** Importable contracts package
 - **Done Criteria:** All 7 schemas implemented with validation, tests passing
-- **Status:** NOT_STARTED
+- **Status:** COMPLETE
 
 ### ARCH-002: Create packages/core engine skeleton
 - **Parent Epic:** Architecture Scaffolding
@@ -163,7 +163,7 @@
 - **Tests Required:** `tests/unit/test_core_interfaces.py`
 - **Expected Output:** Core package with protocol interfaces
 - **Done Criteria:** All interfaces defined, mypy passes
-- **Status:** NOT_STARTED
+- **Status:** COMPLETE
 
 ### ARCH-003: Create packages/connectors skeleton
 - **Parent Epic:** Architecture Scaffolding
@@ -179,7 +179,7 @@
 - **Tests Required:** `tests/unit/test_connector_stubs.py`
 - **Expected Output:** Connector package skeleton
 - **Done Criteria:** All adapter stubs exist and conform to protocols
-- **Status:** NOT_STARTED
+- **Status:** COMPLETE
 
 ### ARCH-004: Create services/control-plane skeleton
 - **Parent Epic:** Architecture Scaffolding
@@ -196,7 +196,7 @@
 - **Tests Required:** `tests/integration/test_control_plane_health.py`
 - **Expected Output:** Running FastAPI app skeleton
 - **Done Criteria:** Server starts, health endpoint works
-- **Status:** NOT_STARTED
+- **Status:** COMPLETE
 
 ---
 
@@ -217,7 +217,7 @@
 - **Tests Required:** `tests/unit/test_task_schema.py`
 - **Expected Output:** Task model with validation
 - **Done Criteria:** All fields validated, serialization works, tests pass
-- **Status:** NOT_STARTED
+- **Status:** COMPLETE
 
 ### SCHEMA-002: Implement Policy schema
 - **Parent Epic:** Shared Contracts
@@ -233,7 +233,7 @@
 - **Tests Required:** `tests/unit/test_policy_schema.py`
 - **Expected Output:** Policy model with nested schemas
 - **Done Criteria:** All nested models validated, tests pass
-- **Status:** NOT_STARTED
+- **Status:** COMPLETE
 
 ### SCHEMA-003: Implement Session, Run, Result, Artifact, Billing schemas
 - **Parent Epic:** Shared Contracts
@@ -249,7 +249,7 @@
 - **Tests Required:** `tests/unit/test_schemas.py`
 - **Expected Output:** Complete contracts package
 - **Done Criteria:** All 7 schemas implemented, all tests pass
-- **Status:** NOT_STARTED
+- **Status:** COMPLETE
 
 ---
 

@@ -19,6 +19,9 @@
 - [x] **Router tests:** ExecutionRouter lane selection tests (12 tests) + domain suffix fix
 - [x] **STORAGE-002:** Filesystem object storage adapter (10 tests)
 - [x] **STORAGE-003:** In-memory queue + cache backends (18 tests)
+- [x] **STORAGE-001:** SQLAlchemy metadata store — ORM models, database engine, repositories (14 tests)
+
+## Test Status: 117 passed, 0 failed
 
 ## Pending (Next Up)
 - [ ] STORAGE-001: Implement SQLAlchemy metadata store (PostgreSQL/SQLite)
