@@ -22,6 +22,24 @@
 
 8. **69 tasks is manageable** — Breaking the project into 69 granular tasks across 24 epics gives clear visibility. The critical path has 12 sequential tasks.
 
-9. **Front ends can parallelize** — Web dashboard, Windows EXE, and browser extension development can happen in parallel once the API is working. This is important for timeline optimization.
+9. **Front ends can parallelize** — Web dashboard, Windows EXE, and browser extension development can happen in parallel once the API is working.
 
-10. **Migration should happen early** — Extracting reusable code from scraper_pro/ into new packages should happen alongside architecture scaffolding, not after. This prevents duplicate work.
+10. **Migration should happen early** — Extracting reusable code from scraper_pro/ into new packages should happen alongside architecture scaffolding, not after.
+
+## Phase 3 Observations
+
+11. **Python package naming: no hyphens** — Python cannot import packages with hyphens in directory names (e.g., `services/control-plane`). Resolved with symlink: `services/control_plane` → `services/control-plane`. **Rule:** Always use underscores in Python package directory names, or create symlinks when convention conflicts.
+
+12. **Pydantic v2 model_config replaces Config class** — In Pydantic v2, use `model_config = {"from_attributes": True}` instead of the old `class Config: orm_mode = True`. This is needed for SQLAlchemy ORM integration.
+
+13. **Protocol > ABC for interfaces** — Using `typing.Protocol` with `@runtime_checkable` provides structural subtyping — implementations don't need to explicitly inherit. This is cleaner for a pluggable architecture.
+
+14. **StrEnum for JSON serialization** — Using `StrEnum` instead of plain `Enum` ensures values serialize naturally to/from JSON without needing custom serializers.
+
+15. **In-memory stores for scaffolding** — The control plane uses in-memory dicts for initial scaffolding. This lets us test the API shape before wiring up the database. Replace with real stores in STORAGE tasks.
+
+16. **Lazy initialization pattern** — Both HttpCollector and PlaywrightBrowserWorker use lazy initialization (create client on first request). This avoids startup overhead and import-time side effects.
+
+17. **Fallback chain is reusable everywhere** — The primary → secondary → tertiary pattern from scraper_pro/core/fallback_chain.py applies to: proxies (datacenter → residential → mobile), CAPTCHAs (service A → B → C), AI providers (Gemini → OpenAI → deterministic), execution lanes (HTTP → browser → hard-target). It's a core architectural pattern.
+
+18. **CLAUDE.md is essential** — Having a project context file that documents architecture, conventions, and workflow ensures consistency across coding sessions. Update it after every significant architectural change.
