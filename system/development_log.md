@@ -32,3 +32,47 @@
 ### Architectural decisions:
 - Preserved existing scraper_pro/ as-is for analysis; will refactor into target architecture during Phase 3+
 - Target architecture per prompt: Python-first, FastAPI control plane, shared core engine, multiple runtime shells
+
+---
+
+## 2026-03-22 — Phase 1: Final Specs
+
+### docs/final_specs.md created (1233 lines, 24 sections)
+
+**Key architectural decisions documented:**
+1. FastAPI control plane as central coordination layer
+2. Pydantic models for all 7 shared data contracts
+3. 5 execution lanes: API/feed, HTTP, browser, hard-target, AI normalization
+4. Lane escalation: HTTP → Browser → Hard-target (automatic on failure)
+5. AIProvider protocol supporting Gemini, OpenAI, Claude, and Ollama (local)
+6. Storage abstraction: PostgreSQL/SQLite for metadata, S3/filesystem for artifacts, Redis/in-memory for queue
+7. Tauri v2 for Windows EXE shell
+8. Chrome Manifest V3 for browser extension
+9. Native messaging for extension ↔ companion communication
+10. Prometheus + OpenTelemetry for observability
+
+**Reuse decisions:**
+- core/fallback_chain.py → packages/core/fallback.py (direct port)
+- proxy_manager.py → packages/connectors/proxy_adapter.py (refactor + async)
+- ai_scraper_v3.py GeminiAI → packages/core/ai_providers/gemini.py (extract + abstract)
+- smart_exporter.py → packages/core/exporter.py (direct port)
+- CaptchaSolver → packages/connectors/captcha_adapter.py (extract + multi-service)
+
+---
+
+## 2026-03-22 — Phase 2: Tasks Breakdown
+
+### docs/tasks_breakdown.md created (69 tasks, 24 epics)
+
+**Task distribution:**
+- Foundation (repo, docs, arch): 11 tasks
+- Core platform (schemas, API, storage): 12 tasks
+- Workers & connectors (lanes, proxy, CAPTCHA, sessions): 10 tasks
+- AI & normalization: 5 tasks
+- Front ends (web, EXE, extension, companion): 11 tasks
+- Infrastructure (deploy, test, obs, pkg, security): 16 tasks
+- Migration & verification: 4 tasks
+
+**Critical path identified:** 12 sequential tasks from REPO-001 to VERIFY-002
+**Estimated timeline:** 20 weeks across 7 milestones (M0-M7)
+**Key risk hotspots:** Browser worker (Playwright), embedded control plane (Tauri+Python), native messaging, fetcher abstraction
