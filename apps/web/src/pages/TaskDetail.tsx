@@ -155,7 +155,7 @@ export function TaskDetail() {
                         <td>{(r.confidence * 100).toFixed(0)}%</td>
                         <td>{formatDate(r.created_at)}</td>
                         <td>
-                          <Link to={`/results?id=${r.id}`} className="btn btn-secondary btn-sm">
+                          <Link to={`/results/${r.id}`} className="btn btn-secondary btn-sm">
                             View
                           </Link>
                         </td>

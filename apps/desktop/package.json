@@ -10,6 +10,10 @@
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
+    "build:desktop": "npm run build && npx tauri build",
+    "build:installer": "bash build-installer.sh",
+    "build:installer:msi": "bash build-installer.sh --msi",
+    "build:installer:nsis": "bash build-installer.sh --nsis",
     "lint": "eslint src --ext .ts,.tsx",
     "typecheck": "tsc --noEmit"
   },

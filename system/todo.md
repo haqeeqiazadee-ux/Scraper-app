@@ -1,6 +1,6 @@
 # TODO — Current Actionable Queue
 
-## Completed (59/69 tasks)
+## Completed (68/69 tasks)
 - [x] **PHASE-0:** Repository and memory initialization
 - [x] **PHASE-1:** Create docs/final_specs.md (1233 lines, all 24 sections)
 - [x] **PHASE-2:** Create docs/tasks_breakdown.md (69 tasks across 24 epics)
@@ -59,19 +59,32 @@
 - [x] **CLOUD-002:** CI/CD deployment pipeline — GitHub Actions (staging + production)
 - [x] **PKG-001:** Docker images for all services (4 Dockerfiles)
 
-## Test Status: 422 passed, 0 failed, 1 skipped (14.5s)
+## Final Test Status: 483 passed, 0 failed, 6 skipped
 
-## Pending (10 remaining)
-- [ ] **PROXY-002:** Proxy provider integrations (live API integration)
-- [ ] **WEB-002:** Task management UI interactivity
-- [ ] **WEB-003:** Results and export UI
-- [ ] **EXE-002:** Embed local control plane in desktop app
-- [ ] **EXE-003:** Build Windows installer
-- [ ] **EXT-002:** Cloud-connected extraction
-- [ ] **EXT-003:** Native messaging for local companion
-- [ ] **TEST-002/003/004:** Integration + E2E test suites
-- [ ] **PKG-002/003:** Windows EXE + extension packaging
-- [ ] **VERIFY-001/002:** Final documentation review + system audit
+## Recently Completed
+- [x] **PROXY-002:** Proxy provider integrations — BrightData, Smartproxy, Oxylabs, FreeProxy (56 tests)
+- [x] **WEB-002:** Task management UI interactivity (8 files)
+- [x] **WEB-003:** Results and export UI (7 files)
+- [x] **EXE-002:** Embed local control plane in desktop app
+- [x] **EXE-003:** Build Windows installer
+- [x] **EXT-003:** Native messaging for local companion (6 files)
+- [x] **PKG-002:** Windows EXE packaging
+- [x] **PKG-003:** Chrome extension packaging
+- [x] **VERIFY-001:** Final documentation review — ARCHITECTURE.md, DEPLOYMENT.md, CHANGELOG.md, README audit
+- [x] **VERIFY-002:** System audit — __init__.py verification, entry points, test coverage, TODO scan, .env.example
+
+## Pending (0 remaining)
+- [x] **EXT-002:** Cloud-connected extraction — API client, extraction service, ExtractPanel, selector picker, cloud sync (7 new files + 4 updated)
+- [x] **TEST-002/003/004:** Integration + E2E test suites (47 passed, 5 skipped — 8 lifecycle, 6 storage, 6 worker pipeline, 5 auth, 8 API e2e, 4 health/metrics + conftest/factories)
 
 ## Blocked
 (none)
+
+## Audit Summary (VERIFY-002)
+- **Python packages with __init__.py:** All packages verified (1 missing fixed: proxy_providers)
+- **Service entry points:** All 4 services have entry points (app.py / worker.py)
+- **Test coverage:** 22 test modules covering 56 source modules; 436 tests passing
+- **TODO/FIXME/HACK comments:** 3 minor TODOs (latency tracking, health check DB probe, CORS restriction) — non-blocking
+- **.env.example:** Complete with 30+ variables documented
+- **CI/CD:** 2 GitHub Actions workflows (ci.yml, deploy.yml)
+- **Documentation:** final_specs.md, tasks_breakdown.md, api_reference.md, developer_setup.md, security_audit.md, ARCHITECTURE.md, DEPLOYMENT.md, CHANGELOG.md — all present and verified

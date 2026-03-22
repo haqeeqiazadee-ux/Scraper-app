@@ -1,141 +1,128 @@
-use serde::{Deserialize, Serialize};
-use std::sync::Mutex;
+//! Tauri command handlers for the AI Scraper Desktop application.
+//!
+//! Provides commands for server management, configuration, and log viewing.
+
+pub mod config;
+pub mod server;
+
+use std::sync::Arc;
+
 use tauri::State;
 
-/// Holds the state of the local Python control-plane server process.
-pub struct ServerState {
-    /// PID of the running uvicorn process, if any.
-    pid: Mutex<Option<u32>>,
-    /// Whether the server is currently running.
-    running: Mutex<bool>,
+use crate::config::{AppConfig, AppConfigUpdate};
+use crate::server::{ServerManager, ServerStatus};
+
+/// Application state managed by Tauri.
+pub struct AppState {
+    pub server: Arc<ServerManager>,
+    pub config: std::sync::Mutex<AppConfig>,
 }
 
-impl Default for ServerState {
+impl Default for AppState {
     fn default() -> Self {
         Self {
-            pid: Mutex::new(None),
-            running: Mutex::new(false),
+            server: Arc::new(ServerManager::default()),
+            config: std::sync::Mutex::new(AppConfig::default()),
         }
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ServerStatus {
-    pub running: bool,
-    pub pid: Option<u32>,
-    pub port: u16,
-    pub mode: String,
-}
+// ---------------------------------------------------------------------------
+// Server commands
+// ---------------------------------------------------------------------------
 
-/// Start the local Python uvicorn control-plane server as a sidecar process.
-///
-/// The server runs on 127.0.0.1:8321 with SQLite storage, filesystem object
-/// storage, and in-memory queue/cache — suitable for desktop single-user mode.
+/// Start the local Python uvicorn control-plane server.
 #[tauri::command]
-pub async fn start_local_server(state: State<'_, ServerState>) -> Result<ServerStatus, String> {
-    let mut running = state.running.lock().map_err(|e| e.to_string())?;
-    let mut pid_lock = state.pid.lock().map_err(|e| e.to_string())?;
+pub async fn start_local_server(state: State<'_, AppState>) -> Result<ServerStatus, String> {
+    let port = {
+        let config = state.config.lock().map_err(|e| e.to_string())?;
+        config.api_port
+    };
 
-    if *running {
-        return Ok(ServerStatus {
-            running: true,
-            pid: *pid_lock,
-            port: 8321,
-            mode: "desktop".to_string(),
-        });
-    }
+    let status = state.server.start(port)?;
 
-    // Spawn the Python uvicorn process
-    let child = std::process::Command::new("python")
-        .args([
-            "-m",
-            "uvicorn",
-            "services.control_plane.app:app",
-            "--host",
-            "127.0.0.1",
-            "--port",
-            "8321",
-        ])
-        .env("SCRAPER_MODE", "desktop")
-        .env("SCRAPER_DB_URL", "sqlite:///scraper_desktop.db")
-        .env("SCRAPER_STORAGE_BACKEND", "filesystem")
-        .env("SCRAPER_QUEUE_BACKEND", "memory")
-        .env("SCRAPER_CACHE_BACKEND", "memory")
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
-        .spawn()
-        .map_err(|e| format!("Failed to start local server: {}", e))?;
+    // Start health check loop
+    server::start_health_check_loop(Arc::clone(&state.server));
 
-    let child_pid = child.id();
-    *pid_lock = Some(child_pid);
-    *running = true;
-
-    Ok(ServerStatus {
-        running: true,
-        pid: Some(child_pid),
-        port: 8321,
-        mode: "desktop".to_string(),
-    })
+    Ok(status)
 }
 
-/// Stop the local Python control-plane server process.
+/// Stop the local Python control-plane server.
 #[tauri::command]
-pub async fn stop_local_server(state: State<'_, ServerState>) -> Result<ServerStatus, String> {
-    let mut running = state.running.lock().map_err(|e| e.to_string())?;
-    let mut pid_lock = state.pid.lock().map_err(|e| e.to_string())?;
-
-    if !*running {
-        return Ok(ServerStatus {
-            running: false,
-            pid: None,
-            port: 8321,
-            mode: "desktop".to_string(),
-        });
-    }
-
-    if let Some(pid) = *pid_lock {
-        // Kill the process tree
-        #[cfg(target_os = "windows")]
-        {
-            let _ = std::process::Command::new("taskkill")
-                .args(["/PID", &pid.to_string(), "/T", "/F"])
-                .output();
-        }
-
-        #[cfg(not(target_os = "windows"))]
-        {
-            let _ = std::process::Command::new("kill")
-                .args(["-TERM", &pid.to_string()])
-                .output();
-        }
-    }
-
-    *pid_lock = None;
-    *running = false;
-
-    Ok(ServerStatus {
-        running: false,
-        pid: None,
-        port: 8321,
-        mode: "desktop".to_string(),
-    })
+pub async fn stop_local_server(state: State<'_, AppState>) -> Result<ServerStatus, String> {
+    state.server.stop()
 }
 
-/// Check whether the local control-plane server is currently running.
+/// Get the current server status.
 #[tauri::command]
-pub async fn get_status(state: State<'_, ServerState>) -> Result<ServerStatus, String> {
-    let running = state.running.lock().map_err(|e| e.to_string())?;
-    let pid_lock = state.pid.lock().map_err(|e| e.to_string())?;
-
-    Ok(ServerStatus {
-        running: *running,
-        pid: *pid_lock,
-        port: 8321,
-        mode: "desktop".to_string(),
-    })
+pub async fn get_server_status(state: State<'_, AppState>) -> Result<ServerStatus, String> {
+    state.server.get_status()
 }
 
-/// Return the current application version from Cargo.toml.
+/// Restart the server (stop then start).
+#[tauri::command]
+pub async fn restart_server(state: State<'_, AppState>) -> Result<ServerStatus, String> {
+    state.server.stop()?;
+    state.server.reset_restart_count();
+
+    let port = {
+        let config = state.config.lock().map_err(|e| e.to_string())?;
+        config.api_port
+    };
+
+    let status = state.server.start(port)?;
+    server::start_health_check_loop(Arc::clone(&state.server));
+    Ok(status)
+}
+
+// ---------------------------------------------------------------------------
+// Configuration commands
+// ---------------------------------------------------------------------------
+
+/// Get the current application configuration.
+#[tauri::command]
+pub async fn get_config(state: State<'_, AppState>) -> Result<AppConfig, String> {
+    let config = state.config.lock().map_err(|e| e.to_string())?;
+    Ok(config.clone())
+}
+
+/// Update the application configuration with a partial update.
+#[tauri::command]
+pub async fn set_config(
+    state: State<'_, AppState>,
+    update: AppConfigUpdate,
+) -> Result<AppConfig, String> {
+    let mut config = state.config.lock().map_err(|e| e.to_string())?;
+    config.update(update)?;
+    Ok(config.clone())
+}
+
+// ---------------------------------------------------------------------------
+// Log commands
+// ---------------------------------------------------------------------------
+
+/// Read the last N lines from the server log file.
+#[tauri::command]
+pub async fn get_server_logs(
+    state: State<'_, AppState>,
+    lines: Option<usize>,
+) -> Result<Vec<String>, String> {
+    let n = lines.unwrap_or(100);
+    state.server.tail_logs(n)
+}
+
+// ---------------------------------------------------------------------------
+// Utility commands
+// ---------------------------------------------------------------------------
+
+/// Open the application data directory in the system file explorer.
+#[tauri::command]
+pub async fn open_data_dir(state: State<'_, AppState>) -> Result<(), String> {
+    let config = state.config.lock().map_err(|e| e.to_string())?;
+    config.open_data_dir()
+}
+
+/// Return the current application version.
 #[tauri::command]
 pub async fn get_version() -> Result<String, String> {
     Ok(env!("CARGO_PKG_VERSION").to_string())

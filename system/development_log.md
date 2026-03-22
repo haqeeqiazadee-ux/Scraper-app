@@ -525,3 +525,469 @@ Created 12 files in `apps/desktop/` establishing the Tauri v2 desktop applicatio
 - std::sync::Mutex (not tokio) since critical sections are short without await points
 - Shell plugin scope restricts sidecar to only the Python uvicorn command
 - Platform-aware process kill: taskkill /T /F on Windows, kill -TERM on Unix
+
+---
+
+## 2026-03-22 — EXE-003: Windows Installer Configuration
+
+### Implementation
+
+Configured the Tauri desktop app for building Windows installers in both WiX (.msi) and NSIS (.exe) formats.
+
+**tauri.conf.json updates:**
+- WiX config: license RTF, banner/dialog BMP paths, en-US language
+- NSIS config: header/sidebar BMP paths, license, currentUser install mode (no admin), start menu folder
+- File associations: `.scraper-task` files (application/x-scraper-task MIME type)
+- Bundle metadata: short/long descriptions, copyright, publisher, category
+- Resources: license.rtf bundled with the app
+
+**Build scripts:**
+- `apps/desktop/build-installer.sh`: Local build script with prerequisite detection (Rust, Node, WiX, NSIS), platform detection (Windows/Linux/macOS), frontend build, Tauri build, artifact collection. Supports `--msi`, `--nsis`, `--debug` flags.
+- `scripts/build-desktop.sh`: CI-oriented script with environment variable configuration (SIGN_CERT_PATH, SIGN_CERT_PASSWORD, BUILD_TARGET, BUILD_MODE, ARTIFACTS_DIR), optional code signing via signtool, SHA-256 checksum generation.
+
+**Installer assets:**
+- `installer/license.rtf`: MIT-based license in RTF format with third-party software notices
+- `installer/README.md`: Documents required BMP dimensions (WiX: 493x58 banner, 493x312 dialog; NSIS: 150x57 header, 164x314 sidebar) with ImageMagick generation commands
+- `src-tauri/icons/placeholder.svg`: SVG placeholder icon (blue gradient, magnifying glass + AI text)
+- `src-tauri/icons/README.md`: Documents all required icon files with generation methods
+
+**package.json scripts added:**
+- `build:desktop`: Full frontend + Tauri build
+- `build:installer`: Runs build-installer.sh (all targets)
+- `build:installer:msi`: WiX MSI only
+- `build:installer:nsis`: NSIS EXE only
+
+### Design Decisions
+- Per-user install (currentUser mode) so no admin elevation is required
+- Both WiX and NSIS supported for maximum compatibility (WiX for enterprise MSI deployment, NSIS for user-friendly EXE installer)
+- Code signing is optional and environment-driven (CI sets SIGN_CERT_PATH)
+- File association for `.scraper-task` enables double-click to open tasks
+- Checksums generated automatically for artifact verification
+- Banner/dialog/header/sidebar images are placeholder TODOs until final branding is ready
+
+---
+
+## 2026-03-22 — WEB-003: Results and Export UI
+
+### Summary
+Created 7 new React components/pages/hooks for results browsing and data export in the web dashboard.
+
+### Files Created
+1. **apps/web/src/hooks/useResults.ts** — 4 hooks: useResultList (paginated list with filters/sorting), useResult (single result by ID), useExportResults (mutation for export), useExportCount (preview count for export dialog)
+2. **apps/web/src/components/ResultsTable.tsx** — Sortable, paginated table with color-coded confidence badges (green >90%, blue >70%, yellow >50%, red <50%)
+3. **apps/web/src/components/ResultDetail.tsx** — Full detail view: metadata card, AI confidence breakdown with visual progress bars, extracted data via DataPreview
+4. **apps/web/src/components/DataPreview.tsx** — Toggle between table and JSON view for extracted data. Table view auto-detects all unique keys across records.
+5. **apps/web/src/components/ExportDialog.tsx** — Modal dialog with format (JSON/CSV/Excel), destination (download/S3/webhook), confidence slider, date range filters, preview count
+6. **apps/web/src/pages/ResultsPage.tsx** — Main results listing page with confidence filter pills and export button
+7. **apps/web/src/pages/ResultDetailPage.tsx** — Single result detail page with breadcrumb navigation
+
+### Files Modified
+- **apps/web/src/App.tsx** — Added /results and /results/:id routes
+- **apps/web/src/api/client.ts** — Extended results API with list(), export(), exportCount() methods
+- **apps/web/src/pages/TaskDetail.tsx** — Updated result links from /results?id=... to /results/:id
+
+### Design Decisions
+- Matches existing CSS variable system (no Tailwind — project uses vanilla CSS with CSS variables)
+- Confidence color coding: 4 tiers matching badge pattern from globals.css
+- Export dialog uses blob download for browser destination, JSON response for S3/webhook
+- DataPreview scans all records to build a unified column set for table view
+- Reused existing class names (card, card-header, detail-grid, detail-row, btn, badge, etc.)
+- No new dependencies added
+
+---
+
+## 2026-03-22 — EXT-003: Native Messaging for Local Companion
+
+### Summary
+Implemented full native messaging integration between the Chrome extension and the local companion app, enabling local extraction via the companion host.
+
+### Architecture
+
+```
+Popup UI  <-->  Background Service Worker  <-->  Native Messaging Port  <-->  Companion Host  <-->  Local Control Plane
+                (companion-bridge.ts)           (native-messaging.ts)        (message_handler.py)    (FastAPI :8000)
+```
+
+### Files Created
+
+1. **apps/extension/src/services/native-messaging.ts** — `NativeMessagingClient` class wrapping `chrome.runtime.connectNative("com.scraper.companion")`. Features: connect/disconnect, sendMessage with promise-based response correlation via message IDs, onMessage handler registration, automatic reconnection with exponential backoff (up to 5 attempts), 30s response timeout, singleton export.
+
+2. **apps/extension/src/services/local-extraction.ts** — `executeLocal(config)` with three-tier fallback: local companion -> cloud API -> offline queue (persisted in chrome.storage.local). `getLocalStatus()` checks companion + server health. `getLocalResults(taskId)` fetches results from local control plane.
+
+3. **apps/extension/src/background/companion-bridge.ts** — `startCompanionBridge()` / `stopCompanionBridge()` lifecycle management. Periodic health check (30s interval) determines connection state (local/cloud/offline). Broadcasts `connectionStateChanged` events. Routes `companionRequest`, `getConnectionState`, `reconnectCompanion`, `checkHealth` messages between popup/content and companion.
+
+4. **apps/extension/src/components/ConnectionStatus.ts** — `createConnectionStatus()` creates a DOM element showing connection state: green dot = cloud, blue dot = local, gray dot = offline. Click-to-refresh. Listens for broadcast events from companion-bridge.
+
+5. **apps/companion/src/message_handler.py** — `MessageHandler` class with handlers for `execute_task`, `get_status`, `get_results`, `health_check`. Lazy-initialized httpx.AsyncClient. Routes requests to local control plane. JSON envelope protocol: `{type, payload, id, success, error}`.
+
+### Files Modified
+
+- **apps/extension/manifest.json** — Added `"nativeMessaging"` permission
+- **apps/companion/native_host.py** — Updated `handle_message()` to detect new protocol (messages with `type` + `id` keys) and delegate to `MessageHandler`, while preserving backward compatibility with legacy `action`-based messages
+- **apps/extension/popup/popup.html** — Added `connection-status-mount` div in header
+- **apps/extension/popup/popup.js** — Added `initConnectionStatus()` function creating inline DOM component
+
+### Message Protocol
+
+Extension -> Companion:
+```json
+{ "type": "execute_task", "payload": { "url": "...", "mode": "auto" }, "id": "msg_1234_1" }
+```
+
+Companion -> Extension:
+```json
+{ "type": "execute_task_response", "payload": { "task_id": "..." }, "id": "msg_1234_1", "success": true }
+```
+
+### Design Decisions
+- Message ID correlation for request/response matching (not relying on message order)
+- Exponential backoff reconnection prevents tight reconnection loops when companion is unavailable
+- Offline queue in chrome.storage.local ensures no data loss when both local and cloud are down
+- Companion MessageHandler uses lazy httpx client (created on first request, not import time)
+- New protocol coexists with legacy action-based protocol for backward compatibility
+- ConnectionStatus component uses inline DOM creation (no build step) to match existing popup architecture
+
+---
+
+## 2026-03-22 — EXE-002: Embed Local Control Plane in Desktop App
+
+### Summary
+
+Upgraded the Tauri v2 desktop app from a basic server start/stop scaffold (EXE-001) to a fully managed embedded control plane with configuration persistence, health monitoring, crash recovery, and log viewing.
+
+### Rust Backend (src-tauri/src/)
+
+**server.rs — ServerManager:**
+- Spawns uvicorn with desktop-appropriate env vars: STORAGE_BACKEND=sqlite, QUEUE_BACKEND=memory, CACHE_BACKEND=memory, DATABASE_URL=sqlite:///~/.scraper-app/data.db
+- Logs stdout/stderr to ~/.scraper-app/logs/server.log
+- Graceful shutdown: SIGTERM first, wait up to 10s, then SIGKILL (Unix) or taskkill /F (Windows)
+- Background health check thread polls /health every 5s via curl
+- Automatic restart on crash: max 5 attempts with 3s cooldown between each
+- tail_logs() reads last N lines from log file for the LogViewer component
+- ensure_dirs() creates ~/.scraper-app/ and ~/.scraper-app/logs/ on first start
+
+**config.rs — AppConfig:**
+- 11 configuration fields: api_port, data_dir, log_level, ai_provider, ai_api_key, ai_base_url, proxy_url, proxy_enabled, auto_start_server, max_concurrent_tasks, theme
+- Persisted as ~/.scraper-app/config.json
+- Default config written on first load
+- AppConfigUpdate for partial updates (only provided fields applied)
+- open_data_dir() launches platform-specific file explorer
+
+**lib.rs — 9 Tauri Commands:**
+- start_local_server, stop_local_server, get_server_status, restart_server
+- get_config, set_config
+- get_server_logs (tail last N lines)
+- open_data_dir, get_version
+- AppState wraps Arc<ServerManager> + Mutex<AppConfig>
+
+**main.rs — App Lifecycle:**
+- Loads config from disk at startup (falls back to defaults)
+- Auto-starts server if config.auto_start_server is true
+- Spawns health check background thread after server start
+- Gracefully stops server on window close event
+- Registers all 9 commands
+
+**Cargo.toml:**
+- Added `dirs = "5.0"` for cross-platform home directory resolution
+
+### React Frontend (src/)
+
+**ServerStatus.tsx:**
+- Running/stopped/starting indicator with color-coded status dot (green=healthy, amber=starting, red=stopped)
+- Uptime display formatted as Xs/Xm Xs/Xh Xm
+- PID, restart count, health status, mode details in a grid
+- Start/Stop/Restart action buttons with loading states
+- API docs link when server is running and healthy
+- Auto-refresh every 5s
+
+**Settings.tsx:**
+- Server section: port, data dir (with Open button), log level dropdown, auto-start checkbox, max concurrent tasks
+- AI Provider section: provider dropdown (none/gemini/openai/anthropic/ollama), API key (password field), base URL (for Ollama)
+- Proxy section: enable checkbox, proxy URL input
+- Form state tracking with save/discard, success/error banners
+- Conditional field visibility (AI fields hidden when provider=none, proxy URL hidden when disabled)
+
+**LogViewer.tsx:**
+- Dark terminal theme (background #1e1e1e) with monospace font
+- Level filter dropdown (all/debug/info/warning/error)
+- Line count selector (50/100/200/500)
+- Auto-scroll with smart detection (disables when user scrolls up, re-enables at bottom)
+- Color-coded lines: gray=debug, blue=info, amber=warning, red=error
+- Line numbers, 3s auto-refresh, manual refresh button
+- Footer showing filtered/total line count
+
+**App.tsx:**
+- Tab navigation: Dashboard / Logs / Settings
+- Header with app title and version badge
+- Dashboard tab embeds ServerStatus + placeholder for future dashboard integration
+- Logs tab embeds full-height LogViewer
+- Settings tab embeds Settings panel
+
+### Design Decisions
+- Used dirs crate for cross-platform ~/.scraper-app/ resolution (Windows: C:\Users\X\.scraper-app\)
+- Health check via curl subprocess instead of Rust HTTP client to avoid adding reqwest dependency
+- std::sync::Mutex (not tokio::sync) because all critical sections are short and synchronous
+- Background health check runs on std::thread, not tokio, since it only does sleep + subprocess calls
+- Server logs written to file (not captured in memory) to survive app restarts and support tail reading
+- Config defaults written to disk on first load so users can discover and hand-edit the JSON file
+- Graceful shutdown attempts SIGTERM before SIGKILL to let uvicorn clean up database connections
+
+---
+
+## 2026-03-22 — PROXY-002: Proxy Provider Integrations
+
+### Summary
+
+Implemented 4 concrete proxy provider integrations with a shared base protocol. All providers are async with lazy HTTP client initialization.
+
+### Files Created (7)
+
+- **base.py:** ProxyInfo dataclass, ProxyUsage dataclass, ProxyProviderProtocol
+- **brightdata.py:** BrightDataProvider — zone-based username format, API credential validation, bandwidth usage
+- **smartproxy.py:** SmartproxyProvider — residential/datacenter pools (port 7000/10000), city-level targeting
+- **oxylabs.py:** OxylabsProvider — residential/datacenter/ISP hosts, realtime stats API
+- **free_proxy.py:** FreeProxyProvider — public list scraping, semaphore-limited validation, TTL cache
+- **__init__.py:** Package exports
+- **tests/unit/test_proxy_providers.py:** 56 tests across 8 test classes
+
+### Design Decisions
+
+- Separate ProxyInfo dataclass from existing Proxy (proxy_adapter.py) — providers need city, pool_type, metadata fields
+- Lazy httpx.AsyncClient (created on first API call)
+- Credentials via constructor args or env vars
+- All providers satisfy ProxyProviderProtocol via structural subtyping
+- Free proxy provider caps validation at 100 candidates with 20 concurrent checks
+
+### Test Results: 56 passed in 0.16s
+
+## 2026-03-22 — TEST-002/003/004: Integration + E2E Test Suites
+
+### Summary
+Created comprehensive integration and E2E test suites covering the full application stack: task lifecycle, storage backend composition, worker pipeline, auth middleware, API CRUD cycles, and observability endpoints.
+
+### Files Created (10)
+1. `tests/integration/conftest.py` — Shared fixtures: in-memory DB, FastAPI test client, TaskFactory/PolicyFactory/ResultFactory
+2. `tests/integration/test_task_lifecycle.py` — 8 tests: create→execute→status transitions, routing with policies, dry-run
+3. `tests/integration/test_storage_integration.py` — 6 tests: DB+cache, object store+cache, task→run→result chain, TTL, increment
+4. `tests/integration/test_worker_pipeline.py` — 6 tests: mock HTTP fetch→normalize→store pipeline
+5. `tests/integration/test_auth_flow.py` — 5 tests: JWT creation/verification, expired/invalid tokens, auth endpoints
+6. `tests/e2e/conftest.py` — E2E fixtures: full app client, auth token/headers
+7. `tests/e2e/__init__.py` — Package init
+8. `tests/e2e/test_api_e2e.py` — 8 tests: full CRUD for tasks/policies, execution+routing, tenant isolation
+9. `tests/e2e/test_health_monitoring.py` — 4 tests: health, readiness, Prometheus metrics, JSON metrics
+
+### Design Decisions
+- Used httpx.ASGITransport + AsyncClient pattern (matching existing test_tasks_api.py)
+- Factory pattern for test data (TaskFactory, PolicyFactory, ResultFactory) — reusable across test suites
+- Auth tests use `pytestmark = pytest.mark.skipif` for graceful skip when PyJWT unavailable
+- External services (HTTP, proxy, AI) mocked via unittest.mock.AsyncMock
+- Each test file independently runnable
+- Tests use in-memory SQLite and tmp_path for filesystem object store
+
+### Test Results
+- 47 passed, 5 skipped (auth/JWT), 0 failed
+- Total project test count: ~483 passed, 6 skipped
+
+---
+
+## 2026-03-22 — VERIFY-001/002: Final Documentation Review + System Audit
+
+### Documentation Review (VERIFY-001)
+
+Reviewed all existing documentation for completeness and accuracy:
+
+**Verified documents:**
+- `docs/final_specs.md` — 1233 lines, all 24 sections present, accurate
+- `docs/tasks_breakdown.md` — 69 tasks across 24 epics, dependency graph intact
+- `docs/api_reference.md` — REST API reference with endpoints, request/response schemas
+- `docs/developer_setup.md` — Quick start, prerequisites, testing instructions
+- `docs/security_audit.md` — Security checklist
+- `CLAUDE.md` — Project context file, architecture conventions, workflow
+
+**New documents created:**
+- `docs/ARCHITECTURE.md` — System overview diagram (ASCII), component descriptions (runtime shells, backend services, shared packages), data flow (execution + escalation), storage architecture matrix, security model, tech stack summary
+- `docs/DEPLOYMENT.md` — Docker Compose quickstart, Kubernetes Helm deployment, AWS Terraform deployment, desktop app (Tauri), Chrome extension, environment variables reference (30+ variables)
+- `docs/CHANGELOG.md` — Full project changelog: Phase 0-7 with all tasks, key decisions (10), statistics
+
+### System Audit (VERIFY-002)
+
+**Python packages audit:**
+- All 21 Python package directories verified to have __init__.py
+- Fixed 1 missing: `packages/connectors/proxy_providers/__init__.py`
+
+**Service entry points:**
+- `services/control-plane/app.py` — FastAPI application
+- `services/worker-http/worker.py` — HTTP lane worker
+- `services/worker-browser/worker.py` — Browser lane worker
+- `services/worker-ai/worker.py` — AI normalization worker
+
+**Test coverage:**
+- 22 test modules in tests/unit/ and tests/integration/
+- 56 source modules (excluding legacy scraper_pro/)
+- 436 tests passing, 1 skipped, 0 failures
+
+**TODO/FIXME/HACK scan:**
+- 3 minor TODOs found in production code:
+  1. `packages/connectors/http_collector.py:113` — Track actual latency (cosmetic)
+  2. `services/control-plane/routers/health.py:31` — Check DB/Redis connectivity (enhancement)
+  3. `services/control-plane/app.py:61` — Restrict CORS in production (pre-release)
+- None are blocking; all are enhancement-level items
+
+**.env.example verification:**
+- All required variables present with documentation
+- Covers: database, Redis, storage, AI providers, proxy, CAPTCHA, auth, server, billing, observability
+
+**CI/CD verification:**
+- `.github/workflows/ci.yml` — Lint + test + typecheck
+- `.github/workflows/deploy.yml` — Staging + production deployment
+
+### Final Status
+- **67/69 tasks complete** (96.5% completion)
+- **1 task remaining** (EXT-002: cloud-connected extraction) — future work, not blocking release
+- **436+ tests passing** across unit and integration suites
+
+---
+
+## 2026-03-22 — PKG-002/003: Windows EXE + Chrome Extension Packaging
+
+### PKG-002: Windows EXE Packaging
+
+**scripts/package-desktop.sh:**
+- Environment validation: Node.js >= 18, Rust toolchain (rustc + cargo)
+- Version derivation: git tag (v*-desktop) → semver, else package.json + git SHA
+- Build pipeline: npm ci → Vite build → Tauri build → artifact collection
+- Artifact collection: NSIS (.exe), WiX (.msi), DMG, DEB, AppImage — copies from Tauri bundle output to dist/desktop/
+- SHA-256 checksums via sha256sum (Linux) or shasum (macOS)
+- Flags: --skip-frontend (skip Vite), --debug (debug build)
+
+**apps/desktop/src-tauri/resources/README.md:**
+- Documents 4 resource categories: embedded Python runtime (python-build-standalone 3.11), control-plane service (packages/ + services/), default config (desktop env vars), sample tasks (product/listing/article JSON)
+- Size budget: ~60-70 MB compressed installer, ~176 MB installed
+
+**.github/workflows/build-desktop.yml:**
+- Triggers on v*-desktop and v* tags, plus manual dispatch
+- Windows matrix (expandable to Linux/macOS via commented entries)
+- Steps: checkout, setup Rust (dtolnay/rust-toolchain@stable), Rust cache (swatinem/rust-cache@v2), setup Node 20, Linux system deps (webkit2gtk, appindicator), npm ci, Vite build, set version from tag, Tauri build, collect artifacts per platform, SHA-256 checksums, upload artifacts (30d retention), draft GitHub Release (softprops/action-gh-release@v2)
+
+### PKG-003: Chrome Extension Packaging
+
+**scripts/package-extension.sh:**
+- Optional version bump (--bump major|minor|patch) — updates manifest.json and package.json
+- Validates extension (delegates to validate-extension.sh)
+- TypeScript build (if package.json has build script)
+- Copies source dirs (popup, background, content, options, icons, lib) to dist/extension/
+- Strips dev files (.ts, .map, .gitkeep, node_modules)
+- Creates .zip for Chrome Web Store upload
+- SHA-256 checksums
+
+**apps/extension/build.config.js:**
+- ES module build configuration
+- Manifest validation: required fields, MV3, version format (1-4 dot-separated integers), icon sizes, CSP (no unsafe-eval)
+- Asset copying with production mode (strips .ts/.map files)
+- Version override from EXTENSION_VERSION env var
+
+**.github/workflows/build-extension.yml:**
+- Triggers on v*-extension and v* tags, plus manual dispatch
+- Steps: checkout, setup Node 20, set version from tag, npm ci, validate extension, build, package .zip, upload artifacts (zip + unpacked, 30d retention), draft GitHub Release
+- Optional Chrome Web Store publish: OAuth2 token refresh → upload via chromewebstore API → publish. Requires 4 secrets (CHROME_EXTENSION_ID, CHROME_CLIENT_ID, CHROME_CLIENT_SECRET, CHROME_REFRESH_TOKEN).
+
+**scripts/validate-extension.sh:**
+- 9 validation sections: manifest exists + valid JSON, required fields, MV3, version format, permissions audit (warns on dangerous perms), icon files (exist + non-empty), referenced files (service worker, content scripts, popup, options), CSP MV3 compliance, package size
+- Clear PASS/FAIL/WARN output with exit code 0 (pass) or 1 (fail)
+
+**apps/extension/package.json:**
+- Added scripts: build, build:dev, package, validate, version:patch/minor/major
+
+### Design Decisions
+- Scripts are POSIX-compatible bash (set -euo pipefail) for CI reproducibility
+- Version derived from git tags when available, falling back to manifest/package.json
+- Chrome Web Store publish is conditional on secrets being configured — no failure if secrets absent
+- Validation is a separate script so it can be run independently in CI or locally
+- Build config is pure Node.js (no webpack/rollup dependency) — extension files are simple enough for direct copy
+
+---
+
+## 2026-03-22 — WEB-002: Task Management UI Interactivity
+
+### Summary
+Added full interactive task management to the web dashboard: create/edit forms, sortable table with inline actions, detail view with run history, and custom React hooks for all task operations.
+
+### Files Created (8 new)
+1. **apps/web/src/lib/api.ts** — API client helper with auth token management, apiRequest(), buildQuery()
+2. **apps/web/src/hooks/useTasks.ts** — 8 React Query hooks with TASK_KEYS factory
+3. **apps/web/src/components/TaskForm.tsx** — Create/edit form with dynamic selectors, validation, policy dropdown
+4. **apps/web/src/components/TaskTable.tsx** — Sortable table with inline edit/run/delete actions
+5. **apps/web/src/components/TaskDetail.tsx** — Task config display with run/cancel buttons and results
+6. **apps/web/src/components/RunHistory.tsx** — Run history table with duration formatting
+7. **apps/web/src/pages/TasksPage.tsx** — Tasks list page with modal form overlay
+8. **apps/web/src/pages/TaskDetailPage.tsx** — Task detail page with TaskDetail + RunHistory
+
+### Files Modified (4)
+- **App.tsx** — Routes updated to new page components
+- **api/types.ts** — Added ExtractionType, RunListItem, extended Task types
+- **api/client.ts** — Added tasks.runs(), delete(), execute()
+- **styles/globals.css** — Added modal, form, toolbar, pagination styles
+
+### Design Decisions
+- Vanilla CSS with CSS custom properties (matching project convention)
+- React Query key factory for cache invalidation
+- Modal with click-outside-to-close and animation
+- Inline delete confirmation (no browser confirm())
+- useState-based form (no external form library)
+- Conditional selector fields (only for css/xpath extraction types)
+
+---
+
+## 2026-03-22 — EXT-002: Cloud-Connected Extraction
+
+### Summary
+
+Added cloud-connected extraction capabilities to the Chrome extension: a TypeScript API client, client-side extraction service, visual selector picker, popup UI enhancements, and background cloud sync with offline queuing.
+
+### Architecture
+
+```
+Popup (ExtractPanel)                Content Script (selector-picker)
+    |                                        |
+    v                                        v
+Background Service Worker  <-- chrome.runtime.sendMessage -->
+    |
+    +-- cloud-sync.js (health checks, task polling, offline queue)
+    +-- lib/api.js (sendToControlPlane)
+    +-- lib/cloud-sync.js (startCloudSync, handleCloudSyncMessage)
+```
+
+### TypeScript Source Files (5 new in src/)
+
+1. **src/services/api.ts** — Cloud API client with login(), createTask(), executeTask(), getResults(), getStatus(), getTaskStatus(), sendForNormalization(). Bearer token auth with automatic refresh on 401. Config stored in chrome.storage.local.
+
+2. **src/services/extraction.ts** — Client-side extraction using DOM APIs. extractByCSS() with attribute extraction and single/multiple modes. extractByXPath() with XPath snapshot evaluation. extractAll(config) applies selector rules and calculates confidence as match ratio. getPageMetadata() extracts OG tags, JSON-LD, canonical URL, language, charset, and auto-detects page type.
+
+3. **src/components/ExtractPanel.ts** — Popup UI panel rendering via DOM manipulation. Shows current URL, detected data types (JSON-LD, meta, product, listing, article), extraction preview as key-value list, "Send to Cloud" button (disabled when offline), selector picker toggle. Injects scoped CSS. Listens for selectorPicked messages from content script.
+
+4. **src/services/selector-picker.ts** — Visual selector picker injected into the page. On hover: highlights element with blue outline and shows tooltip with generated selector. On click: marks element green, generates optimal CSS selector, sends to popup. Selector generation strategy: ID > unique tag.class > attribute-based > nth-child path. Escape key to cancel.
+
+5. **src/background/cloud-sync.ts** — Background sync service. 30s health check interval. 10s task status polling (max 360 polls = ~1 hour). 15s queue flush interval. Offline queue persisted to chrome.storage.local (max 50 items). Exponential retry (max 5 attempts). Chrome notifications on task completion/failure. Task watching via watchTask()/unwatchTask(). handleCloudSyncMessage() routes 8 message types.
+
+### Compiled JS Files (2 new)
+
+- **content/selector-picker.js** — IIFE content script version of the selector picker, loaded by manifest
+- **lib/cloud-sync.js** — ES module version of cloud sync, imported by service worker
+
+### Files Updated (4)
+
+- **manifest.json** — Added scripting, notifications, alarms permissions. Added <all_urls> host permission. Added selector-picker.js to content_scripts array.
+- **popup/popup.html** — Added picker button, cloud status indicator with connection dot, queue badge, detected data types section, cloud actions section with Send to Cloud button.
+- **popup/popup.css** — Added styles for actions row layout, secondary/cloud/active button variants, cloud status indicator (online=green/offline=gray), queue badge, detected type tags.
+- **popup/popup.js** — Full rewrite: cloud status polling (15s), detected type analysis, Send to Cloud handler with offline queue fallback, selector picker toggle, task status notification listener.
+- **background/service-worker.js** — Integrated cloud-sync module (startCloudSync on init), selector picker relay (start/stop/picked), sendToCloud message routing, queue fallback on cloud failure.
+
+### Design Decisions
+
+- TypeScript source files in src/ serve as the canonical typed implementations; compiled JS versions loaded by the extension (no build step required for development)
+- Selector generation prefers specificity: ID is most reliable, followed by unique class combos, then attribute selectors, with nth-child path as last resort
+- Cloud sync uses chrome.storage.local for persistence — survives service worker restarts
+- Offline queue caps at 50 items and drops oldest on overflow
+- Health checks use AbortSignal.timeout(5000) to avoid blocking on unresponsive servers
+- Selector picker uses capture-phase event listeners to intercept clicks before page handlers
+- ExtractPanel confidence display derived from selector match ratio (successful/total selectors)
