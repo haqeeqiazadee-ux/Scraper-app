@@ -1,0 +1,151 @@
+name: Build Desktop
+
+on:
+  push:
+    tags: ["v*-desktop", "v*"]
+  workflow_dispatch:
+    inputs:
+      debug:
+        description: "Build in debug mode"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_ext: ".exe,.msi"
+          # Uncomment for cross-platform builds:
+          # - os: ubuntu-22.04
+          #   target: x86_64-unknown-linux-gnu
+          #   artifact_ext: ".deb,.AppImage"
+          # - os: macos-latest
+          #   target: aarch64-apple-darwin
+          #   artifact_ext: ".dmg"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+          cache-on-failure: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+
+      # Linux-only: install system dependencies for Tauri
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libssl-dev \
+            libgtk-3-dev
+
+      - name: Install npm dependencies
+        working-directory: apps/desktop
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: apps/desktop
+        run: npm run build
+
+      - name: Set version from tag
+        id: version
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/v}"
+            VERSION="${VERSION%-desktop}"
+            echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          else
+            echo "version=0.0.0-dev" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build Tauri
+        working-directory: apps/desktop
+        shell: bash
+        run: |
+          ARGS=""
+          if [[ "${{ github.event.inputs.debug }}" == "true" ]]; then
+            ARGS="--debug"
+          fi
+          npx tauri build ${ARGS}
+
+      - name: Collect artifacts (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          mkdir -p dist/desktop
+          cp apps/desktop/src-tauri/target/release/bundle/nsis/*.exe dist/desktop/ 2>/dev/null || true
+          cp apps/desktop/src-tauri/target/release/bundle/msi/*.msi dist/desktop/ 2>/dev/null || true
+
+      - name: Collect artifacts (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          mkdir -p dist/desktop
+          cp apps/desktop/src-tauri/target/release/bundle/deb/*.deb dist/desktop/ 2>/dev/null || true
+          cp apps/desktop/src-tauri/target/release/bundle/appimage/*.AppImage dist/desktop/ 2>/dev/null || true
+
+      - name: Collect artifacts (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          mkdir -p dist/desktop
+          cp apps/desktop/src-tauri/target/release/bundle/dmg/*.dmg dist/desktop/ 2>/dev/null || true
+
+      - name: Generate checksums
+        shell: bash
+        working-directory: dist/desktop
+        run: |
+          if ls * 1>/dev/null 2>&1; then
+            sha256sum * > checksums.sha256 2>/dev/null || shasum -a 256 * > checksums.sha256
+            echo "--- Checksums ---"
+            cat checksums.sha256
+          fi
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.target }}
+          path: dist/desktop/
+          if-no-files-found: warn
+          retention-days: 30
+
+      # Create GitHub Release for tagged builds
+      - name: Create release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/desktop/*
+          draft: true
+          generate_release_notes: true

@@ -1,157 +1,191 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTauri } from "./hooks/useTauri";
+import { ServerStatus } from "./components/ServerStatus";
+import { Settings } from "./components/Settings";
+import { LogViewer } from "./components/LogViewer";
 
-type ServerStatus = {
-  running: boolean;
-  pid: number | null;
-  port: number;
-  mode: string;
-};
+type Tab = "dashboard" | "logs" | "settings";
 
 /**
  * Desktop App — wraps the shared web dashboard with Tauri-specific
- * functionality: local server management, status indicators, and
- * desktop-only controls.
- *
- * In future phases (EXE-002, EXE-003), this will import and render
- * the shared dashboard routes from @scraper-platform/web.
+ * functionality: local server management, status indicators, settings,
+ * and log viewing.
  */
 function App() {
   const { invoke } = useTauri();
-  const [status, setStatus] = useState<ServerStatus | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [starting, setStarting] = useState(false);
+  const [activeTab, setActiveTab] = useState<Tab>("dashboard");
+  const [version, setVersion] = useState<string | null>(null);
 
-  const refreshStatus = async () => {
-    try {
-      const s = await invoke<ServerStatus>("get_status");
-      setStatus(s);
-      setError(null);
-    } catch (err) {
-      setError(String(err));
-    }
-  };
-
-  useEffect(() => {
-    refreshStatus();
-    const interval = setInterval(refreshStatus, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleStart = async () => {
-    setStarting(true);
-    setError(null);
-    try {
-      const s = await invoke<ServerStatus>("start_local_server");
-      setStatus(s);
-    } catch (err) {
-      setError(String(err));
-    } finally {
-      setStarting(false);
-    }
-  };
-
-  const handleStop = async () => {
-    setError(null);
-    try {
-      const s = await invoke<ServerStatus>("stop_local_server");
-      setStatus(s);
-    } catch (err) {
-      setError(String(err));
-    }
-  };
+  // Load version once
+  if (version === null) {
+    invoke<string>("get_version")
+      .then(setVersion)
+      .catch(() => setVersion("0.1.0"));
+  }
 
   return (
-    <div style={{ fontFamily: "system-ui, sans-serif", padding: "2rem", maxWidth: "800px", margin: "0 auto" }}>
-      <header style={{ marginBottom: "2rem" }}>
-        <h1 style={{ fontSize: "1.5rem", fontWeight: 600 }}>AI Scraper Desktop</h1>
-        <p style={{ color: "#666", fontSize: "0.875rem" }}>
-          Local scraping platform — embedded control plane with SQLite storage
-        </p>
+    <div style={styles.app}>
+      {/* Header */}
+      <header style={styles.header}>
+        <div style={styles.headerLeft}>
+          <h1 style={styles.appTitle}>AI Scraper Desktop</h1>
+          <span style={styles.versionBadge}>v{version ?? "..."}</span>
+        </div>
+        <nav style={styles.nav}>
+          {(["dashboard", "logs", "settings"] as Tab[]).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              style={{
+                ...styles.navButton,
+                ...(activeTab === tab ? styles.navButtonActive : {}),
+              }}
+            >
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </button>
+          ))}
+        </nav>
       </header>
 
-      <section style={{ background: "#f8f9fa", borderRadius: "8px", padding: "1.5rem", marginBottom: "1.5rem" }}>
-        <h2 style={{ fontSize: "1.125rem", marginBottom: "1rem" }}>Local Server</h2>
+      {/* Content */}
+      <main style={styles.main}>
+        {activeTab === "dashboard" && <DashboardTab />}
+        {activeTab === "logs" && <LogsTab />}
+        {activeTab === "settings" && <SettingsTab />}
+      </main>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1rem" }}>
-          <span
-            style={{
-              width: "12px",
-              height: "12px",
-              borderRadius: "50%",
-              background: status?.running ? "#22c55e" : "#ef4444",
-              display: "inline-block",
-            }}
-          />
-          <span>{status?.running ? `Running on port ${status.port}` : "Stopped"}</span>
-          {status?.pid && <span style={{ color: "#999", fontSize: "0.75rem" }}>PID: {status.pid}</span>}
-        </div>
-
-        <div style={{ display: "flex", gap: "0.5rem" }}>
-          <button
-            onClick={handleStart}
-            disabled={status?.running || starting}
-            style={{
-              padding: "0.5rem 1rem",
-              borderRadius: "6px",
-              border: "1px solid #ccc",
-              background: status?.running ? "#e5e7eb" : "#2563eb",
-              color: status?.running ? "#999" : "#fff",
-              cursor: status?.running ? "not-allowed" : "pointer",
-            }}
-          >
-            {starting ? "Starting..." : "Start Server"}
-          </button>
-
-          <button
-            onClick={handleStop}
-            disabled={!status?.running}
-            style={{
-              padding: "0.5rem 1rem",
-              borderRadius: "6px",
-              border: "1px solid #ccc",
-              background: !status?.running ? "#e5e7eb" : "#dc2626",
-              color: !status?.running ? "#999" : "#fff",
-              cursor: !status?.running ? "not-allowed" : "pointer",
-            }}
-          >
-            Stop Server
-          </button>
-        </div>
-
-        {error && (
-          <div style={{ marginTop: "1rem", padding: "0.75rem", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "6px", color: "#dc2626", fontSize: "0.875rem" }}>
-            {error}
-          </div>
-        )}
-      </section>
-
-      <section style={{ background: "#f8f9fa", borderRadius: "8px", padding: "1.5rem" }}>
-        <h2 style={{ fontSize: "1.125rem", marginBottom: "1rem" }}>Dashboard</h2>
-        <p style={{ color: "#666", fontSize: "0.875rem" }}>
-          The full scraping dashboard will be available here once the local server is running.
-          Dashboard components are shared with the web application.
-        </p>
-        {status?.running && (
-          <p style={{ marginTop: "0.75rem", fontSize: "0.875rem" }}>
-            API available at{" "}
-            <a
-              href={`http://localhost:${status.port}/docs`}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: "#2563eb" }}
-            >
-              http://localhost:{status.port}/docs
-            </a>
-          </p>
-        )}
-      </section>
-
-      <footer style={{ marginTop: "2rem", fontSize: "0.75rem", color: "#999", textAlign: "center" }}>
-        AI Scraper Desktop v0.1.0 — Mode: {status?.mode ?? "desktop"}
+      {/* Footer */}
+      <footer style={styles.footer}>
+        AI Scraper Desktop v{version ?? "0.1.0"} — Local scraping platform with embedded control plane
       </footer>
     </div>
   );
 }
+
+/** Dashboard tab: server status + placeholder for future dashboard integration. */
+function DashboardTab() {
+  return (
+    <div style={styles.tabContent}>
+      <div style={{ maxWidth: "700px" }}>
+        <ServerStatus />
+      </div>
+
+      <section style={styles.dashboardSection}>
+        <h2 style={styles.sectionTitle}>Dashboard</h2>
+        <p style={styles.sectionDescription}>
+          The full scraping dashboard will be available here once the local server is running.
+          Dashboard components are shared with the web application.
+        </p>
+      </section>
+    </div>
+  );
+}
+
+/** Logs tab: real-time server log viewer. */
+function LogsTab() {
+  return (
+    <div style={{ ...styles.tabContent, height: "calc(100vh - 140px)" }}>
+      <LogViewer />
+    </div>
+  );
+}
+
+/** Settings tab: application configuration. */
+function SettingsTab() {
+  return (
+    <div style={styles.tabContent}>
+      <Settings />
+    </div>
+  );
+}
+
+const styles: Record<string, React.CSSProperties> = {
+  app: {
+    fontFamily: "system-ui, -apple-system, sans-serif",
+    display: "flex",
+    flexDirection: "column",
+    minHeight: "100vh",
+    background: "#fff",
+  },
+  header: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "0.75rem 1.5rem",
+    borderBottom: "1px solid #e5e7eb",
+    background: "#fafafa",
+  },
+  headerLeft: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.75rem",
+  },
+  appTitle: {
+    fontSize: "1.125rem",
+    fontWeight: 600,
+    margin: 0,
+  },
+  versionBadge: {
+    fontSize: "0.7rem",
+    padding: "0.15rem 0.4rem",
+    borderRadius: "4px",
+    background: "#e5e7eb",
+    color: "#6b7280",
+    fontFamily: "monospace",
+  },
+  nav: {
+    display: "flex",
+    gap: "0.25rem",
+  },
+  navButton: {
+    padding: "0.4rem 0.9rem",
+    borderRadius: "6px",
+    border: "1px solid transparent",
+    background: "transparent",
+    color: "#6b7280",
+    fontSize: "0.85rem",
+    fontWeight: 500,
+    cursor: "pointer",
+    transition: "all 0.15s",
+  },
+  navButtonActive: {
+    background: "#2563eb",
+    color: "#fff",
+    border: "1px solid #2563eb",
+  },
+  main: {
+    flex: 1,
+    overflow: "auto",
+  },
+  tabContent: {
+    padding: "1.5rem",
+    display: "flex",
+    flexDirection: "column",
+    gap: "1.5rem",
+  },
+  dashboardSection: {
+    background: "#f8f9fa",
+    borderRadius: "8px",
+    padding: "1.5rem",
+  },
+  sectionTitle: {
+    fontSize: "1.125rem",
+    fontWeight: 600,
+    marginBottom: "0.75rem",
+  },
+  sectionDescription: {
+    color: "#6b7280",
+    fontSize: "0.875rem",
+    lineHeight: 1.6,
+    margin: 0,
+  },
+  footer: {
+    padding: "0.5rem 1.5rem",
+    borderTop: "1px solid #e5e7eb",
+    fontSize: "0.7rem",
+    color: "#9ca3af",
+    textAlign: "center",
+  },
+};
 
 export default App;

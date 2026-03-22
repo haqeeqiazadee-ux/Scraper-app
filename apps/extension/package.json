@@ -1,0 +1,20 @@
+{
+  "name": "@scraper-platform/extension",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "AI Scraper Chrome Extension — extract structured data from any page",
+  "scripts": {
+    "build": "node build.config.js --production",
+    "build:dev": "node build.config.js",
+    "package": "../../scripts/package-extension.sh",
+    "validate": "../../scripts/validate-extension.sh",
+    "version:patch": "../../scripts/package-extension.sh --bump patch --skip-validate",
+    "version:minor": "../../scripts/package-extension.sh --bump minor --skip-validate",
+    "version:major": "../../scripts/package-extension.sh --bump major --skip-validate"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

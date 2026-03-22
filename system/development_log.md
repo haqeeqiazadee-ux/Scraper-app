@@ -525,3 +525,237 @@ Created 12 files in `apps/desktop/` establishing the Tauri v2 desktop applicatio
 - std::sync::Mutex (not tokio) since critical sections are short without await points
 - Shell plugin scope restricts sidecar to only the Python uvicorn command
 - Platform-aware process kill: taskkill /T /F on Windows, kill -TERM on Unix
+
+---
+
+## 2026-03-22 — EXE-003: Windows Installer Configuration
+
+### Implementation
+
+Configured the Tauri desktop app for building Windows installers in both WiX (.msi) and NSIS (.exe) formats.
+
+**tauri.conf.json updates:**
+- WiX config: license RTF, banner/dialog BMP paths, en-US language
+- NSIS config: header/sidebar BMP paths, license, currentUser install mode (no admin), start menu folder
+- File associations: `.scraper-task` files (application/x-scraper-task MIME type)
+- Bundle metadata: short/long descriptions, copyright, publisher, category
+- Resources: license.rtf bundled with the app
+
+**Build scripts:**
+- `apps/desktop/build-installer.sh`: Local build script with prerequisite detection (Rust, Node, WiX, NSIS), platform detection (Windows/Linux/macOS), frontend build, Tauri build, artifact collection. Supports `--msi`, `--nsis`, `--debug` flags.
+- `scripts/build-desktop.sh`: CI-oriented script with environment variable configuration (SIGN_CERT_PATH, SIGN_CERT_PASSWORD, BUILD_TARGET, BUILD_MODE, ARTIFACTS_DIR), optional code signing via signtool, SHA-256 checksum generation.
+
+**Installer assets:**
+- `installer/license.rtf`: MIT-based license in RTF format with third-party software notices
+- `installer/README.md`: Documents required BMP dimensions (WiX: 493x58 banner, 493x312 dialog; NSIS: 150x57 header, 164x314 sidebar) with ImageMagick generation commands
+- `src-tauri/icons/placeholder.svg`: SVG placeholder icon (blue gradient, magnifying glass + AI text)
+- `src-tauri/icons/README.md`: Documents all required icon files with generation methods
+
+**package.json scripts added:**
+- `build:desktop`: Full frontend + Tauri build
+- `build:installer`: Runs build-installer.sh (all targets)
+- `build:installer:msi`: WiX MSI only
+- `build:installer:nsis`: NSIS EXE only
+
+### Design Decisions
+- Per-user install (currentUser mode) so no admin elevation is required
+- Both WiX and NSIS supported for maximum compatibility (WiX for enterprise MSI deployment, NSIS for user-friendly EXE installer)
+- Code signing is optional and environment-driven (CI sets SIGN_CERT_PATH)
+- File association for `.scraper-task` enables double-click to open tasks
+- Checksums generated automatically for artifact verification
+- Banner/dialog/header/sidebar images are placeholder TODOs until final branding is ready
+
+---
+
+## 2026-03-22 — WEB-003: Results and Export UI
+
+### Summary
+Created 7 new React components/pages/hooks for results browsing and data export in the web dashboard.
+
+### Files Created
+1. **apps/web/src/hooks/useResults.ts** — 4 hooks: useResultList (paginated list with filters/sorting), useResult (single result by ID), useExportResults (mutation for export), useExportCount (preview count for export dialog)
+2. **apps/web/src/components/ResultsTable.tsx** — Sortable, paginated table with color-coded confidence badges (green >90%, blue >70%, yellow >50%, red <50%)
+3. **apps/web/src/components/ResultDetail.tsx** — Full detail view: metadata card, AI confidence breakdown with visual progress bars, extracted data via DataPreview
+4. **apps/web/src/components/DataPreview.tsx** — Toggle between table and JSON view for extracted data. Table view auto-detects all unique keys across records.
+5. **apps/web/src/components/ExportDialog.tsx** — Modal dialog with format (JSON/CSV/Excel), destination (download/S3/webhook), confidence slider, date range filters, preview count
+6. **apps/web/src/pages/ResultsPage.tsx** — Main results listing page with confidence filter pills and export button
+7. **apps/web/src/pages/ResultDetailPage.tsx** — Single result detail page with breadcrumb navigation
+
+### Files Modified
+- **apps/web/src/App.tsx** — Added /results and /results/:id routes
+- **apps/web/src/api/client.ts** — Extended results API with list(), export(), exportCount() methods
+- **apps/web/src/pages/TaskDetail.tsx** — Updated result links from /results?id=... to /results/:id
+
+### Design Decisions
+- Matches existing CSS variable system (no Tailwind — project uses vanilla CSS with CSS variables)
+- Confidence color coding: 4 tiers matching badge pattern from globals.css
+- Export dialog uses blob download for browser destination, JSON response for S3/webhook
+- DataPreview scans all records to build a unified column set for table view
+- Reused existing class names (card, card-header, detail-grid, detail-row, btn, badge, etc.)
+- No new dependencies added
+
+---
+
+## 2026-03-22 — EXT-003: Native Messaging for Local Companion
+
+### Summary
+Implemented full native messaging integration between the Chrome extension and the local companion app, enabling local extraction via the companion host.
+
+### Architecture
+
+```
+Popup UI  <-->  Background Service Worker  <-->  Native Messaging Port  <-->  Companion Host  <-->  Local Control Plane
+                (companion-bridge.ts)           (native-messaging.ts)        (message_handler.py)    (FastAPI :8000)
+```
+
+### Files Created
+
+1. **apps/extension/src/services/native-messaging.ts** — `NativeMessagingClient` class wrapping `chrome.runtime.connectNative("com.scraper.companion")`. Features: connect/disconnect, sendMessage with promise-based response correlation via message IDs, onMessage handler registration, automatic reconnection with exponential backoff (up to 5 attempts), 30s response timeout, singleton export.
+
+2. **apps/extension/src/services/local-extraction.ts** — `executeLocal(config)` with three-tier fallback: local companion -> cloud API -> offline queue (persisted in chrome.storage.local). `getLocalStatus()` checks companion + server health. `getLocalResults(taskId)` fetches results from local control plane.
+
+3. **apps/extension/src/background/companion-bridge.ts** — `startCompanionBridge()` / `stopCompanionBridge()` lifecycle management. Periodic health check (30s interval) determines connection state (local/cloud/offline). Broadcasts `connectionStateChanged` events. Routes `companionRequest`, `getConnectionState`, `reconnectCompanion`, `checkHealth` messages between popup/content and companion.
+
+4. **apps/extension/src/components/ConnectionStatus.ts** — `createConnectionStatus()` creates a DOM element showing connection state: green dot = cloud, blue dot = local, gray dot = offline. Click-to-refresh. Listens for broadcast events from companion-bridge.
+
+5. **apps/companion/src/message_handler.py** — `MessageHandler` class with handlers for `execute_task`, `get_status`, `get_results`, `health_check`. Lazy-initialized httpx.AsyncClient. Routes requests to local control plane. JSON envelope protocol: `{type, payload, id, success, error}`.
+
+### Files Modified
+
+- **apps/extension/manifest.json** — Added `"nativeMessaging"` permission
+- **apps/companion/native_host.py** — Updated `handle_message()` to detect new protocol (messages with `type` + `id` keys) and delegate to `MessageHandler`, while preserving backward compatibility with legacy `action`-based messages
+- **apps/extension/popup/popup.html** — Added `connection-status-mount` div in header
+- **apps/extension/popup/popup.js** — Added `initConnectionStatus()` function creating inline DOM component
+
+### Message Protocol
+
+Extension -> Companion:
+```json
+{ "type": "execute_task", "payload": { "url": "...", "mode": "auto" }, "id": "msg_1234_1" }
+```
+
+Companion -> Extension:
+```json
+{ "type": "execute_task_response", "payload": { "task_id": "..." }, "id": "msg_1234_1", "success": true }
+```
+
+### Design Decisions
+- Message ID correlation for request/response matching (not relying on message order)
+- Exponential backoff reconnection prevents tight reconnection loops when companion is unavailable
+- Offline queue in chrome.storage.local ensures no data loss when both local and cloud are down
+- Companion MessageHandler uses lazy httpx client (created on first request, not import time)
+- New protocol coexists with legacy action-based protocol for backward compatibility
+- ConnectionStatus component uses inline DOM creation (no build step) to match existing popup architecture
+
+---
+
+## 2026-03-22 — EXE-002: Embed Local Control Plane in Desktop App
+
+### Summary
+
+Upgraded the Tauri v2 desktop app from a basic server start/stop scaffold (EXE-001) to a fully managed embedded control plane with configuration persistence, health monitoring, crash recovery, and log viewing.
+
+### Rust Backend (src-tauri/src/)
+
+**server.rs — ServerManager:**
+- Spawns uvicorn with desktop-appropriate env vars: STORAGE_BACKEND=sqlite, QUEUE_BACKEND=memory, CACHE_BACKEND=memory, DATABASE_URL=sqlite:///~/.scraper-app/data.db
+- Logs stdout/stderr to ~/.scraper-app/logs/server.log
+- Graceful shutdown: SIGTERM first, wait up to 10s, then SIGKILL (Unix) or taskkill /F (Windows)
+- Background health check thread polls /health every 5s via curl
+- Automatic restart on crash: max 5 attempts with 3s cooldown between each
+- tail_logs() reads last N lines from log file for the LogViewer component
+- ensure_dirs() creates ~/.scraper-app/ and ~/.scraper-app/logs/ on first start
+
+**config.rs — AppConfig:**
+- 11 configuration fields: api_port, data_dir, log_level, ai_provider, ai_api_key, ai_base_url, proxy_url, proxy_enabled, auto_start_server, max_concurrent_tasks, theme
+- Persisted as ~/.scraper-app/config.json
+- Default config written on first load
+- AppConfigUpdate for partial updates (only provided fields applied)
+- open_data_dir() launches platform-specific file explorer
+
+**lib.rs — 9 Tauri Commands:**
+- start_local_server, stop_local_server, get_server_status, restart_server
+- get_config, set_config
+- get_server_logs (tail last N lines)
+- open_data_dir, get_version
+- AppState wraps Arc<ServerManager> + Mutex<AppConfig>
+
+**main.rs — App Lifecycle:**
+- Loads config from disk at startup (falls back to defaults)
+- Auto-starts server if config.auto_start_server is true
+- Spawns health check background thread after server start
+- Gracefully stops server on window close event
+- Registers all 9 commands
+
+**Cargo.toml:**
+- Added `dirs = "5.0"` for cross-platform home directory resolution
+
+### React Frontend (src/)
+
+**ServerStatus.tsx:**
+- Running/stopped/starting indicator with color-coded status dot (green=healthy, amber=starting, red=stopped)
+- Uptime display formatted as Xs/Xm Xs/Xh Xm
+- PID, restart count, health status, mode details in a grid
+- Start/Stop/Restart action buttons with loading states
+- API docs link when server is running and healthy
+- Auto-refresh every 5s
+
+**Settings.tsx:**
+- Server section: port, data dir (with Open button), log level dropdown, auto-start checkbox, max concurrent tasks
+- AI Provider section: provider dropdown (none/gemini/openai/anthropic/ollama), API key (password field), base URL (for Ollama)
+- Proxy section: enable checkbox, proxy URL input
+- Form state tracking with save/discard, success/error banners
+- Conditional field visibility (AI fields hidden when provider=none, proxy URL hidden when disabled)
+
+**LogViewer.tsx:**
+- Dark terminal theme (background #1e1e1e) with monospace font
+- Level filter dropdown (all/debug/info/warning/error)
+- Line count selector (50/100/200/500)
+- Auto-scroll with smart detection (disables when user scrolls up, re-enables at bottom)
+- Color-coded lines: gray=debug, blue=info, amber=warning, red=error
+- Line numbers, 3s auto-refresh, manual refresh button
+- Footer showing filtered/total line count
+
+**App.tsx:**
+- Tab navigation: Dashboard / Logs / Settings
+- Header with app title and version badge
+- Dashboard tab embeds ServerStatus + placeholder for future dashboard integration
+- Logs tab embeds full-height LogViewer
+- Settings tab embeds Settings panel
+
+### Design Decisions
+- Used dirs crate for cross-platform ~/.scraper-app/ resolution (Windows: C:\Users\X\.scraper-app\)
+- Health check via curl subprocess instead of Rust HTTP client to avoid adding reqwest dependency
+- std::sync::Mutex (not tokio::sync) because all critical sections are short and synchronous
+- Background health check runs on std::thread, not tokio, since it only does sleep + subprocess calls
+- Server logs written to file (not captured in memory) to survive app restarts and support tail reading
+- Config defaults written to disk on first load so users can discover and hand-edit the JSON file
+- Graceful shutdown attempts SIGTERM before SIGKILL to let uvicorn clean up database connections
+
+---
+
+## 2026-03-22 — PROXY-002: Proxy Provider Integrations
+
+### Summary
+
+Implemented 4 concrete proxy provider integrations with a shared base protocol. All providers are async with lazy HTTP client initialization.
+
+### Files Created (7)
+
+- **base.py:** ProxyInfo dataclass, ProxyUsage dataclass, ProxyProviderProtocol
+- **brightdata.py:** BrightDataProvider — zone-based username format, API credential validation, bandwidth usage
+- **smartproxy.py:** SmartproxyProvider — residential/datacenter pools (port 7000/10000), city-level targeting
+- **oxylabs.py:** OxylabsProvider — residential/datacenter/ISP hosts, realtime stats API
+- **free_proxy.py:** FreeProxyProvider — public list scraping, semaphore-limited validation, TTL cache
+- **__init__.py:** Package exports
+- **tests/unit/test_proxy_providers.py:** 56 tests across 8 test classes
+
+### Design Decisions
+
+- Separate ProxyInfo dataclass from existing Proxy (proxy_adapter.py) — providers need city, pool_type, metadata fields
+- Lazy httpx.AsyncClient (created on first API call)
+- Credentials via constructor args or env vars
+- All providers satisfy ProxyProviderProtocol via structural subtyping
+- Free proxy provider caps validation at 100 candidates with 20 concurrent checks
+
+### Test Results: 56 passed in 0.16s

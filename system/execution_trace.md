@@ -377,3 +377,186 @@
   - index.html — Entry point with Tauri drag region styles
 - **Blockers found:** None
 - **Next action:** EXE-002 for full dashboard integration, system tray menu
+
+## Work Cycle — 2026-03-22
+
+- **Timestamp:** 2026-03-22
+- **Active Task IDs:** EXE-003
+- **What was read before action:** apps/desktop/src-tauri/tauri.conf.json, apps/desktop/src-tauri/Cargo.toml, apps/desktop/package.json, system/todo.md, system/lessons.md
+- **Action taken:** Built Windows installer configuration for the Tauri desktop app
+- **Why:** EXE-003 in task breakdown — installer config needed for distributing the desktop app as .msi and .exe
+- **Outputs produced:**
+  - **tauri.conf.json:** Updated bundle section with WiX config (license, banner/dialog image paths, language), NSIS config (header/sidebar images, license, currentUser install mode, start menu folder), file associations (.scraper-task), resources, short/long descriptions, copyright, publisher
+  - **apps/desktop/build-installer.sh:** Local build script with prerequisite checks (Rust, Node, WiX, NSIS), frontend build, Tauri build, artifact collection to dist-installer/. Supports --msi, --nsis, --debug flags. Works on Windows (Git Bash) and CI.
+  - **apps/desktop/src-tauri/icons/README.md:** Documents required icon files (ico, png, icns) with generation instructions (Tauri CLI and ImageMagick)
+  - **apps/desktop/src-tauri/icons/placeholder.svg:** SVG placeholder icon (blue gradient, magnifying glass + AI text)
+  - **apps/desktop/installer/license.rtf:** MIT-based license in RTF format with third-party notices
+  - **apps/desktop/installer/README.md:** Documents required banner/dialog BMP dimensions for WiX (493x58, 493x312) and NSIS (150x57, 164x314) with generation commands
+  - **scripts/build-desktop.sh:** CI-friendly build script with env var config (SIGN_CERT_PATH, BUILD_TARGET, BUILD_MODE, ARTIFACTS_DIR), code signing support, SHA-256 checksum generation, artifact collection
+  - **apps/desktop/package.json:** Added build:desktop, build:installer, build:installer:msi, build:installer:nsis scripts
+- **Blockers found:** None
+- **Next action:** Continue with remaining pending tasks
+
+## Work Cycle — 2026-03-22 (WEB-003)
+
+- **Timestamp:** 2026-03-22
+- **Active Task IDs:** WEB-003
+- **What was read before action:** apps/web/src/App.tsx, apps/web/src/pages/*.tsx, apps/web/src/components/*.tsx, apps/web/src/api/types.ts, apps/web/src/api/client.ts, apps/web/src/styles/globals.css, apps/web/package.json, system/todo.md
+- **Action taken:** Created Results and Export UI — 7 new files + 2 updated files
+- **Why:** WEB-003 in task breakdown — results browsing and export UI needed for the web dashboard
+- **Outputs produced:**
+  - **apps/web/src/hooks/useResults.ts:** 4 hooks (useResultList, useResult, useExportResults, useExportCount) using react-query
+  - **apps/web/src/components/ResultsTable.tsx:** Paginated table with sortable columns (URL, method, items, confidence, created_at), color-coded confidence badges, links to detail view
+  - **apps/web/src/components/ResultDetail.tsx:** Full result detail with metadata card, AI confidence breakdown with visual bars, extracted data preview using DataPreview component
+  - **apps/web/src/components/DataPreview.tsx:** Toggle between table and JSON views for extracted data records, shows all unique keys across records
+  - **apps/web/src/components/ExportDialog.tsx:** Modal with format selection (JSON/CSV/Excel), destination (download/S3/webhook), confidence + date filters, preview count, blob download support
+  - **apps/web/src/pages/ResultsPage.tsx:** Results listing page with confidence filter pills, export button, sort/pagination controls
+  - **apps/web/src/pages/ResultDetailPage.tsx:** Single result detail page with breadcrumb navigation
+  - **apps/web/src/App.tsx:** Updated routes — /results -> ResultsPage, /results/:id -> ResultDetailPage
+  - **apps/web/src/api/client.ts:** Extended results API client with list(), export(), exportCount() methods
+  - **apps/web/src/pages/TaskDetail.tsx:** Updated result links to use /results/:id instead of /results?id=...
+- **Blockers found:** None (node_modules not installed but this is pre-existing across all web files)
+- **Next action:** Continue with remaining pending tasks
+
+## Work Cycle — 2026-03-22 (EXT-003)
+
+- **Timestamp:** 2026-03-22
+- **Active Task IDs:** EXT-003
+- **What was read before action:** apps/extension/manifest.json, apps/extension/background/service-worker.js, apps/extension/popup/popup.js, apps/extension/popup/popup.html, apps/extension/content/content.js, apps/extension/lib/api.js, apps/extension/lib/extractor.js, apps/companion/native_host.py, apps/companion/install.py, apps/companion/__init__.py, system/todo.md, system/execution_trace.md, system/development_log.md, system/final_step_logs.md
+- **Action taken:** Implemented native messaging integration between Chrome extension and companion app
+- **Why:** EXT-003 in task breakdown — native messaging bridge needed for local extraction via companion
+- **Outputs produced:**
+  - **apps/extension/src/services/native-messaging.ts:** NativeMessagingClient class — connect/disconnect/sendMessage/onMessage/isConnected. Uses chrome.runtime.connectNative("com.scraper.companion"). Message correlation via IDs. Exponential backoff reconnection (5 attempts). 30s response timeout. Singleton export.
+  - **apps/extension/src/services/local-extraction.ts:** executeLocal (local -> cloud -> offline queue fallback), getLocalStatus (companion + server health), getLocalResults (fetch by taskId). Offline queue persisted in chrome.storage.local.
+  - **apps/extension/src/background/companion-bridge.ts:** startCompanionBridge/stopCompanionBridge lifecycle. 30s health check interval. Broadcasts connectionStateChanged events. Routes companionRequest, getConnectionState, reconnectCompanion, checkHealth messages.
+  - **apps/extension/src/components/ConnectionStatus.ts:** createConnectionStatus/updateConnectionStatus. Green=cloud, blue=local, gray=offline. Click to refresh. Listens for state broadcasts.
+  - **apps/companion/src/message_handler.py:** MessageHandler class with execute_task, get_status, get_results, health_check handlers. Lazy httpx.AsyncClient. Routes to local control plane API. JSON envelope protocol (type/payload/id/success/error).
+  - **apps/extension/manifest.json:** Added "nativeMessaging" permission.
+  - **apps/companion/native_host.py:** Updated handle_message to detect new protocol (type+id envelope) and delegate to MessageHandler.
+  - **apps/extension/popup/popup.html:** Added connection-status-mount div in header.
+  - **apps/extension/popup/popup.js:** Added initConnectionStatus() with inline DOM component matching ConnectionStatus.ts design.
+  - **apps/companion/src/__init__.py:** Package init.
+- **Blockers found:** None
+- **Next action:** Continue with remaining pending tasks
+
+## Work Cycle — 2026-03-22 (EXE-002)
+
+- **Timestamp:** 2026-03-22
+- **Active Task IDs:** EXE-002
+- **What was read before action:** apps/desktop/src-tauri/src/lib.rs, main.rs, Cargo.toml, tauri.conf.json, apps/desktop/src/App.tsx, src/hooks/useTauri.ts, services/control-plane/app.py
+- **Action taken:** Embedded local control plane in desktop app with full server lifecycle management, configuration persistence, and log viewing
+- **Why:** EXE-002 in task breakdown — desktop app needs to manage the embedded Python control plane with health checks, crash recovery, and user configuration
+- **Outputs produced:**
+  - **server.rs:** ServerManager — spawn uvicorn with desktop env vars, health check polling, graceful shutdown (10s timeout), auto-restart on crash (max 5, 3s cooldown), background health check thread (5s interval), log file writing
+  - **config.rs:** AppConfig (11 settings) — load/save ~/.scraper-app/config.json, partial updates, open_data_dir
+  - **lib.rs:** 9 Tauri commands — start/stop/restart server, get_server_status, get/set config, get_server_logs, open_data_dir, get_version
+  - **main.rs:** Config loading, auto-start, health check loop, graceful shutdown on close
+  - **Cargo.toml:** Added dirs = "5.0"
+  - **ServerStatus.tsx:** Status widget with uptime, health, restart count, start/stop/restart buttons
+  - **Settings.tsx:** Config panel with server, AI provider, and proxy sections
+  - **LogViewer.tsx:** Real-time log viewer with level filtering, auto-scroll, dark terminal theme
+  - **App.tsx:** Tab navigation (Dashboard/Logs/Settings) with embedded components
+- **Blockers found:** None
+- **Next action:** Continue with remaining pending tasks
+
+## Work Cycle — 2026-03-22 (PROXY-002)
+
+- **Timestamp:** 2026-03-22
+- **Active Task IDs:** PROXY-002
+- **What was read before action:** packages/connectors/proxy_adapter.py, packages/connectors/__init__.py, packages/core/interfaces.py, system/todo.md
+- **Action taken:** Implemented proxy provider integrations for 4 services
+- **Why:** PROXY-002 in task breakdown — concrete proxy provider implementations needed for live proxy rotation
+- **Outputs produced:**
+  - **packages/connectors/proxy_providers/base.py:** ProxyInfo, ProxyUsage dataclasses, ProxyProviderProtocol
+  - **packages/connectors/proxy_providers/brightdata.py:** BrightDataProvider with zone management, credential validation
+  - **packages/connectors/proxy_providers/smartproxy.py:** SmartproxyProvider with residential/datacenter pools, city targeting
+  - **packages/connectors/proxy_providers/oxylabs.py:** OxylabsProvider with residential/datacenter/ISP, realtime stats
+  - **packages/connectors/proxy_providers/free_proxy.py:** FreeProxyProvider with list scraping, validation, caching
+  - **packages/connectors/proxy_providers/__init__.py:** Package exports
+  - **tests/unit/test_proxy_providers.py:** 56 tests, all passing
+- **Blockers found:** None
+- **Next action:** Continue with remaining pending tasks
+
+## Work Cycle — 2026-03-22 (WEB-002)
+
+- **Timestamp:** 2026-03-22
+- **Active Task IDs:** WEB-002
+- **What was read before action:** apps/web/src/App.tsx, apps/web/src/pages/*.tsx, apps/web/src/components/*.tsx, apps/web/src/api/types.ts, apps/web/src/api/client.ts, apps/web/src/styles/globals.css, apps/web/package.json, system/todo.md
+- **Action taken:** Created interactive task management UI components — 8 new/updated files
+- **Why:** WEB-002 in task breakdown — task CRUD, sorting, run history, and modal form needed for full task management
+- **Outputs produced:**
+  - **apps/web/src/lib/api.ts:** API client helper with base URL config, auth token management, apiRequest() with auth header injection, buildQuery()
+  - **apps/web/src/hooks/useTasks.ts:** 8 custom hooks using React Query key factory pattern
+  - **apps/web/src/components/TaskForm.tsx:** Create/edit form with validation, dynamic selectors, policy dropdown
+  - **apps/web/src/components/TaskTable.tsx:** Sortable table with inline actions (edit/run/delete)
+  - **apps/web/src/components/TaskDetail.tsx:** Detail view with run/cancel buttons and results sub-table
+  - **apps/web/src/components/RunHistory.tsx:** Run history table with duration formatting
+  - **apps/web/src/pages/TasksPage.tsx:** Page with TaskTable + TaskForm modal overlay
+  - **apps/web/src/pages/TaskDetailPage.tsx:** Page combining TaskDetail + RunHistory
+  - **apps/web/src/App.tsx:** Updated routes to use new page components
+  - **apps/web/src/api/types.ts:** Extended with ExtractionType, RunListItem, enhanced Task types
+  - **apps/web/src/api/client.ts:** Added tasks.runs(), tasks.delete(), tasks.execute()
+  - **apps/web/src/styles/globals.css:** Added modal, form, toolbar, pagination, sortable header styles
+- **Blockers found:** None
+- **Next action:** Continue with remaining pending tasks
+
+## Work Cycle — 2026-03-22 (PKG-002/003)
+
+- **Timestamp:** 2026-03-22
+- **Active Task IDs:** PKG-002, PKG-003
+- **What was read before action:** apps/desktop/package.json, apps/desktop/src-tauri/tauri.conf.json, apps/extension/manifest.json, scripts/, .github/workflows/, system tracking files
+- **Action taken:** Created packaging configurations for Windows desktop app and Chrome extension
+- **Why:** PKG-002/003 in task breakdown — packaging scripts, build configs, and CI workflows needed for distribution
+- **Outputs produced:**
+  - **PKG-002:** scripts/package-desktop.sh, apps/desktop/src-tauri/resources/README.md, .github/workflows/build-desktop.yml
+  - **PKG-003:** scripts/package-extension.sh, apps/extension/build.config.js, .github/workflows/build-extension.yml, scripts/validate-extension.sh, apps/extension/package.json (updated)
+- **Blockers found:** None
+- **Next action:** Continue with remaining pending tasks (EXT-002, TEST-002/003/004, VERIFY-001/002)
+
+## Work Cycle — 2026-03-22 (VERIFY-001/002)
+
+- **Timestamp:** 2026-03-22
+- **Active Task IDs:** VERIFY-001, VERIFY-002
+- **What was read before action:** All docs/*.md, system/*.md, CLAUDE.md, all __init__.py files, all test files, .env.example, .github/workflows/, infrastructure/docker/docker-compose.yml, infrastructure/helm/
+- **Action taken:** Final documentation review and codebase audit
+- **Why:** VERIFY-001/002 — final verification tasks before project milestone
+- **Outputs produced:**
+  - **docs/ARCHITECTURE.md:** High-level architecture document with system diagram, component descriptions, data flow, deployment options, tech stack summary (~150 lines)
+  - **docs/DEPLOYMENT.md:** Deployment guide covering Docker Compose, Kubernetes (Helm), AWS (Terraform), desktop app, Chrome extension, environment variables reference (~230 lines)
+  - **docs/CHANGELOG.md:** Changelog documenting all phases, key decisions, and statistics
+  - **packages/connectors/proxy_providers/__init__.py:** Fixed missing __init__.py (only missing package)
+  - **system/todo.md:** Updated with VERIFY-001/002 complete, final test count, audit summary
+  - **system/execution_trace.md:** This entry
+  - **system/development_log.md:** Final summary entry
+  - **system/final_step_logs.md:** Final verification entry
+  - **system/lessons.md:** Final lessons added
+- **Audit findings:**
+  - All Python packages have __init__.py (1 was missing, fixed)
+  - All 4 services have entry points
+  - 436+ tests passing
+  - 3 minor TODO comments in code (non-blocking)
+  - .env.example complete with 30+ variables
+  - 2 GitHub Actions workflows present
+- **Blockers found:** None
+- **Next action:** Project at milestone — 67/69 tasks complete. Remaining task (EXT-002) is future work
+
+## Work Cycle — 2026-03-22 (TEST-002/003/004)
+
+- **Timestamp:** 2026-03-22
+- **Active Task IDs:** TEST-002, TEST-003, TEST-004
+- **What was read before action:** tests/conftest.py, tests/unit/ (listing), tests/integration/test_api/test_tasks_api.py, services/control_plane/ (app.py, dependencies.py, config.py, all routers, middleware), packages/core/ (router.py, interfaces.py, normalizer.py, metrics.py, storage/), packages/connectors/ (http_collector.py), packages/contracts/ (task.py, policy.py, result.py, run.py), system/todo.md
+- **Action taken:** Created integration and E2E test suites — 10 new files, 37 new tests
+- **Why:** TEST-002/003/004 tasks require integration tests covering task lifecycle, storage backends, worker pipeline, auth flow, and E2E API/health/metrics tests
+- **Outputs produced:**
+  - **tests/integration/conftest.py:** Shared fixtures (test_db, client, TaskFactory, PolicyFactory, ResultFactory)
+  - **tests/integration/test_task_lifecycle.py:** 8 tests — create, execute, status transitions, routing with policies, dry-run
+  - **tests/integration/test_storage_integration.py:** 6 tests — DB+cache, object store+cache, task→run→result chain, list/delete, TTL, increment
+  - **tests/integration/test_worker_pipeline.py:** 6 tests — mock HTTP fetch, normalization, full pipeline, error handling, lane routing, result storage
+  - **tests/integration/test_auth_flow.py:** 5 tests — JWT create/verify, expired token, invalid token, auth endpoint, /me endpoint (skipped when PyJWT unavailable)
+  - **tests/e2e/conftest.py:** E2E fixtures (app_client, auth_token, auth_headers)
+  - **tests/e2e/__init__.py:** Package init
+  - **tests/e2e/test_api_e2e.py:** 8 tests — full CRUD cycles for tasks/policies, execution routing, tenant isolation
+  - **tests/e2e/test_health_monitoring.py:** 4 tests — /health, /ready, /metrics (Prometheus), /api/v1/metrics (JSON)
+- **Test results:** 47 passed, 5 skipped (auth tests — PyJWT/cryptography not loadable in environment), 0 failed
+- **Blockers found:** PyJWT import fails due to cffi_backend issue — auth tests correctly skip via pytestmark
+- **Next action:** Continue with remaining pending tasks

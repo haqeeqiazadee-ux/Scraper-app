@@ -53,7 +53,22 @@ class NativeMessageHost:
         sys.stdout.buffer.flush()
 
     async def handle_message(self, message: dict) -> dict:
-        """Process an incoming message and return response."""
+        """Process an incoming message and return response.
+
+        Supports two protocols:
+        1. Legacy: { action: "...", ... }
+        2. New (EXT-003): { type: "...", payload: { ... }, id: "..." }
+        """
+        # New protocol — messages with type/payload/id envelope
+        if "type" in message and "id" in message:
+            from apps.companion.src.message_handler import MessageHandler
+            handler = MessageHandler(api_base=self._api_base)
+            try:
+                return await handler.handle(message)
+            finally:
+                await handler.close()
+
+        # Legacy protocol — messages with action key
         action = message.get("action", "")
 
         handlers = {

@@ -1,0 +1,150 @@
+name: Build Extension
+
+on:
+  push:
+    tags: ["v*-extension", "v*"]
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Publish to Chrome Web Store"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build Chrome Extension
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Set version from tag
+        id: version
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/v}"
+            VERSION="${VERSION%-extension}"
+            echo "version=${VERSION}" >> $GITHUB_OUTPUT
+            echo "is_release=true" >> $GITHUB_OUTPUT
+          else
+            VERSION=$(node -p "require('./apps/extension/manifest.json').version")
+            echo "version=${VERSION}" >> $GITHUB_OUTPUT
+            echo "is_release=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install dependencies
+        working-directory: apps/extension
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          elif [ -f package.json ]; then
+            npm install
+          fi
+
+      - name: Validate extension
+        run: |
+          chmod +x scripts/validate-extension.sh
+          ./scripts/validate-extension.sh
+
+      - name: Build extension
+        working-directory: apps/extension
+        run: |
+          if [ -f package.json ] && node -p "Boolean(require('./package.json').scripts?.build)" | grep -q true; then
+            EXTENSION_VERSION=${{ steps.version.outputs.version }} npm run build
+          else
+            echo "No build script found, using source files directly"
+          fi
+
+      - name: Package extension
+        run: |
+          chmod +x scripts/package-extension.sh
+          ./scripts/package-extension.sh --skip-validate
+
+      - name: Upload .zip artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: chrome-extension-${{ steps.version.outputs.version }}
+          path: |
+            dist/ai-scraper-extension-*.zip
+            dist/extension-checksums.sha256
+          retention-days: 30
+
+      - name: Upload unpacked extension
+        uses: actions/upload-artifact@v4
+        with:
+          name: chrome-extension-unpacked-${{ steps.version.outputs.version }}
+          path: dist/extension/
+          retention-days: 30
+
+      # Create GitHub Release for tagged builds
+      - name: Create release
+        if: steps.version.outputs.is_release == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/ai-scraper-extension-*.zip
+            dist/extension-checksums.sha256
+          draft: true
+          generate_release_notes: true
+
+      # Publish to Chrome Web Store (requires secrets)
+      - name: Publish to Chrome Web Store
+        if: >-
+          (steps.version.outputs.is_release == 'true' || github.event.inputs.publish == 'true')
+          && env.CHROME_EXTENSION_ID != ''
+        env:
+          CHROME_EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
+          CHROME_CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}
+          CHROME_CLIENT_SECRET: ${{ secrets.CHROME_CLIENT_SECRET }}
+          CHROME_REFRESH_TOKEN: ${{ secrets.CHROME_REFRESH_TOKEN }}
+        run: |
+          echo "Publishing to Chrome Web Store..."
+
+          # Get OAuth2 access token
+          ACCESS_TOKEN=$(curl -s -X POST "https://oauth2.googleapis.com/token" \
+            -d "client_id=${CHROME_CLIENT_ID}" \
+            -d "client_secret=${CHROME_CLIENT_SECRET}" \
+            -d "refresh_token=${CHROME_REFRESH_TOKEN}" \
+            -d "grant_type=refresh_token" | node -p "JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')).access_token")
+
+          if [ -z "${ACCESS_TOKEN}" ] || [ "${ACCESS_TOKEN}" = "undefined" ]; then
+            echo "ERROR: Failed to obtain access token"
+            exit 1
+          fi
+
+          ZIP_FILE=$(ls dist/ai-scraper-extension-*.zip | head -1)
+
+          # Upload the extension
+          UPLOAD_RESPONSE=$(curl -s -X PUT \
+            "https://www.googleapis.com/upload/chromewebstore/v1.1/items/${CHROME_EXTENSION_ID}" \
+            -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+            -H "x-goog-api-version: 2" \
+            -T "${ZIP_FILE}")
+
+          echo "Upload response: ${UPLOAD_RESPONSE}"
+
+          UPLOAD_STATUS=$(echo "${UPLOAD_RESPONSE}" | node -p "JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')).uploadState")
+          if [ "${UPLOAD_STATUS}" != "SUCCESS" ]; then
+            echo "ERROR: Upload failed with status: ${UPLOAD_STATUS}"
+            exit 1
+          fi
+
+          # Publish the uploaded extension
+          PUBLISH_RESPONSE=$(curl -s -X POST \
+            "https://www.googleapis.com/chromewebstore/v1.1/items/${CHROME_EXTENSION_ID}/publish" \
+            -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+            -H "x-goog-api-version: 2" \
+            -H "Content-Length: 0")
+
+          echo "Publish response: ${PUBLISH_RESPONSE}"
+          echo "Extension published to Chrome Web Store."
