@@ -23,7 +23,6 @@
 - **Why:** Required before any implementation can begin per workflow rules
 - **Outputs produced:**
   - docs/final_specs.md — 1233 lines covering all 24 required sections
-  - Sections: vision, goals, architecture, personas, runtime modes, system architecture, 7 data contracts, 5 execution lanes, connector strategy, session model, proxy/CAPTCHA strategy, AI strategy, storage design, multi-tenant model, security, compliance, observability, packaging, testing, deployment, risks, milestones, acceptance criteria, open questions
 - **Blockers found:** None
 - **Next action:** Phase 2 — Create tasks breakdown
 
@@ -35,8 +34,57 @@
 - **Action taken:** Phase 2 — Created comprehensive docs/tasks_breakdown.md
 - **Why:** Required before any implementation can begin per workflow rules
 - **Outputs produced:**
-  - docs/tasks_breakdown.md — 69 tasks across 24 epics
-  - Includes: dependency graph, execution order, parallelizable tasks, critical path, risk hotspots, milestone mapping, task summary table
-  - Epics cover: repo setup, docs, architecture, schemas, API, workers, proxy, CAPTCHA, sessions, storage, AI, normalization, web dashboard, Windows EXE, browser extension, companion, self-hosted deploy, cloud deploy, testing, observability, packaging, security, migration, verification
+  - docs/tasks_breakdown.md — 69 tasks across 24 epics with dependency graph, critical path, milestones
 - **Blockers found:** None
-- **Next action:** Phase 3 — Begin architecture scaffolding (REPO-001, ARCH-001)
+- **Next action:** Phase 3 — Begin architecture scaffolding
+
+## Work Cycle 004 — 2026-03-22
+
+- **Timestamp:** 2026-03-22
+- **Active Task IDs:** REPO-001, REPO-004, REPO-002, ARCH-001, ARCH-002, ARCH-003, ARCH-004
+- **What was read before action:** docs/final_specs.md (sections 6-9), docs/tasks_breakdown.md (epics 1-4), system/todo.md, system/lessons.md
+- **Action taken:** Phase 3 — Architecture and scaffolding validation
+- **Why:** Foundation for all implementation work
+- **Outputs produced:**
+  - **CLAUDE.md** — Project context file for AI sessions
+  - **REPO-001:** Full monorepo directory tree (26 directories created)
+    - `apps/web`, `apps/desktop`, `apps/extension`, `apps/companion`
+    - `packages/contracts`, `packages/core`, `packages/core/ai_providers`, `packages/core/storage`
+    - `packages/connectors`, `packages/connectors/proxy_providers`
+    - `services/control-plane/routers`, `services/control-plane/middleware`
+    - `services/worker-http`, `services/worker-browser`, `services/worker-ai`
+    - `infrastructure/docker`, `infrastructure/terraform/aws`, `infrastructure/helm`
+    - `tests/unit/test_contracts`, `tests/integration/test_api`, `tests/e2e`, `tests/fixtures`, `tests/utils`
+    - `.gitkeep` files in all empty directories
+  - **REPO-004:** `.gitignore` (Python, Node, Rust, IDE, OS, Docker, secrets) and `.env.example` (all config vars with docs)
+  - **REPO-002:** `pyproject.toml` (ruff, pytest, mypy, coverage config), `requirements-dev.txt`
+  - **ARCH-001:** `packages/contracts/` — 7 Pydantic v2 contract models
+    - `task.py`: Task, TaskCreate, TaskUpdate, TaskStatus, TaskType
+    - `policy.py`: Policy, PolicyCreate, PolicyUpdate, RateLimit, ProxyPolicy, SessionPolicy, RetryPolicy, LanePreference
+    - `session.py`: Session, SessionCreate, SessionStatus, SessionType, computed health_score
+    - `run.py`: Run, RunCreate, RunStatus
+    - `result.py`: Result, ResultCreate
+    - `artifact.py`: Artifact, ArtifactCreate, ArtifactType
+    - `billing.py`: TenantQuota, UsageCounters, PlanTier, PLAN_DEFAULTS, is_within_quota()
+    - `__init__.py`: All public exports
+  - **ARCH-002:** `packages/core/` — Protocol interfaces and execution router
+    - `interfaces.py`: 10 Protocol classes (Fetcher, FetchRequest, FetchResponse, BrowserWorker, Connector, ConnectorMetrics, ObjectStore, MetadataStore, QueueBackend, CacheBackend, AIProvider)
+    - `router.py`: ExecutionRouter with lane selection, escalation, site profiles, success history tracking
+    - `__init__.py`: Public exports
+  - **ARCH-003:** `packages/connectors/` — 5 connector adapters
+    - `http_collector.py`: HttpCollector with stealth headers, UA rotation, httpx async client
+    - `browser_worker.py`: PlaywrightBrowserWorker with scroll, click, wait, screenshot
+    - `proxy_adapter.py`: ProxyAdapter with Proxy dataclass, health tracking, 4 rotation strategies (round_robin, random, weighted, sticky), cooldown
+    - `captcha_adapter.py`: CaptchaAdapter with multi-service fallback, cost tracking, CaptchaSolution dataclass
+    - `api_adapter.py`: ApiAdapter for REST/GraphQL APIs with auth
+    - `__init__.py`: All exports
+  - **ARCH-004:** `services/control-plane/` — FastAPI application skeleton
+    - `app.py`: FastAPI app factory with CORS, lifespan, router registration
+    - `config.py`: Pydantic Settings class loading from .env
+    - `routers/health.py`: /health and /ready endpoints
+    - `routers/tasks.py`: CRUD for tasks (POST, GET, GET list, PATCH, POST cancel) — in-memory store for now
+    - `routers/policies.py`: CRUD for policies (POST, GET, GET list, PATCH, DELETE) — in-memory store for now
+    - `middleware/__init__.py`: Placeholder for auth middleware
+    - Python-compatible symlink: `services/control_plane` → `services/control-plane`
+- **Blockers found:** Python doesn't allow hyphens in package names — resolved with symlink `control_plane` → `control-plane`
+- **Next action:** Commit, push, then begin SCHEMA tasks and STORAGE tasks

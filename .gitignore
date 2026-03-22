@@ -1,0 +1,79 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+*.whl
+.venv/
+venv/
+env/
+.python-version
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Environment / Secrets
+.env
+.env.local
+.env.production
+*.pem
+*.key
+credentials.json
+secrets.json
+
+# Node.js (web dashboard, extension)
+node_modules/
+.next/
+.nuxt/
+dist/
+
+# Rust / Tauri (desktop app)
+target/
+*.rs.bk
+
+# Docker
+.docker/
+
+# Database
+*.sqlite3
+*.db
+
+# Logs
+*.log
+logs/
+
+# Artifacts / Exports
+exports/
+artifacts/
+*.xlsx
+*.csv
+
+# Scrapling browser data
+.scrapling/
+
+# Coverage
+coverage/
+.nyc_output/
