@@ -345,3 +345,23 @@
 - **Validation:** 5/5 worker tests passing. Full suite: 150 tests, 0 failures.
 - **Pass/Fail:** PASS
 - **Final Status:** COMPLETE
+
+---
+
+## WORKER-004: Lane Escalation Logic
+
+- **Task ID:** WORKER-004
+- **Start/End:** 2026-03-22
+- **Steps:** Created packages/core/escalation.py (EscalationManager, EscalationContext). 11 tests covering should_escalate, get_escalation, exhaustion, context tracking.
+- **Validation:** 11/11 tests passing
+- **Pass/Fail:** PASS | **Final Status:** COMPLETE
+
+---
+
+## NORM-001: Schema Mapping / Normalizer
+
+- **Task ID:** NORM-001
+- **Start/End:** 2026-03-22
+- **Steps:** Created packages/core/normalizer.py with field aliases (30+), type coercion, price cleaning (multi-format comma handling). 25 tests.
+- **Validation:** 25/25 tests passing. Total suite: 186 tests, 0 failures.
+- **Pass/Fail:** PASS | **Final Status:** COMPLETE

@@ -24,7 +24,10 @@
 - [x] **AI-001:** AI provider abstraction — deterministic + Gemini + chain (14 tests)
 - [x] **WORKER-001:** HTTP lane worker — fetch → extract → confidence → result (5 tests)
 
-## Test Status: 150 passed, 0 failed (4.34s)
+- [x] **WORKER-004:** Lane escalation manager (11 tests)
+- [x] **NORM-001:** Schema mapping / normalizer (25 tests)
+
+## Test Status: 186 passed, 0 failed (4.40s)
 
 ## Pending (Next Up)
 - [ ] WORKER-002: Browser lane worker

@@ -143,3 +143,17 @@
   - **Total: 150 tests, all passing in 4.34s**
 - **Blockers found:** Symlink path was wrong (services/control-plane vs control-plane) — fixed. Needed to create worker_http symlink too.
 - **Next action:** Update tracking, commit, push
+
+## Work Cycle 008 — 2026-03-22
+
+- **Timestamp:** 2026-03-22
+- **Active Task IDs:** WORKER-004, NORM-001
+- **What was read before action:** system/todo.md, packages/core/router.py
+- **Action taken:** Implemented lane escalation manager and result normalizer
+- **Outputs produced:**
+  - **WORKER-004:** EscalationManager class — tracks escalation context per task, determines if results warrant escalation, gets next lane from fallback chain, records outcomes, respects max depth (3). EscalationContext dataclass tracks depth + attempts. 11 tests.
+  - **NORM-001:** Normalizer module — field alias mapping (30+ aliases), type coercion (prices, ratings, integers, URLs), normalize_item/normalize_items functions. Price cleaning handles USD/EUR/PKR/thousands. 25 tests.
+  - **Bug fix:** Price cleaner: "Rs. 5,000" → thousands separator detection using regex pattern matching.
+  - **Total: 186 tests, all passing in 4.40s**
+- **Blockers found:** Price cleaning edge case (comma disambiguation — thousands vs decimal)
+- **Next action:** Commit and push, continue with SESSION-001, API-005

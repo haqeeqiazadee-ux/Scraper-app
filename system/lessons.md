@@ -67,3 +67,7 @@
 28. **Worker should_escalate flag** — HTTP worker sets `should_escalate=True` when extraction fails (HTTP error, empty results). The control plane uses this to automatically route to browser lane. Clean separation of concerns.
 
 29. **Confidence scoring from field fill rate** — Simple but effective: count non-empty fields / total fields across extracted items. This avoids AI-based confidence estimation and works with deterministic extraction too.
+
+30. **Comma disambiguation in prices** — "5,000" vs "29,99": use regex `^\d{1,3}(,\d{3})+$` to detect thousands separator. If it matches, remove commas. Otherwise treat comma as decimal. This handles USD, EUR, PKR formats correctly.
+
+31. **Escalation context must be per-task** — Each task gets its own EscalationContext tracking depth and attempts. Don't use global state — concurrent tasks would interfere with each other.
