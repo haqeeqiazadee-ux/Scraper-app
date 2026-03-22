@@ -1,65 +1,101 @@
-"""Task management API endpoints."""
+"""Task management API endpoints — database-backed."""
 
 from __future__ import annotations
 
-from uuid import UUID, uuid4
+from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from packages.contracts.task import Task, TaskCreate, TaskUpdate, TaskStatus
+from packages.core.storage.repositories import TaskRepository
+from services.control_plane.dependencies import get_session, get_tenant_id
 
 router = APIRouter()
 
-# In-memory store for scaffolding (will be replaced by database)
-_tasks: dict[UUID, Task] = {}
-
 
 @router.post("/tasks", status_code=201)
-async def create_task(task_input: TaskCreate) -> Task:
+async def create_task(
+    task_input: TaskCreate,
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
+) -> dict:
     """Submit a new scraping task."""
-    task = Task(
-        id=uuid4(),
-        tenant_id="default",  # TODO: Extract from auth middleware
-        url=task_input.url,
-        task_type=task_input.task_type,
-        policy_id=task_input.policy_id,
+    repo = TaskRepository(session)
+    task_id = str(uuid4())
+    task = await repo.create(
+        tenant_id=tenant_id,
+        id=task_id,
+        url=str(task_input.url),
+        task_type=task_input.task_type.value,
+        policy_id=str(task_input.policy_id) if task_input.policy_id else None,
         priority=task_input.priority,
         schedule=task_input.schedule,
-        callback_url=task_input.callback_url,
-        metadata=task_input.metadata,
-        status=TaskStatus.PENDING,
+        callback_url=str(task_input.callback_url) if task_input.callback_url else None,
+        metadata_json=task_input.metadata,
+        status=TaskStatus.PENDING.value,
     )
-    _tasks[task.id] = task
-    # TODO: Enqueue task to Redis queue
-    # TODO: Route task to execution lane
-    return task
+    return {
+        "id": task.id,
+        "tenant_id": task.tenant_id,
+        "url": task.url,
+        "task_type": task.task_type,
+        "priority": task.priority,
+        "status": task.status,
+        "created_at": task.created_at.isoformat() if task.created_at else None,
+    }
 
 
 @router.get("/tasks/{task_id}")
-async def get_task(task_id: UUID) -> Task:
+async def get_task(
+    task_id: str,
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
+) -> dict:
     """Get a task by ID."""
-    task = _tasks.get(task_id)
+    repo = TaskRepository(session)
+    task = await repo.get(task_id, tenant_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
-    return task
+    return {
+        "id": task.id,
+        "tenant_id": task.tenant_id,
+        "url": task.url,
+        "task_type": task.task_type,
+        "policy_id": task.policy_id,
+        "priority": task.priority,
+        "schedule": task.schedule,
+        "callback_url": task.callback_url,
+        "metadata": task.metadata_json,
+        "status": task.status,
+        "created_at": task.created_at.isoformat() if task.created_at else None,
+        "updated_at": task.updated_at.isoformat() if task.updated_at else None,
+    }
 
 
 @router.get("/tasks")
 async def list_tasks(
-    status: TaskStatus | None = None,
+    status: str | None = None,
     limit: int = 50,
     offset: int = 0,
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
 ) -> dict:
     """List tasks with optional filtering."""
-    tasks = list(_tasks.values())
-    if status:
-        tasks = [t for t in tasks if t.status == status]
-
-    total = len(tasks)
-    tasks = tasks[offset : offset + limit]
-
+    repo = TaskRepository(session)
+    tasks, total = await repo.list(tenant_id, status=status, limit=limit, offset=offset)
     return {
-        "items": tasks,
+        "items": [
+            {
+                "id": t.id,
+                "url": t.url,
+                "task_type": t.task_type,
+                "priority": t.priority,
+                "status": t.status,
+                "created_at": t.created_at.isoformat() if t.created_at else None,
+            }
+            for t in tasks
+        ],
         "total": total,
         "limit": limit,
         "offset": offset,
@@ -67,29 +103,45 @@ async def list_tasks(
 
 
 @router.patch("/tasks/{task_id}")
-async def update_task(task_id: UUID, task_update: TaskUpdate) -> Task:
+async def update_task(
+    task_id: str,
+    task_update: TaskUpdate,
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
+) -> dict:
     """Update a task."""
-    task = _tasks.get(task_id)
+    repo = TaskRepository(session)
+    update_data = task_update.model_dump(exclude_unset=True)
+    # Convert enums to strings for DB
+    if "status" in update_data and update_data["status"]:
+        update_data["status"] = update_data["status"].value
+
+    task = await repo.update(task_id, tenant_id, **update_data)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
-
-    update_data = task_update.model_dump(exclude_unset=True)
-    for field, value in update_data.items():
-        setattr(task, field, value)
-
-    return task
+    return {
+        "id": task.id,
+        "url": task.url,
+        "status": task.status,
+        "priority": task.priority,
+        "updated_at": task.updated_at.isoformat() if task.updated_at else None,
+    }
 
 
 @router.post("/tasks/{task_id}/cancel")
-async def cancel_task(task_id: UUID) -> Task:
+async def cancel_task(
+    task_id: str,
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
+) -> dict:
     """Cancel a pending or running task."""
-    task = _tasks.get(task_id)
+    repo = TaskRepository(session)
+    task = await repo.get(task_id, tenant_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    if task.status in (TaskStatus.COMPLETED, TaskStatus.CANCELLED):
+    if task.status in ("completed", "cancelled"):
         raise HTTPException(status_code=400, detail=f"Cannot cancel task in {task.status} status")
 
-    task.status = TaskStatus.CANCELLED
-    # TODO: Send cancellation signal to worker
-    return task
+    task = await repo.update(task_id, tenant_id, status="cancelled")
+    return {"id": task.id, "status": task.status}

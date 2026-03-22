@@ -306,3 +306,42 @@
 - **Validation:** 117 total tests passing (103 previous + 14 new)
 - **Pass/Fail:** PASS
 - **Final Status:** COMPLETE
+
+---
+
+## API-001/002: Wire Task+Policy CRUD to Database
+
+- **Task ID:** API-001, API-002
+- **Start Time:** 2026-03-22
+- **End Time:** 2026-03-22
+- **Steps:** Created dependencies.py (DI for DB sessions, tenant extraction), rewrote tasks.py and policies.py routers to use SQLAlchemy repositories, updated app.py with DB init in lifespan, fixed symlink. 14 integration tests.
+- **Files touched:** dependencies.py, tasks.py, policies.py, app.py, services/control_plane symlink, test_tasks_api.py
+- **Validation:** 14/14 API integration tests passing (CRUD, tenant isolation, filtering)
+- **Pass/Fail:** PASS
+- **Final Status:** COMPLETE
+
+---
+
+## AI-001: AI Provider Abstraction
+
+- **Task ID:** AI-001
+- **Start Time:** 2026-03-22
+- **End Time:** 2026-03-22
+- **Steps:** Created base.py (BaseAIProvider, Factory, Chain), deterministic.py (JSON-LD + regex + keyword), gemini.py (ported from scraper_pro). 14 tests.
+- **Files touched:** packages/core/ai_providers/ (4 files), tests/unit/test_ai_providers.py
+- **Validation:** 14/14 AI tests passing (extraction, classification, normalization, factory, chain)
+- **Pass/Fail:** PASS
+- **Final Status:** COMPLETE
+
+---
+
+## WORKER-001: HTTP Lane Worker
+
+- **Task ID:** WORKER-001
+- **Start Time:** 2026-03-22
+- **End Time:** 2026-03-22
+- **Steps:** Created services/worker-http/worker.py (HttpWorker: fetch → extract → confidence → result), worker_http symlink. 5 tests with mocked HTTP responses.
+- **Files touched:** services/worker-http/worker.py, __init__.py, symlink, tests/unit/test_http_worker.py
+- **Validation:** 5/5 worker tests passing. Full suite: 150 tests, 0 failures.
+- **Pass/Fail:** PASS
+- **Final Status:** COMPLETE

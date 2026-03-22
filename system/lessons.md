@@ -59,3 +59,11 @@
 24. **SQLite in-memory for fast tests** — Using `sqlite+aiosqlite:///:memory:` gives instant test databases with zero cleanup. Each test gets a fresh database via fixtures. This is much faster than testcontainers for unit tests.
 
 25. **Tenant isolation via repository pattern** — Every repository method takes `tenant_id` as a parameter and includes it in WHERE clauses. This is the single enforcement point for multi-tenant data isolation. Never query without tenant_id.
+
+26. **Symlinks for Python-hyphenated dirs need correct relative paths** — `ln -s control-plane services/control_plane` (relative from parent) not `ln -s services/control-plane services/control_plane` (absolute-ish). Always create symlinks from the parent directory.
+
+27. **AI providers should always have deterministic fallback** — The AIProviderChain always appends DeterministicProvider as the final fallback. This ensures extraction never completely fails — you always get at least JSON-LD/regex results.
+
+28. **Worker should_escalate flag** — HTTP worker sets `should_escalate=True` when extraction fails (HTTP error, empty results). The control plane uses this to automatically route to browser lane. Clean separation of concerns.
+
+29. **Confidence scoring from field fill rate** — Simple but effective: count non-empty fields / total fields across extracted items. This avoids AI-based confidence estimation and works with deterministic extraction too.

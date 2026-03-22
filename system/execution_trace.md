@@ -124,3 +124,22 @@
   - **Total: 117 tests, all passing in 3.22s**
 - **Blockers found:** None
 - **Next action:** Commit and push, then continue with API wiring and workers
+
+## Work Cycle 007 — 2026-03-22
+
+- **Timestamp:** 2026-03-22
+- **Active Task IDs:** API-001, API-002, AI-001, WORKER-001
+- **What was read before action:** system/todo.md, docs/tasks_breakdown.md (API, AI, WORKER epics)
+- **Action taken:** Wired API to database, implemented AI providers, built HTTP worker
+- **Why:** API-001/002 on critical path; AI-001 and WORKER-001 needed for end-to-end extraction
+- **Outputs produced:**
+  - **API-001/002:** Rewrote tasks.py and policies.py routers to use SQLAlchemy repositories instead of in-memory dicts. Created dependencies.py for DI (database sessions, tenant extraction from X-Tenant-ID header). Updated app.py with database initialization in lifespan. Fixed control_plane symlink path. 14 API integration tests (task CRUD, policy CRUD, tenant isolation, status filtering, cancellation).
+  - **AI-001:** Created packages/core/ai_providers/ with 4 modules:
+    - base.py: BaseAIProvider, AIProviderFactory, AIProviderChain (fallback chain)
+    - deterministic.py: DeterministicProvider — JSON-LD extraction, regex fallback, keyword classification, field alias normalization
+    - gemini.py: GeminiProvider — Google Gemini integration (ported from scraper_pro/ai_scraper_v3.py), extraction prompts, JSON response parsing
+    - 14 AI provider tests (extraction, classification, normalization, factory, chain)
+  - **WORKER-001:** Created services/worker-http/worker.py — HttpWorker class with full pipeline: fetch → extract → calculate confidence → build result. 5 worker tests (success, HTTP failure, empty extraction, network error, defaults).
+  - **Total: 150 tests, all passing in 4.34s**
+- **Blockers found:** Symlink path was wrong (services/control-plane vs control-plane) — fixed. Needed to create worker_http symlink too.
+- **Next action:** Update tracking, commit, push

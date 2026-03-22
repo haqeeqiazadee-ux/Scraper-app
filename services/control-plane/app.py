@@ -19,6 +19,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from services.control_plane.routers import health, tasks, policies  # noqa: E402 — uses symlink
+from services.control_plane.dependencies import init_database, get_database
+from services.control_plane.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -27,12 +29,13 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application startup and shutdown lifecycle."""
     logger.info("Control plane starting up")
-    # TODO: Initialize database connections
-    # TODO: Initialize Redis connection
-    # TODO: Initialize queue consumers
+    db = init_database(settings.database_url)
+    await db.create_tables()
+    logger.info("Database initialized", extra={"url": settings.database_url})
     yield
     logger.info("Control plane shutting down")
-    # TODO: Close connections gracefully
+    db = get_database()
+    await db.close()
 
 
 def create_app() -> FastAPI:
