@@ -28,17 +28,35 @@
     </select>
   </section>
 
-  <section class="section">
+  <section class="section actions-row">
     <button id="scrape-btn" class="btn btn--primary">Scrape This Page</button>
+    <button id="picker-btn" class="btn btn--secondary" title="Visual Selector Picker">Pick</button>
   </section>
 
   <section class="section">
     <div id="status" class="status status--idle">Ready</div>
   </section>
 
+  <section class="section cloud-status-section">
+    <div id="cloud-status" class="cloud-status">
+      <span id="cloud-indicator" class="cloud-indicator cloud-indicator--offline"></span>
+      <span id="cloud-label">Cloud: Checking...</span>
+      <span id="queue-badge" class="queue-badge" style="display:none">0</span>
+    </div>
+  </section>
+
+  <section class="section detected-types-section" style="display:none">
+    <label class="label">Detected Data</label>
+    <div id="detected-types" class="detected-types"></div>
+  </section>
+
   <section class="section results-section">
     <label class="label">Results Preview</label>
     <pre id="results" class="results"></pre>
+  </section>
+
+  <section class="section cloud-actions-section" style="display:none">
+    <button id="cloud-btn" class="btn btn--cloud" disabled>Send to Cloud</button>
   </section>
 
   <script src="popup.js"></script>
