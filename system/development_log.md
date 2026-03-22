@@ -935,3 +935,59 @@ Added full interactive task management to the web dashboard: create/edit forms, 
 - Inline delete confirmation (no browser confirm())
 - useState-based form (no external form library)
 - Conditional selector fields (only for css/xpath extraction types)
+
+---
+
+## 2026-03-22 — EXT-002: Cloud-Connected Extraction
+
+### Summary
+
+Added cloud-connected extraction capabilities to the Chrome extension: a TypeScript API client, client-side extraction service, visual selector picker, popup UI enhancements, and background cloud sync with offline queuing.
+
+### Architecture
+
+```
+Popup (ExtractPanel)                Content Script (selector-picker)
+    |                                        |
+    v                                        v
+Background Service Worker  <-- chrome.runtime.sendMessage -->
+    |
+    +-- cloud-sync.js (health checks, task polling, offline queue)
+    +-- lib/api.js (sendToControlPlane)
+    +-- lib/cloud-sync.js (startCloudSync, handleCloudSyncMessage)
+```
+
+### TypeScript Source Files (5 new in src/)
+
+1. **src/services/api.ts** — Cloud API client with login(), createTask(), executeTask(), getResults(), getStatus(), getTaskStatus(), sendForNormalization(). Bearer token auth with automatic refresh on 401. Config stored in chrome.storage.local.
+
+2. **src/services/extraction.ts** — Client-side extraction using DOM APIs. extractByCSS() with attribute extraction and single/multiple modes. extractByXPath() with XPath snapshot evaluation. extractAll(config) applies selector rules and calculates confidence as match ratio. getPageMetadata() extracts OG tags, JSON-LD, canonical URL, language, charset, and auto-detects page type.
+
+3. **src/components/ExtractPanel.ts** — Popup UI panel rendering via DOM manipulation. Shows current URL, detected data types (JSON-LD, meta, product, listing, article), extraction preview as key-value list, "Send to Cloud" button (disabled when offline), selector picker toggle. Injects scoped CSS. Listens for selectorPicked messages from content script.
+
+4. **src/services/selector-picker.ts** — Visual selector picker injected into the page. On hover: highlights element with blue outline and shows tooltip with generated selector. On click: marks element green, generates optimal CSS selector, sends to popup. Selector generation strategy: ID > unique tag.class > attribute-based > nth-child path. Escape key to cancel.
+
+5. **src/background/cloud-sync.ts** — Background sync service. 30s health check interval. 10s task status polling (max 360 polls = ~1 hour). 15s queue flush interval. Offline queue persisted to chrome.storage.local (max 50 items). Exponential retry (max 5 attempts). Chrome notifications on task completion/failure. Task watching via watchTask()/unwatchTask(). handleCloudSyncMessage() routes 8 message types.
+
+### Compiled JS Files (2 new)
+
+- **content/selector-picker.js** — IIFE content script version of the selector picker, loaded by manifest
+- **lib/cloud-sync.js** — ES module version of cloud sync, imported by service worker
+
+### Files Updated (4)
+
+- **manifest.json** — Added scripting, notifications, alarms permissions. Added <all_urls> host permission. Added selector-picker.js to content_scripts array.
+- **popup/popup.html** — Added picker button, cloud status indicator with connection dot, queue badge, detected data types section, cloud actions section with Send to Cloud button.
+- **popup/popup.css** — Added styles for actions row layout, secondary/cloud/active button variants, cloud status indicator (online=green/offline=gray), queue badge, detected type tags.
+- **popup/popup.js** — Full rewrite: cloud status polling (15s), detected type analysis, Send to Cloud handler with offline queue fallback, selector picker toggle, task status notification listener.
+- **background/service-worker.js** — Integrated cloud-sync module (startCloudSync on init), selector picker relay (start/stop/picked), sendToCloud message routing, queue fallback on cloud failure.
+
+### Design Decisions
+
+- TypeScript source files in src/ serve as the canonical typed implementations; compiled JS versions loaded by the extension (no build step required for development)
+- Selector generation prefers specificity: ID is most reliable, followed by unique class combos, then attribute selectors, with nth-child path as last resort
+- Cloud sync uses chrome.storage.local for persistence — survives service worker restarts
+- Offline queue caps at 50 items and drops oldest on overflow
+- Health checks use AbortSignal.timeout(5000) to avoid blocking on unresponsive servers
+- Selector picker uses capture-phase event listeners to intercept clicks before page handlers
+- ExtractPanel confidence display derived from selector match ratio (successful/total selectors)
