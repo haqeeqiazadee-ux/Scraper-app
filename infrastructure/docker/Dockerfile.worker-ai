@@ -1,0 +1,14 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY requirements-dev.txt .
+RUN pip install --no-cache-dir -r requirements-dev.txt
+
+COPY packages/ packages/
+COPY services/ services/
+
+RUN useradd -m appuser
+USER appuser
+
+CMD ["python", "-m", "services.worker_ai.main"]

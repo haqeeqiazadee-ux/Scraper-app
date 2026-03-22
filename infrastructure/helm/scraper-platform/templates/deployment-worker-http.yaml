@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "scraper.fullname" . }}-worker-http
+  labels:
+    {{- include "scraper.componentLabels" (list . "worker-http") | nindent 4 }}
+spec:
+  replicas: {{ .Values.workerHttp.replicas }}
+  selector:
+    matchLabels:
+      {{- include "scraper.componentSelectorLabels" (list . "worker-http") | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+      labels:
+        {{- include "scraper.componentSelectorLabels" (list . "worker-http") | nindent 8 }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.workerHttp.podAntiAffinity.enabled }}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    {{- include "scraper.componentSelectorLabels" (list . "worker-http") | nindent 20 }}
+                topologyKey: kubernetes.io/hostname
+        {{- with .Values.workerHttp.affinity }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- else if .Values.workerHttp.affinity }}
+      affinity:
+        {{- toYaml .Values.workerHttp.affinity | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: worker-http
+          image: {{ include "scraper.image" (list . .Values.workerHttp.image) }}
+          imagePullPolicy: {{ .Values.workerHttp.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8001
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "scraper.fullname" . }}-config
+          env:
+            - name: WORKER_TYPE
+              value: http
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "scraper.secretName" . }}
+                  key: DATABASE_PASSWORD
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "scraper.secretName" . }}
+                  key: REDIS_PASSWORD
+          {{- with .Values.workerHttp.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.workerHttp.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.workerHttp.resources | nindent 12 }}
+          volumeMounts:
+            - name: artifacts
+              mountPath: /data/artifacts
+      volumes:
+        - name: artifacts
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.existingClaim | default (printf "%s-artifacts" (include "scraper.fullname" .)) }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+      {{- with .Values.workerHttp.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.workerHttp.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

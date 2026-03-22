@@ -1,0 +1,111 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "scraper.fullname" . }}-worker-ai
+  labels:
+    {{- include "scraper.componentLabels" (list . "worker-ai") | nindent 4 }}
+spec:
+  replicas: {{ .Values.workerAi.replicas }}
+  selector:
+    matchLabels:
+      {{- include "scraper.componentSelectorLabels" (list . "worker-ai") | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+      labels:
+        {{- include "scraper.componentSelectorLabels" (list . "worker-ai") | nindent 8 }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.workerAi.podAntiAffinity.enabled }}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    {{- include "scraper.componentSelectorLabels" (list . "worker-ai") | nindent 20 }}
+                topologyKey: kubernetes.io/hostname
+        {{- with .Values.workerAi.affinity }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- else if .Values.workerAi.affinity }}
+      affinity:
+        {{- toYaml .Values.workerAi.affinity | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: worker-ai
+          image: {{ include "scraper.image" (list . .Values.workerAi.image) }}
+          imagePullPolicy: {{ .Values.workerAi.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8003
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "scraper.fullname" . }}-config
+          env:
+            - name: WORKER_TYPE
+              value: ai
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "scraper.secretName" . }}
+                  key: DATABASE_PASSWORD
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "scraper.secretName" . }}
+                  key: REDIS_PASSWORD
+            - name: GEMINI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "scraper.secretName" . }}
+                  key: GEMINI_API_KEY
+                  optional: true
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "scraper.secretName" . }}
+                  key: OPENAI_API_KEY
+                  optional: true
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "scraper.secretName" . }}
+                  key: ANTHROPIC_API_KEY
+                  optional: true
+          {{- with .Values.workerAi.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.workerAi.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.workerAi.resources | nindent 12 }}
+          volumeMounts:
+            - name: artifacts
+              mountPath: /data/artifacts
+      volumes:
+        - name: artifacts
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.existingClaim | default (printf "%s-artifacts" (include "scraper.fullname" .)) }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+      {{- with .Values.workerAi.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.workerAi.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

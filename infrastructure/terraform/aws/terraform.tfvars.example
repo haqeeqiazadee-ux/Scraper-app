@@ -1,0 +1,43 @@
+# =============================================================================
+# AI Scraping Platform — Example Terraform Variables
+# =============================================================================
+# Copy this file to terraform.tfvars and fill in your values.
+# NEVER commit terraform.tfvars to version control.
+# =============================================================================
+
+# -- General ------------------------------------------------------------------
+region       = "us-east-1"
+environment  = "dev"
+project_name = "scraper-platform"
+
+# -- Networking ---------------------------------------------------------------
+vpc_cidr             = "10.0.0.0/16"
+public_subnet_cidrs  = ["10.0.1.0/24", "10.0.2.0/24"]
+private_subnet_cidrs = ["10.0.10.0/24", "10.0.11.0/24"]
+domain_name          = "scraper.example.com"
+certificate_arn      = "arn:aws:acm:us-east-1:123456789012:certificate/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+cors_allowed_origins = ["https://scraper.example.com"]
+
+# -- RDS (PostgreSQL) --------------------------------------------------------
+rds_instance_class          = "db.t4g.medium"
+rds_allocated_storage       = 20
+rds_max_allocated_storage   = 100
+rds_multi_az                = true
+rds_backup_retention_period = 7
+database_name               = "scraper_platform"
+database_username           = "scraper_admin"
+database_password           = "CHANGE_ME_use_a_strong_password"
+
+# -- ElastiCache (Redis) -----------------------------------------------------
+redis_node_type          = "cache.t4g.medium"
+redis_num_cache_clusters = 2
+redis_auth_token         = "CHANGE_ME_at_least_16_chars"
+
+# -- ECS (Fargate) -----------------------------------------------------------
+service_names                   = ["control-plane", "worker-http", "worker-browser", "worker-ai"]
+ecs_task_cpu                    = 512
+ecs_task_memory                 = 1024
+ecs_control_plane_desired_count = 2
+ecs_control_plane_max_count     = 6
+ecs_worker_desired_count        = 1
+container_port                  = 8000
