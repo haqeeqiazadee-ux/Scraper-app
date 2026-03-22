@@ -43,3 +43,15 @@
 17. **Fallback chain is reusable everywhere** — The primary → secondary → tertiary pattern from scraper_pro/core/fallback_chain.py applies to: proxies (datacenter → residential → mobile), CAPTCHAs (service A → B → C), AI providers (Gemini → OpenAI → deterministic), execution lanes (HTTP → browser → hard-target). It's a core architectural pattern.
 
 18. **CLAUDE.md is essential** — Having a project context file that documents architecture, conventions, and workflow ensures consistency across coding sessions. Update it after every significant architectural change.
+
+## Phase 4 Observations
+
+19. **Domain matching needs suffix support** — Exact domain matching fails for subdomains (e.g., `mystore.myshopify.com` should match `myshopify.com`). Always implement suffix matching for domain lookups.
+
+20. **Path traversal protection is critical** — Filesystem-based storage must validate that resolved paths stay within the base directory. Use `Path.resolve()` and check prefix. This is a security requirement, not optional.
+
+21. **TTL in cache needs time.time() comparison** — In-memory cache TTL implementation must compare against `time.time()` on every `get()` call, not just during periodic cleanup. Lazy expiry is simpler and more correct.
+
+22. **Queue ack/nack pattern** — Track dequeued messages as "pending" until ack'd. On nack, re-enqueue the message. This matches Redis/RabbitMQ semantics and enables reliable message processing.
+
+23. **Test early, test often** — Writing tests alongside implementation (not after) caught the router domain matching bug immediately. The 103-test suite now validates all contracts, router logic, and storage backends.
