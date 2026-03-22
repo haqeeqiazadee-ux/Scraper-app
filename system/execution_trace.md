@@ -124,3 +124,79 @@
   - **Total: 117 tests, all passing in 3.22s**
 - **Blockers found:** None
 - **Next action:** Commit and push, then continue with API wiring and workers
+
+## Work Cycle 007 — 2026-03-22
+
+- **Timestamp:** 2026-03-22
+- **Active Task IDs:** API-001, API-002, AI-001, WORKER-001
+- **What was read before action:** system/todo.md, docs/tasks_breakdown.md (API, AI, WORKER epics)
+- **Action taken:** Wired API to database, implemented AI providers, built HTTP worker
+- **Why:** API-001/002 on critical path; AI-001 and WORKER-001 needed for end-to-end extraction
+- **Outputs produced:**
+  - **API-001/002:** Rewrote tasks.py and policies.py routers to use SQLAlchemy repositories instead of in-memory dicts. Created dependencies.py for DI (database sessions, tenant extraction from X-Tenant-ID header). Updated app.py with database initialization in lifespan. Fixed control_plane symlink path. 14 API integration tests (task CRUD, policy CRUD, tenant isolation, status filtering, cancellation).
+  - **AI-001:** Created packages/core/ai_providers/ with 4 modules:
+    - base.py: BaseAIProvider, AIProviderFactory, AIProviderChain (fallback chain)
+    - deterministic.py: DeterministicProvider — JSON-LD extraction, regex fallback, keyword classification, field alias normalization
+    - gemini.py: GeminiProvider — Google Gemini integration (ported from scraper_pro/ai_scraper_v3.py), extraction prompts, JSON response parsing
+    - 14 AI provider tests (extraction, classification, normalization, factory, chain)
+  - **WORKER-001:** Created services/worker-http/worker.py — HttpWorker class with full pipeline: fetch → extract → calculate confidence → build result. 5 worker tests (success, HTTP failure, empty extraction, network error, defaults).
+  - **Total: 150 tests, all passing in 4.34s**
+- **Blockers found:** Symlink path was wrong (services/control-plane vs control-plane) — fixed. Needed to create worker_http symlink too.
+- **Next action:** Update tracking, commit, push
+
+## Work Cycle 008 — 2026-03-22
+
+- **Timestamp:** 2026-03-22
+- **Active Task IDs:** WORKER-004, NORM-001
+- **What was read before action:** system/todo.md, packages/core/router.py
+- **Action taken:** Implemented lane escalation manager and result normalizer
+- **Outputs produced:**
+  - **WORKER-004:** EscalationManager class — tracks escalation context per task, determines if results warrant escalation, gets next lane from fallback chain, records outcomes, respects max depth (3). EscalationContext dataclass tracks depth + attempts. 11 tests.
+  - **NORM-001:** Normalizer module — field alias mapping (30+ aliases), type coercion (prices, ratings, integers, URLs), normalize_item/normalize_items functions. Price cleaning handles USD/EUR/PKR/thousands. 25 tests.
+  - **Bug fix:** Price cleaner: "Rs. 5,000" → thousands separator detection using regex pattern matching.
+  - **Total: 186 tests, all passing in 4.40s**
+- **Blockers found:** Price cleaning edge case (comma disambiguation — thousands vs decimal)
+- **Next action:** Commit and push, continue with SESSION-001, API-005
+
+## Work Cycle 009 — 2026-03-22
+
+- **Timestamp:** 2026-03-22
+- **Active Task IDs:** SESSION-001, API-005, SELFHOST-001
+- **What was read before action:** system/todo.md, docs/final_specs.md (sections 10, 18)
+- **Action taken:** Implemented session manager, result endpoints, Docker Compose
+- **Outputs produced:**
+  - **SESSION-001:** SessionManager class — create, get, get_for_domain (best health), record_success/failure, invalidate, expire, cleanup, stats. Health scoring drives automatic ACTIVE → DEGRADED → INVALIDATED transitions. 14 tests.
+  - **API-005:** Result API endpoints — GET /results/{id}, GET /tasks/{task_id}/results. Registered in app.py.
+  - **SELFHOST-001:** Docker Compose stack — control-plane (FastAPI), PostgreSQL 15, Redis 7 with health checks, volumes. Dockerfile.control-plane with non-root user.
+  - **Total: 200 tests, all passing in 4.50s**
+- **Blockers found:** None
+- **Next action:** Commit, push, continue with remaining tasks
+
+## Work Cycle 011 — 2026-03-22
+
+- **Timestamp:** 2026-03-22
+- **Active Task IDs:** STORAGE-004, AI-002, AI-003, NORM-002
+- **What was read before action:** system/todo.md, docs/tasks_breakdown.md
+- **Action taken:** SQLite desktop adapter, AI classifier, prompts, dedup engine
+- **Outputs produced:**
+  - **STORAGE-004:** SQLiteDesktopStore — wraps Database with SQLite config, auto-creates dirs
+  - **AI-002:** URLClassifier — pattern-based lane prediction, cached. 12 tests.
+  - **AI-003:** ai_prompts.py — 5 prompt templates + builder functions
+  - **NORM-002:** DedupEngine — SKU/URL exact + fuzzy name match, merge strategy. 12 tests.
+  - **Total: 234 tests, all passing in 4.50s**
+- **Blockers found:** Short product names too similar for 0.85 threshold — used distinct names
+- **Next action:** Commit and push
+
+## Work Cycle 010 — 2026-03-22
+
+- **Timestamp:** 2026-03-22
+- **Active Task IDs:** REPO-003, OBS-001, SEC-001
+- **What was read before action:** system/todo.md
+- **Action taken:** CI/CD pipeline, structured logging, secrets management
+- **Outputs produced:**
+  - **REPO-003:** .github/workflows/ci.yml — lint (ruff), test (Python 3.11+3.12), typecheck (mypy)
+  - **OBS-001:** packages/core/logging_config.py — JSONFormatter, configure_logging(), library noise suppression
+  - **SEC-001:** packages/core/secrets.py — SecretsManager with EnvSecretProvider, convenience methods (get_ai_key, get_database_url, get_redis_url). 10 tests.
+  - **Total: 210 tests, all passing in 4.44s**
+- **Blockers found:** None
+- **Next action:** Commit, push

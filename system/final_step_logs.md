@@ -306,3 +306,92 @@
 - **Validation:** 117 total tests passing (103 previous + 14 new)
 - **Pass/Fail:** PASS
 - **Final Status:** COMPLETE
+
+---
+
+## API-001/002: Wire Task+Policy CRUD to Database
+
+- **Task ID:** API-001, API-002
+- **Start Time:** 2026-03-22
+- **End Time:** 2026-03-22
+- **Steps:** Created dependencies.py (DI for DB sessions, tenant extraction), rewrote tasks.py and policies.py routers to use SQLAlchemy repositories, updated app.py with DB init in lifespan, fixed symlink. 14 integration tests.
+- **Files touched:** dependencies.py, tasks.py, policies.py, app.py, services/control_plane symlink, test_tasks_api.py
+- **Validation:** 14/14 API integration tests passing (CRUD, tenant isolation, filtering)
+- **Pass/Fail:** PASS
+- **Final Status:** COMPLETE
+
+---
+
+## AI-001: AI Provider Abstraction
+
+- **Task ID:** AI-001
+- **Start Time:** 2026-03-22
+- **End Time:** 2026-03-22
+- **Steps:** Created base.py (BaseAIProvider, Factory, Chain), deterministic.py (JSON-LD + regex + keyword), gemini.py (ported from scraper_pro). 14 tests.
+- **Files touched:** packages/core/ai_providers/ (4 files), tests/unit/test_ai_providers.py
+- **Validation:** 14/14 AI tests passing (extraction, classification, normalization, factory, chain)
+- **Pass/Fail:** PASS
+- **Final Status:** COMPLETE
+
+---
+
+## WORKER-001: HTTP Lane Worker
+
+- **Task ID:** WORKER-001
+- **Start Time:** 2026-03-22
+- **End Time:** 2026-03-22
+- **Steps:** Created services/worker-http/worker.py (HttpWorker: fetch → extract → confidence → result), worker_http symlink. 5 tests with mocked HTTP responses.
+- **Files touched:** services/worker-http/worker.py, __init__.py, symlink, tests/unit/test_http_worker.py
+- **Validation:** 5/5 worker tests passing. Full suite: 150 tests, 0 failures.
+- **Pass/Fail:** PASS
+- **Final Status:** COMPLETE
+
+---
+
+## WORKER-004: Lane Escalation Logic
+
+- **Task ID:** WORKER-004
+- **Start/End:** 2026-03-22
+- **Steps:** Created packages/core/escalation.py (EscalationManager, EscalationContext). 11 tests covering should_escalate, get_escalation, exhaustion, context tracking.
+- **Validation:** 11/11 tests passing
+- **Pass/Fail:** PASS | **Final Status:** COMPLETE
+
+---
+
+## NORM-001: Schema Mapping / Normalizer
+
+- **Task ID:** NORM-001
+- **Start/End:** 2026-03-22
+- **Steps:** Created packages/core/normalizer.py with field aliases (30+), type coercion, price cleaning (multi-format comma handling). 25 tests.
+- **Validation:** 25/25 tests passing. Total suite: 186 tests, 0 failures.
+- **Pass/Fail:** PASS | **Final Status:** COMPLETE
+
+---
+
+## SESSION-001: Session Manager
+
+- **Task ID:** SESSION-001
+- **Start/End:** 2026-03-22
+- **Steps:** Created packages/core/session_manager.py. SessionManager with create, get, get_for_domain (best health), record_success/failure, invalidate, expire, cleanup, stats. Auto-transitions: ACTIVE→DEGRADED→INVALIDATED. 14 tests.
+- **Validation:** 14/14 tests passing
+- **Pass/Fail:** PASS | **Final Status:** COMPLETE
+
+---
+
+## API-005: Result and Export Endpoints
+
+- **Task ID:** API-005
+- **Start/End:** 2026-03-22
+- **Steps:** Created services/control-plane/routers/results.py. GET /results/{id}, GET /tasks/{task_id}/results. Registered in app.py.
+- **Validation:** Endpoints registered, app starts
+- **Pass/Fail:** PASS | **Final Status:** COMPLETE
+
+---
+
+## SELFHOST-001: Docker Compose Stack
+
+- **Task ID:** SELFHOST-001
+- **Start/End:** 2026-03-22
+- **Steps:** Created infrastructure/docker/docker-compose.yml (control-plane + PostgreSQL 15 + Redis 7), Dockerfile.control-plane (Python 3.11-slim, non-root user). Health checks for all services. Volumes for persistence.
+- **Validation:** Files created with correct syntax
+- **Pass/Fail:** PASS | **Final Status:** COMPLETE

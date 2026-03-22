@@ -15,31 +15,49 @@
 - [x] **TEST-001:** Set up test infrastructure (conftest, fixtures)
 - [x] **SCHEMA-001:** Task schema validation tests (13 tests)
 - [x] **SCHEMA-002:** Policy schema validation tests (19 tests)
-- [x] **SCHEMA-003:** Remaining schema tests — Session, Run, Result, Artifact, Billing (32 tests)
-- [x] **Router tests:** ExecutionRouter lane selection tests (12 tests) + domain suffix fix
+- [x] **SCHEMA-003:** Remaining schema tests (32 tests)
+- [x] **STORAGE-001:** SQLAlchemy metadata store — models, database, repositories (14 tests)
 - [x] **STORAGE-002:** Filesystem object storage adapter (10 tests)
 - [x] **STORAGE-003:** In-memory queue + cache backends (18 tests)
-- [x] **STORAGE-001:** SQLAlchemy metadata store — ORM models, database engine, repositories (14 tests)
+- [x] **API-001:** Wire task CRUD to database (9 API tests)
+- [x] **API-002:** Wire policy CRUD to database (5 API tests)
+- [x] **AI-001:** AI provider abstraction — deterministic + Gemini + chain (14 tests)
+- [x] **WORKER-001:** HTTP lane worker — fetch → extract → confidence → result (5 tests)
 
-## Test Status: 117 passed, 0 failed
+- [x] **WORKER-004:** Lane escalation manager (11 tests)
+- [x] **NORM-001:** Schema mapping / normalizer (25 tests)
+
+- [x] **SESSION-001:** Session manager — lifecycle, health scoring, auto-invalidation (14 tests)
+- [x] **API-005:** Result and export endpoints
+- [x] **SELFHOST-001:** Docker Compose stack (control-plane + PostgreSQL + Redis)
+
+- [x] **REPO-003:** GitHub Actions CI pipeline (lint + test + typecheck)
+- [x] **OBS-001:** Structured logging — JSON formatter, configure_logging()
+- [x] **SEC-001:** Secrets management — SecretsManager with provider chain (10 tests)
+
+- [x] **STORAGE-004:** SQLite desktop adapter
+- [x] **AI-002:** URL classifier — pattern-based lane prediction (12 tests)
+- [x] **AI-003:** Extraction prompt templates (5 templates + builders)
+- [x] **NORM-002:** Deduplication engine — SKU/URL/fuzzy match + merge (12 tests)
+
+## Test Status: 234 passed, 0 failed (4.50s)
 
 ## Pending (Next Up)
-- [ ] STORAGE-001: Implement SQLAlchemy metadata store (PostgreSQL/SQLite)
-- [ ] STORAGE-004: SQLite adapter for desktop mode
-- [ ] API-001: Wire task CRUD to database (replace in-memory store)
-- [ ] API-002: Wire policy CRUD to database
-- [ ] API-003: Implement execution router integration
-- [ ] API-004: Implement authentication and tenant middleware
-- [ ] API-005: Implement result and export endpoints
-- [ ] OBS-001: Add structured logging
+- [ ] WORKER-002: Browser lane worker
+- [ ] WORKER-003: AI normalization worker
+- [ ] WORKER-004: Lane escalation logic
+- [ ] API-003: Execution router integration
+- [ ] API-004: Auth + tenant middleware (JWT)
+- [ ] API-005: Result and export endpoints
+- [ ] NORM-001: Schema mapping / normalizer
+- [ ] SESSION-001: Session manager
+- [ ] OBS-001: Structured logging
 
 ## Pending (Later Phases)
-- [ ] WORKER-001 through WORKER-004: Execution lane workers
 - [ ] PROXY-001, PROXY-002: Proxy gateway
 - [ ] CAPTCHA-001, CAPTCHA-002: CAPTCHA gateway
-- [ ] SESSION-001, SESSION-002: Session service
-- [ ] AI-001 through AI-003: AI layer
-- [ ] NORM-001, NORM-002: Result normalization
+- [ ] AI-002, AI-003: AI classifier + prompts
+- [ ] MIGRATE-001, MIGRATE-002: Migration/refactor
 - [ ] WEB-001 through WEB-003: Web dashboard
 - [ ] EXE-001 through EXE-003: Windows EXE
 - [ ] EXT-001 through EXT-003: Browser extension
@@ -50,13 +68,7 @@
 - [ ] OBS-002, OBS-003: Metrics + tracing
 - [ ] PKG-001 through PKG-003: Packaging
 - [ ] SEC-001, SEC-002: Security
-- [ ] MIGRATE-001, MIGRATE-002: Migration/refactor
 - [ ] VERIFY-001, VERIFY-002: Final verification
 
 ## Blocked
 (none)
-
-## Test Status
-- **Total tests:** 103
-- **Passing:** 103
-- **Failing:** 0
