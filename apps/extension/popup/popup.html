@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Scraper</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header class="header">
+    <h1 class="header__title">AI Scraper</h1>
+    <button id="settings-btn" class="header__settings" title="Settings">&#9881;</button>
+  </header>
+
+  <section class="section">
+    <label class="label" for="current-url">Current Page</label>
+    <div id="current-url" class="url-display" title=""></div>
+  </section>
+
+  <section class="section">
+    <label class="label" for="mode-select">Extraction Mode</label>
+    <select id="mode-select" class="select">
+      <option value="auto">Auto-detect</option>
+      <option value="product">Product</option>
+      <option value="listing">Listing</option>
+      <option value="article">Article</option>
+    </select>
+  </section>
+
+  <section class="section">
+    <button id="scrape-btn" class="btn btn--primary">Scrape This Page</button>
+  </section>
+
+  <section class="section">
+    <div id="status" class="status status--idle">Ready</div>
+  </section>
+
+  <section class="section results-section">
+    <label class="label">Results Preview</label>
+    <pre id="results" class="results"></pre>
+  </section>
+
+  <script src="popup.js"></script>
+</body>
+</html>

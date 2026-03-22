@@ -18,7 +18,15 @@ from typing import AsyncGenerator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from services.control_plane.routers import health, tasks, policies, results  # noqa: E402 — uses symlink
+from services.control_plane.routers import health, tasks, policies, results, execution, metrics  # noqa: E402 — uses symlink
+from services.control_plane.middleware.metrics import MetricsMiddleware
+
+# Auth router requires PyJWT — import conditionally (PyJWT may raise PanicException)
+try:
+    from services.control_plane.routers import auth as auth_router
+    _auth_available = True
+except BaseException:
+    _auth_available = False
 from services.control_plane.dependencies import init_database, get_database
 from services.control_plane.config import settings
 
@@ -56,11 +64,18 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    # Metrics middleware — must be added before routers
+    app.add_middleware(MetricsMiddleware)
+
     # Register routers
     app.include_router(health.router, tags=["Health"])
+    app.include_router(metrics.router, tags=["Metrics"])
     app.include_router(tasks.router, prefix="/api/v1", tags=["Tasks"])
     app.include_router(policies.router, prefix="/api/v1", tags=["Policies"])
     app.include_router(results.router, prefix="/api/v1", tags=["Results"])
+    app.include_router(execution.router, prefix="/api/v1", tags=["Execution"])
+    if _auth_available:
+        app.include_router(auth_router.router, prefix="/api/v1", tags=["Auth"])
 
     return app
 

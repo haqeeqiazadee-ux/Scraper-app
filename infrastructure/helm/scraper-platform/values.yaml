@@ -1,0 +1,243 @@
+# ──────────────────────────────────────────────
+# AI Scraping Platform — Default Helm Values
+# ──────────────────────────────────────────────
+
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+
+# ── Control Plane ────────────────────────────
+controlPlane:
+  image:
+    repository: scraper-platform/control-plane
+    tag: ""  # defaults to .Chart.AppVersion
+    pullPolicy: IfNotPresent
+  replicas: 2
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+  port: 8000
+  env: {}
+  # Extra environment variables (non-sensitive) merged into ConfigMap
+  #   LOG_LEVEL: debug
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 15
+    periodSeconds: 20
+    failureThreshold: 3
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    failureThreshold: 3
+
+# ── HTTP Worker ──────────────────────────────
+workerHttp:
+  image:
+    repository: scraper-platform/worker-http
+    tag: ""
+    pullPolicy: IfNotPresent
+  replicas: 2
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+  env: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  podAntiAffinity:
+    enabled: true
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 10
+    periodSeconds: 20
+    failureThreshold: 3
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    failureThreshold: 3
+
+# ── Browser Worker ───────────────────────────
+workerBrowser:
+  image:
+    repository: scraper-platform/worker-browser
+    tag: ""
+    pullPolicy: IfNotPresent
+  replicas: 2
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+  env: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  podAntiAffinity:
+    enabled: true
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 20
+    periodSeconds: 30
+    failureThreshold: 3
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 10
+    periodSeconds: 15
+    failureThreshold: 3
+
+# ── AI Worker ────────────────────────────────
+workerAi:
+  image:
+    repository: scraper-platform/worker-ai
+    tag: ""
+    pullPolicy: IfNotPresent
+  replicas: 1
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 1Gi
+  env: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  podAntiAffinity:
+    enabled: true
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 15
+    periodSeconds: 20
+    failureThreshold: 3
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    failureThreshold: 3
+
+# ── PostgreSQL (Bitnami subchart) ────────────
+postgresql:
+  enabled: true
+  auth:
+    postgresPassword: ""       # set via --set or secrets
+    username: scraper
+    password: ""               # set via --set or secrets
+    database: scraper_platform
+  primary:
+    persistence:
+      enabled: true
+      size: 10Gi
+      storageClass: ""
+
+# External PostgreSQL (used when postgresql.enabled=false)
+externalPostgresql:
+  host: ""
+  port: 5432
+  username: scraper
+  password: ""
+  database: scraper_platform
+  existingSecret: ""
+  existingSecretPasswordKey: password
+
+# ── Redis (Bitnami subchart) ─────────────────
+redis:
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: true
+    password: ""               # set via --set or secrets
+  master:
+    persistence:
+      enabled: true
+      size: 2Gi
+      storageClass: ""
+
+# External Redis (used when redis.enabled=false)
+externalRedis:
+  host: ""
+  port: 6379
+  password: ""
+  existingSecret: ""
+  existingSecretPasswordKey: password
+
+# ── Ingress ──────────────────────────────────
+ingress:
+  enabled: false
+  className: nginx
+  annotations: {}
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: scraper.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  #  - secretName: scraper-tls
+  #    hosts:
+  #      - scraper.local
+
+# ── Autoscaling (HPA) ───────────────────────
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPU: 70
+  targetMemory: 80
+
+# ── Artifacts PVC ────────────────────────────
+persistence:
+  enabled: true
+  storageClass: ""
+  accessModes:
+    - ReadWriteMany
+  size: 20Gi
+  existingClaim: ""
+
+# ── Shared / Platform Config ────────────────
+config:
+  logLevel: info
+  environment: production
+  storageBackend: s3           # s3 | filesystem
+  queueBackend: redis          # redis | memory
+  aiProvider: gemini            # gemini | openai | anthropic | ollama
+
+# ── Secrets ──────────────────────────────────
+secrets:
+  # Provide values directly (they will be base64-encoded in the Secret).
+  # For production, prefer existingSecret instead.
+  geminiApiKey: ""
+  openaiApiKey: ""
+  anthropicApiKey: ""
+  existingSecret: ""           # name of a pre-existing Secret to use instead

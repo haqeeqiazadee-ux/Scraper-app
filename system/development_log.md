@@ -211,3 +211,317 @@
 ```
 103 passed in 2.42s
 ```
+
+---
+
+## 2026-03-22 — API-004: JWT Authentication & Tenant Middleware
+
+### Implementation
+- **middleware/auth.py**: JWT token creation (`create_access_token`) and verification (`verify_token`) using PyJWT. FastAPI dependency `get_current_user` extracts Bearer token, verifies JWT, returns user dict (sub, tenant_id, roles). `require_role(*roles)` dependency factory for RBAC.
+- **routers/auth.py**: POST `/api/v1/auth/token` issues JWT (scaffolding — accepts any credentials). GET `/api/v1/auth/me` returns current user claims from token.
+- **app.py**: Registered auth router with `/api/v1` prefix.
+- Settings already in config.py: `secret_key`, `jwt_algorithm`, `jwt_access_token_expire_minutes`.
+
+### Tests (12 tests in test_api_auth.py)
+- Token creation (string format, embedded claims, custom expiry)
+- Token verification (valid, expired, invalid, tampered)
+- POST /auth/token endpoint (success, validation error)
+- GET /auth/me endpoint (success, no token, invalid token, expired token)
+- Role-based access (allowed, denied → 403)
+
+---
+
+## 2026-03-22 — WORKER-003: AI Normalization Worker
+
+### Implementation
+
+**services/worker-ai/worker.py** — `AINormalizationWorker` class implementing a three-stage normalisation pipeline:
+
+1. **Deterministic normalisation** — delegates to `packages/core/normalizer.normalize_items()` for field alias resolution, price/rating cleaning, URL fixing
+2. **Deduplication** — delegates to `packages/core/dedup.DedupEngine.deduplicate()` for SKU/URL exact match and fuzzy name match
+3. **AI-assisted schema mapping** — when result confidence < threshold and an `AIProvider` is configured, calls `provider.normalize(item, target_schema)` per item. Failures are caught and the original item is kept.
+4. **Confidence recalculation** — blends original confidence (60%) with field coverage ratio (40%)
+
+Helper functions: `_field_coverage(item)` computes fraction of canonical fields filled; `_compute_confidence(items, base)` blends.
+
+Symlink `services/worker_ai → worker-ai` created following existing convention (control_plane, worker_http, worker_browser).
+
+### Tests (8 classes in tests/unit/test_worker_ai.py)
+
+- **TestDeterministicNormalization** — field aliases, price/rating/URL cleaning, empty items
+- **TestDeduplication** — exact URL dedup, fuzzy name dedup, distinct items preserved
+- **TestAIFallback** — AI called when low confidence, skipped when high, graceful failure
+- **TestBatchProcessing** — batch returns all, preserves extra keys
+- **TestHighConfidencePassthrough** — no AI call, confidence recalculated
+- **TestHelpers** — field_coverage and compute_confidence unit tests
+- **TestClose** — idempotent close
+
+---
+
+## 2026-03-22 — SESSION-002: Cookie and Browser Profile Persistence
+
+### Implementation
+- **packages/core/session_persistence.py**: `SessionPersistence` class storing session data as JSON files on the filesystem. Uses `asyncio.get_running_loop().run_in_executor()` for non-blocking file I/O (no aiofiles dependency needed). Storage layout: `{storage_path}/{session_id}/cookies.json`, `profile.json`, `headers.json`. Includes `delete_session_data` (rmtree) and `list_sessions` (directory listing).
+- **packages/core/session_store.py**: `PersistentSessionManager` wrapping the existing `SessionManager` with automatic persistence. `create_session` persists initial cookies/headers. `get_or_create_session` loads persisted data for new sessions. `update_cookies`/`update_headers`/`update_browser_profile` persist changes immediately. `cleanup` removes persisted data for expired/invalidated sessions before calling `cleanup_expired()`. All read operations delegated to inner SessionManager.
+
+### Design Decisions
+- Used `run_in_executor` with synchronous `pathlib.Path` operations rather than requiring aiofiles as a dependency. Keeps the dependency footprint minimal while still being non-blocking.
+- Storage path is configurable (default `./session_data`), supporting both cloud and desktop deployment modes.
+- `PersistentSessionManager` composes `SessionManager` rather than inheriting, following the project's composition-over-inheritance pattern.
+
+### Tests (30+ tests in test_session_persistence.py)
+- 10 test classes: CookiePersistence, BrowserProfilePersistence, HeadersPersistence, DeleteSessionData, ListSessions, StorageFormat, PersistentSessionManagerCreate, GetOrCreateSession, UpdateOperations, Cleanup, DelegatedOperations
+- All tests use `tmp_path` fixture for isolated storage directories
+
+## 2026-03-22 — OBS-002: Prometheus Metrics
+
+### Design Decisions
+
+- **No prometheus_client dependency** — Implemented a lightweight `MetricsCollector` class in `packages/core/metrics.py` that can export in Prometheus text exposition format without requiring the `prometheus_client` library. Keeps the platform cloud-agnostic.
+- **Thread-safe** — All metric mutations protected by `threading.Lock` since metrics may be updated from middleware on different async contexts.
+- **Global singleton** — `metrics = MetricsCollector()` at module level. Any component can `from packages.core.metrics import metrics` and start recording.
+- **Label support** — All metric types (counter, gauge, histogram) support arbitrary label dicts, stored via composite keys `name{k1="v1",k2="v2"}`.
+- **Dual export** — Prometheus text format (`/metrics`) for standard scraping, JSON (`/api/v1/metrics`) for the web dashboard.
+
+### Standard Platform Metrics Wired
+
+- `scraper_http_requests_total` (counter, by method/path/status) — via middleware
+- `scraper_tasks_active` (gauge) — in-flight request tracking via middleware
+- `scraper_request_duration_ms` (histogram, by method/path) — via middleware
+- `scraper_errors_total` (counter, by type) — via middleware on unhandled exceptions
+- Additional metrics (`scraper_tasks_total`, `scraper_proxy_pool_size`, `scraper_session_count`, `scraper_extraction_confidence`) available for workers/services to record via the global `metrics` singleton.
+
+### Files Created/Modified
+
+- `packages/core/metrics.py` (new) — MetricsCollector with counter/gauge/histogram + Prometheus/JSON export
+- `services/control-plane/routers/metrics.py` (new) — /metrics and /api/v1/metrics endpoints
+- `services/control-plane/middleware/metrics.py` (new) — MetricsMiddleware for automatic request tracking
+- `services/control-plane/app.py` (modified) — wired metrics router and middleware
+- `tests/unit/test_metrics.py` (new) — 30+ tests across 9 test classes
+
+---
+
+## 2026-03-22 — WEB-001: React Web Dashboard Scaffold
+
+### Implementation
+
+Created 17 files in `apps/web/` establishing the React + Vite + TypeScript web dashboard.
+
+**Project configuration:**
+- `package.json`: React 18.3, react-router-dom 6.23, @tanstack/react-query 5.40, Vite 5.2, TypeScript 5.4
+- `tsconfig.json`: Strict mode, ESNext module, react-jsx, `@/*` path alias
+- `vite.config.ts`: React plugin, `/api` proxy to `http://localhost:8000`, source maps
+
+**TypeScript types (`src/api/types.ts`):**
+- Mirrors all 7 Pydantic contracts: Task, Policy, Result, Run, Session, Artifact, Billing
+- All enums as string union types (TaskStatus, RunStatus, LanePreference, etc.)
+- PaginatedResponse<T> generic for list endpoints
+- Separate ListItem interfaces matching actual API response shapes
+
+**API client (`src/api/client.ts`):**
+- Matches FastAPI endpoint signatures exactly: `/api/v1/tasks`, `/api/v1/policies`, `/api/v1/results`
+- Typed request/response for all CRUD operations
+- ApiError class with status code and detail message
+- Query string builder for filters and pagination
+
+**UI architecture:**
+- Layout component with sidebar navigation (NavLink with active state)
+- 5 pages: Dashboard, Tasks, TaskDetail, Policies, Results
+- Reusable components: TaskTable, StatusBadge
+- CSS custom properties for theming, responsive at 768px breakpoint
+- Status badges color-coded per status (pending=amber, running=indigo, completed=green, failed=red, etc.)
+
+### Design Decisions
+- Plain CSS with custom properties instead of Tailwind — keeps the scaffold dependency-free and readable
+- React Query with 30s staleTime for dashboard data — balances freshness with request volume
+- Vite proxy for /api avoids CORS issues during development
+- No form components yet — scaffold focuses on read operations, forms come in WEB-002
+
+---
+
+## 2026-03-22 — EXT-001: Chrome Manifest V3 Extension Scaffold
+
+### Implementation
+
+Created a complete Chrome Manifest V3 extension in `apps/extension/` with 11 source files plus placeholder icons.
+
+### Architecture
+
+- **Popup** communicates with **background service worker** via `chrome.runtime.sendMessage`
+- **Service worker** coordinates with **content script** via `chrome.tabs.sendMessage`
+- Content script performs client-side extraction (JSON-LD, meta tags, microdata, DOM heuristics)
+- Service worker optionally forwards to cloud control plane for AI normalization
+- Settings persisted via `chrome.storage.local`
+
+### Extraction Modes
+
+Four modes available: auto-detect, product, listing, article. Auto-detect uses JSON-LD `@type` hints and DOM heuristics (price elements trigger product mode). Each mode has tailored extraction logic in the content script.
+
+### Files Created
+
+- `manifest.json` — MV3 manifest (activeTab, storage, identity permissions; host_permissions for localhost:8000 and api.aiscraper.io)
+- `popup/popup.html` + `popup.css` + `popup.js` — Dark-themed popup UI
+- `background/service-worker.js` — ES module service worker with message routing
+- `content/content.js` — IIFE content script with extraction + highlighting
+- `options/options.html` + `options.js` — Settings page (API endpoint, key, mode, cloud toggle)
+- `lib/api.js` — Control plane API client (extract, health, policies)
+- `lib/extractor.js` — Shared extraction utilities (JSON-LD, meta, microdata, page type detection)
+- `icons/icon{16,48,128}.png` — Valid PNG placeholders
+- `icons/icon{16,48,128}.svg` — SVG placeholders
+
+### Design Decisions
+
+- Used ES module for service worker (`"type": "module"`) to enable `import` of lib/api.js
+- Content script uses IIFE with double-injection guard (`window.__aiScraperInjected`)
+- Element highlighting via CSS class injection (outline + translucent background)
+- Cloud mode is opt-in — local extraction works without any API key
+- Settings page uses inline styles (single file, no build step needed)
+
+---
+
+## 2026-03-22 — SELFHOST-002: Kubernetes Helm Chart
+
+### Implementation
+
+Created a production-ready Helm chart at `infrastructure/helm/scraper-platform/` with 13 files.
+
+**Chart structure:**
+- `Chart.yaml`: apiVersion v2, type application, Bitnami PostgreSQL 15.x.x and Redis 19.x.x as conditional subchart dependencies
+- `values.yaml`: Comprehensive defaults for all 4 services (control-plane, worker-http, worker-browser, worker-ai), both embedded and external PostgreSQL/Redis, ingress, HPA, PVC, platform config, and secrets
+
+**Template helpers (_helpers.tpl):**
+- `scraper.name`, `scraper.fullname`, `scraper.chart` — standard Helm naming
+- `scraper.labels`, `scraper.selectorLabels` — common label sets
+- `scraper.componentLabels`, `scraper.componentSelectorLabels` — component-scoped variants
+- `scraper.image` — resolves image ref from global registry + component image + appVersion fallback
+- `scraper.postgresql.host/port/database/username` — resolves to subchart service or external config
+- `scraper.redis.host/port` — resolves to subchart service or external config
+- `scraper.secretName` — resolves to existing secret or chart-managed secret
+
+**Deployments (4):**
+- All share: configmap envFrom, secret env refs, artifact volume mount, liveness/readiness probes, resource limits
+- Control plane: HPA-aware replica count
+- Workers: pod anti-affinity (preferredDuringSchedulingIgnoredDuringExecution on hostname topology)
+- AI worker: optional AI API key secret refs
+- Browser worker: higher defaults (500m/1Gi request, 2cpu/2Gi limit) for Playwright
+
+**Supporting resources:**
+- Service: ClusterIP for control-plane (port 80 -> http)
+- Ingress: conditional, supports className, annotations, multi-host paths, TLS
+- ConfigMap: non-sensitive platform config
+- Secret: conditional, base64-encoded credentials + AI API keys
+- HPA: conditional, CPU + memory utilization targets
+- PVC: conditional, ReadWriteMany for shared artifact storage
+
+### Design Decisions
+- Bitnami subchart dependencies for PostgreSQL and Redis
+- Dual-mode: embedded subcharts for dev, external connections for production
+- Secrets support both inline values and pre-existing Kubernetes Secrets
+- Soft pod anti-affinity to avoid scheduling failures on small clusters
+- Checksum annotations on deployments for automatic rollout on config changes
+
+---
+
+## 2026-03-22 — CLOUD-001: AWS Terraform Modules
+
+### Implementation
+
+Created production-grade Terraform configuration at `infrastructure/terraform/aws/` with 5 modules and a root module (20 files total).
+
+**Root module (main.tf):**
+- AWS provider with default tags, Terraform >= 1.5.0, hashicorp/aws ~> 5.0
+- S3 backend block (commented out) for remote state
+- ECR repositories per service with immutable tags, scan-on-push, lifecycle policies (keep 20 tagged, expire untagged after 7 days)
+- Module composition: VPC -> S3 -> RDS -> Redis -> ECR -> ECS (with dependency wiring)
+
+**modules/vpc:**
+- VPC with DNS support/hostnames enabled
+- Public subnets (map_public_ip_on_launch) + private subnets across available AZs
+- Internet gateway for public subnets
+- NAT gateway per AZ with EIP for private subnet egress (HA)
+- Separate route tables: public (IGW) and private per AZ (NAT)
+- S3 VPC gateway endpoint (free, attached to all route tables)
+- VPC flow logs to CloudWatch (60s aggregation, 30d retention)
+
+**modules/ecs:**
+- Fargate cluster with Container Insights enabled
+- FARGATE (base 1, weight 1) + FARGATE_SPOT (weight 3) capacity providers for cost optimization
+- ALB in public subnets with TLS 1.3 security policy
+- HTTP listener redirects to HTTPS (301)
+- Target group with /health health check
+- Task definitions with awslogs driver, environment variables for DB/Redis/S3
+- ECS services in private subnets with deployment circuit breaker + rollback
+- Only control-plane registered with ALB target group
+- Auto-scaling: target tracking on CPU utilization (70%) with 60s scale-out / 300s scale-in cooldown
+- IAM: task execution role (ECR pull, CloudWatch logs) + task role (S3 access)
+- Deletion protection on ALB in prod
+
+**modules/rds:**
+- PostgreSQL 15.7 on gp3 storage with autoscaling
+- Multi-AZ configurable (default: true)
+- Encrypted at rest (default KMS)
+- Performance Insights enabled (7d retention)
+- Parameter group: pg_stat_statements, connection/disconnection/duration logging
+- Automated backups (7d retention, 03:00-04:00 window)
+- Deletion protection + final snapshot in prod; skip in dev
+- PostgreSQL + upgrade CloudWatch logs exported
+- Security group: port 5432 from ECS tasks only
+
+**modules/redis:**
+- Redis 7.1 replication group (cluster mode disabled)
+- Transit encryption + at-rest encryption + auth token
+- Automatic failover + multi-AZ when num_cache_clusters > 1
+- maxmemory-policy: allkeys-lru
+- Snapshot retention: 7d prod, 1d non-prod
+- Security group: port 6379 from ECS tasks only
+
+**modules/s3:**
+- Unique bucket name: {project}-{env}-artifacts-{account_id}
+- Versioning enabled
+- KMS encryption with bucket key
+- All public access blocked
+- Bucket policy enforcing TLS
+- Lifecycle rules: results/ -> STANDARD_IA at 30d -> GLACIER at 90d; temp/ expires at 7d; noncurrent versions expire at 30d; incomplete uploads abort at 3d
+- CORS for web dashboard uploads
+
+### Design Decisions
+- NAT gateway per AZ (not shared) for production-grade HA — each AZ is independent
+- FARGATE_SPOT with 3x weight over FARGATE for cost savings on workers (non-critical, restartable)
+- S3 VPC endpoint is a gateway type (free) not interface type (paid) — cost-conscious
+- ECR lifecycle policies to prevent unbounded image storage growth
+- gp3 storage for RDS (better price-performance than gp2)
+- Auth token for Redis transit encryption (required when transit_encryption_enabled=true)
+- Terraform .gitignore excludes state files and tfvars to prevent secret leakage
+
+---
+
+## 2026-03-22 — EXE-001: Tauri v2 Desktop Project Scaffold
+
+### Implementation
+
+Created 12 files in `apps/desktop/` establishing the Tauri v2 desktop application shell.
+
+**Rust backend (src-tauri/):**
+- `Cargo.toml`: scraper-desktop crate with tauri 2.0, tauri-build 2.0, serde, serde_json, tokio, tauri-plugin-shell 2.0, tray-icon feature
+- `tauri.conf.json`: Window 1200x800, CSP for localhost API, shell plugin scoped to Python uvicorn, tray icon config, bundle identifiers
+- `src/main.rs`: Tauri Builder with shell plugin, 4 invoke handlers, devtools in debug, system tray placeholder
+- `src/lib.rs`: ServerState with Mutex PID tracking. start_local_server spawns uvicorn on 127.0.0.1:8321 with desktop env vars (SQLite, filesystem, memory). stop_local_server uses platform-aware kill (taskkill on Windows, kill -TERM on Unix). get_status and get_version.
+- `build.rs`: Standard tauri_build::build()
+
+**Frontend (src/):**
+- `main.tsx`: React root with QueryClient (30s staleTime), BrowserRouter
+- `App.tsx`: Desktop UI with server management controls, status indicator, API link
+- `hooks/useTauri.ts`: Typed invoke wrapper with __TAURI_INTERNALS__ detection, graceful browser fallback
+
+**Configuration:**
+- `package.json`: React 18 + @tauri-apps/api 2.0 + @tauri-apps/plugin-shell 2.0 + @tauri-apps/cli 2.0
+- `vite.config.ts`: Fixed port 5173, TAURI_ env prefix, platform-specific build targets
+- `tsconfig.json` + `tsconfig.node.json`: Strict TypeScript, path aliases
+- `index.html`: Entry point with drag region styles
+
+### Design Decisions
+- Local server port 8321 (different from cloud 8000) to avoid conflicts
+- Desktop env: SCRAPER_MODE=desktop, SQLite DB, filesystem storage, memory queue/cache
+- std::sync::Mutex (not tokio) since critical sections are short without await points
+- Shell plugin scope restricts sidecar to only the Python uvicorn command
+- Platform-aware process kill: taskkill /T /F on Windows, kill -TERM on Unix

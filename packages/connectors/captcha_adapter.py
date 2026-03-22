@@ -7,7 +7,9 @@ Supports 2Captcha, Anti-Captcha, CapMonster with automatic fallback.
 
 from __future__ import annotations
 
+import asyncio
 import logging
+import time
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Optional, Protocol, runtime_checkable
@@ -48,6 +50,242 @@ class CaptchaSolver(Protocol):
     def get_name(self) -> str: ...
 
 
+# ---------------------------------------------------------------------------
+# Concrete solver implementations
+# ---------------------------------------------------------------------------
+
+class TwoCaptchaSolver:
+    """2Captcha.com CAPTCHA solving service."""
+
+    API_SUBMIT = "http://2captcha.com/in.php"
+    API_RESULT = "http://2captcha.com/res.php"
+    COST_PER_SOLVE = 0.003  # ~$2.99 per 1000
+
+    def __init__(self, api_key: str) -> None:
+        self._api_key = api_key
+
+    def get_name(self) -> str:
+        return "2captcha"
+
+    async def solve(
+        self,
+        captcha_type: CaptchaType,
+        site_key: str,
+        page_url: str,
+    ) -> CaptchaSolution:
+        start = time.time()
+        try:
+            import httpx
+        except ImportError:
+            return CaptchaSolution(success=False, solver_name=self.get_name(), error="httpx not installed")
+
+        method_map = {
+            CaptchaType.RECAPTCHA_V2: "userrecaptcha",
+            CaptchaType.RECAPTCHA_V3: "userrecaptcha",
+            CaptchaType.HCAPTCHA: "hcaptcha",
+        }
+        method = method_map.get(captcha_type)
+        if not method:
+            return CaptchaSolution(success=False, solver_name=self.get_name(), error=f"Unsupported type: {captcha_type}")
+
+        async with httpx.AsyncClient(timeout=10) as client:
+            # Submit
+            submit_data = {
+                "key": self._api_key,
+                "method": method,
+                "googlekey" if captcha_type != CaptchaType.HCAPTCHA else "sitekey": site_key,
+                "pageurl": page_url,
+                "json": "1",
+            }
+            resp = await client.post(self.API_SUBMIT, data=submit_data)
+            result = resp.json()
+
+            if result.get("status") != 1:
+                return CaptchaSolution(
+                    success=False, solver_name=self.get_name(),
+                    error=result.get("request", "submit failed"),
+                    elapsed_ms=int((time.time() - start) * 1000),
+                )
+
+            captcha_id = result["request"]
+
+            # Poll (max 30 × 5s = 150s)
+            for _ in range(30):
+                await asyncio.sleep(5)
+                resp = await client.get(
+                    self.API_RESULT,
+                    params={"key": self._api_key, "action": "get", "id": captcha_id, "json": "1"},
+                )
+                result = resp.json()
+                if result.get("status") == 1:
+                    return CaptchaSolution(
+                        success=True,
+                        solution=result["request"],
+                        solver_name=self.get_name(),
+                        cost_usd=self.COST_PER_SOLVE,
+                        elapsed_ms=int((time.time() - start) * 1000),
+                    )
+                if result.get("request") != "CAPCHA_NOT_READY":
+                    return CaptchaSolution(
+                        success=False, solver_name=self.get_name(),
+                        error=result.get("request", "unknown error"),
+                        elapsed_ms=int((time.time() - start) * 1000),
+                    )
+
+        return CaptchaSolution(
+            success=False, solver_name=self.get_name(), error="timeout",
+            elapsed_ms=int((time.time() - start) * 1000),
+        )
+
+
+class AntiCaptchaSolver:
+    """Anti-Captcha.com CAPTCHA solving service."""
+
+    API_BASE = "https://api.anti-captcha.com"
+    COST_PER_SOLVE = 0.002
+
+    def __init__(self, api_key: str) -> None:
+        self._api_key = api_key
+
+    def get_name(self) -> str:
+        return "anti-captcha"
+
+    async def solve(
+        self,
+        captcha_type: CaptchaType,
+        site_key: str,
+        page_url: str,
+    ) -> CaptchaSolution:
+        start = time.time()
+        try:
+            import httpx
+        except ImportError:
+            return CaptchaSolution(success=False, solver_name=self.get_name(), error="httpx not installed")
+
+        task_type_map = {
+            CaptchaType.RECAPTCHA_V2: "RecaptchaV2TaskProxyless",
+            CaptchaType.RECAPTCHA_V3: "RecaptchaV3TaskProxyless",
+            CaptchaType.HCAPTCHA: "HCaptchaTaskProxyless",
+        }
+        task_type = task_type_map.get(captcha_type)
+        if not task_type:
+            return CaptchaSolution(success=False, solver_name=self.get_name(), error=f"Unsupported type: {captcha_type}")
+
+        async with httpx.AsyncClient(timeout=10) as client:
+            # Create task
+            payload = {
+                "clientKey": self._api_key,
+                "task": {"type": task_type, "websiteURL": page_url, "websiteKey": site_key},
+            }
+            resp = await client.post(f"{self.API_BASE}/createTask", json=payload)
+            result = resp.json()
+
+            if result.get("errorId", 1) != 0:
+                return CaptchaSolution(
+                    success=False, solver_name=self.get_name(),
+                    error=result.get("errorDescription", "submit failed"),
+                    elapsed_ms=int((time.time() - start) * 1000),
+                )
+
+            task_id = result["taskId"]
+
+            # Poll
+            for _ in range(30):
+                await asyncio.sleep(5)
+                resp = await client.post(
+                    f"{self.API_BASE}/getTaskResult",
+                    json={"clientKey": self._api_key, "taskId": task_id},
+                )
+                result = resp.json()
+                if result.get("status") == "ready":
+                    solution_key = "gRecaptchaResponse" if "recaptcha" in captcha_type else "token"
+                    return CaptchaSolution(
+                        success=True,
+                        solution=result.get("solution", {}).get(solution_key, ""),
+                        solver_name=self.get_name(),
+                        cost_usd=result.get("cost", self.COST_PER_SOLVE),
+                        elapsed_ms=int((time.time() - start) * 1000),
+                    )
+                if result.get("errorId", 0) != 0:
+                    return CaptchaSolution(
+                        success=False, solver_name=self.get_name(),
+                        error=result.get("errorDescription", "unknown error"),
+                        elapsed_ms=int((time.time() - start) * 1000),
+                    )
+
+        return CaptchaSolution(
+            success=False, solver_name=self.get_name(), error="timeout",
+            elapsed_ms=int((time.time() - start) * 1000),
+        )
+
+
+class CapMonsterSolver:
+    """CapMonster.cloud CAPTCHA solving service (API-compatible with Anti-Captcha)."""
+
+    API_BASE = "https://api.capmonster.cloud"
+    COST_PER_SOLVE = 0.001
+
+    def __init__(self, api_key: str) -> None:
+        self._api_key = api_key
+        self._delegate = AntiCaptchaSolver(api_key)
+        # Override API base
+        self._delegate.API_BASE = self.API_BASE
+
+    def get_name(self) -> str:
+        return "capmonster"
+
+    async def solve(
+        self,
+        captcha_type: CaptchaType,
+        site_key: str,
+        page_url: str,
+    ) -> CaptchaSolution:
+        result = await self._delegate.solve(captcha_type, site_key, page_url)
+        result.solver_name = self.get_name()
+        if result.success:
+            result.cost_usd = self.COST_PER_SOLVE
+        return result
+
+
+# ---------------------------------------------------------------------------
+# CAPTCHA escalation strategy
+# ---------------------------------------------------------------------------
+
+class CaptchaEscalationStrategy:
+    """Determines when and how to handle CAPTCHA challenges during scraping."""
+
+    def __init__(
+        self,
+        max_retries_before_captcha: int = 2,
+        captcha_budget_usd: float = 1.0,
+    ) -> None:
+        self._max_retries = max_retries_before_captcha
+        self._budget_usd = captcha_budget_usd
+        self._spent_usd: float = 0.0
+
+    def should_solve(self, attempt: int, adapter: CaptchaAdapter) -> bool:
+        """Decide whether to attempt CAPTCHA solving."""
+        if attempt < self._max_retries:
+            return False  # Retry without solving first
+        if self._spent_usd >= self._budget_usd:
+            logger.warning("CAPTCHA budget exhausted", extra={"spent": self._spent_usd, "budget": self._budget_usd})
+            return False
+        if not adapter._solvers:
+            return False
+        return True
+
+    def record_cost(self, cost_usd: float) -> None:
+        self._spent_usd += cost_usd
+
+    @property
+    def budget_remaining(self) -> float:
+        return max(0.0, self._budget_usd - self._spent_usd)
+
+
+# ---------------------------------------------------------------------------
+# Main adapter
+# ---------------------------------------------------------------------------
+
 class CaptchaAdapter:
     """CAPTCHA adapter with multi-service fallback and cost tracking."""
 
@@ -61,6 +299,23 @@ class CaptchaAdapter:
         """Add a CAPTCHA solver to the fallback chain."""
         self._solvers.append(solver)
 
+    @classmethod
+    def from_config(
+        cls,
+        two_captcha_key: Optional[str] = None,
+        anti_captcha_key: Optional[str] = None,
+        capmonster_key: Optional[str] = None,
+    ) -> CaptchaAdapter:
+        """Create adapter with solvers based on available API keys."""
+        adapter = cls()
+        if two_captcha_key:
+            adapter.add_solver(TwoCaptchaSolver(two_captcha_key))
+        if anti_captcha_key:
+            adapter.add_solver(AntiCaptchaSolver(anti_captcha_key))
+        if capmonster_key:
+            adapter.add_solver(CapMonsterSolver(capmonster_key))
+        return adapter
+
     async def solve(
         self,
         captcha_type: CaptchaType,
@@ -69,6 +324,9 @@ class CaptchaAdapter:
         max_attempts: int = 3,
     ) -> CaptchaSolution:
         """Attempt to solve a CAPTCHA using available solvers with fallback."""
+        if not self._solvers:
+            return CaptchaSolution(success=False, error="No CAPTCHA solvers configured")
+
         for solver in self._solvers:
             for attempt in range(max_attempts):
                 try:
@@ -103,9 +361,14 @@ class CaptchaAdapter:
         return self._total_cost_usd
 
     @property
+    def solver_count(self) -> int:
+        return len(self._solvers)
+
+    @property
     def stats(self) -> dict:
         return {
             "total_solves": self._total_solves,
             "total_failures": self._total_failures,
             "total_cost_usd": self._total_cost_usd,
+            "solvers": [s.get_name() for s in self._solvers],
         }

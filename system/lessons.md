@@ -75,3 +75,13 @@
 32. **Session health drives automatic status transitions** — Health score thresholds (0.7 degraded, 0.3 invalid) combined with consecutive failure count give reliable session lifecycle management without manual intervention.
 
 33. **Docker health checks are essential** — Use `pg_isready` for PostgreSQL, `redis-cli ping` for Redis, and HTTP health endpoint for the API. Docker Compose `depends_on: condition: service_healthy` ensures proper startup order.
+
+34. **Use PyJWT not python-jose** — PyJWT (`import jwt`) is the actively maintained library. python-jose is unmaintained and has known CVEs. PyJWT's `jwt.encode`/`jwt.decode` API is clean and sufficient for HS256/RS256.
+
+35. **HTTPBearer with auto_error=False** — Setting `auto_error=False` on FastAPI's `HTTPBearer` security scheme lets you return a custom 401 response instead of the generic one. This gives better error messages for missing vs invalid tokens.
+
+36. **Composition over inheritance for enhanced managers** — `PersistentSessionManager` wraps `SessionManager` via composition rather than subclassing. This keeps the in-memory manager unchanged and testable independently, while the persistent layer adds storage concerns. The pattern works well when adding cross-cutting features (persistence, caching, metrics) to existing classes.
+
+37. **run_in_executor for file I/O in async code** — `asyncio.get_running_loop().run_in_executor(None, sync_fn)` is sufficient for filesystem operations without adding aiofiles as a dependency. The default executor (ThreadPoolExecutor) handles concurrent file reads/writes well for moderate workloads.
+
+38. **Lightweight metrics without prometheus_client** — A simple MetricsCollector with dict-based counters/gauges/histograms and Prometheus text export is sufficient for most use cases. Avoids adding prometheus_client as a hard dependency while remaining compatible with standard Prometheus scraping. Thread safety via `threading.Lock` is essential since FastAPI middleware runs across async contexts.

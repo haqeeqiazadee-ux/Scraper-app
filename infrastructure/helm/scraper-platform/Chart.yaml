@@ -1,0 +1,23 @@
+apiVersion: v2
+name: scraper-platform
+description: AI Scraping Platform — production-grade, cloud-agnostic web scraping
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - scraping
+  - ai
+  - web-automation
+  - playwright
+home: https://github.com/haqeeqiazadee-ux/Scraper-app
+maintainers:
+  - name: Scraper Platform Team
+dependencies:
+  - name: postgresql
+    version: "15.x.x"
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled
+  - name: redis
+    version: "19.x.x"
+    repository: https://charts.bitnami.com/bitnami
+    condition: redis.enabled

@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "scraper.fullname" . }}-worker-browser
+  labels:
+    {{- include "scraper.componentLabels" (list . "worker-browser") | nindent 4 }}
+spec:
+  replicas: {{ .Values.workerBrowser.replicas }}
+  selector:
+    matchLabels:
+      {{- include "scraper.componentSelectorLabels" (list . "worker-browser") | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+      labels:
+        {{- include "scraper.componentSelectorLabels" (list . "worker-browser") | nindent 8 }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.workerBrowser.podAntiAffinity.enabled }}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    {{- include "scraper.componentSelectorLabels" (list . "worker-browser") | nindent 20 }}
+                topologyKey: kubernetes.io/hostname
+        {{- with .Values.workerBrowser.affinity }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- else if .Values.workerBrowser.affinity }}
+      affinity:
+        {{- toYaml .Values.workerBrowser.affinity | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: worker-browser
+          image: {{ include "scraper.image" (list . .Values.workerBrowser.image) }}
+          imagePullPolicy: {{ .Values.workerBrowser.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8002
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "scraper.fullname" . }}-config
+          env:
+            - name: WORKER_TYPE
+              value: browser
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "scraper.secretName" . }}
+                  key: DATABASE_PASSWORD
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "scraper.secretName" . }}
+                  key: REDIS_PASSWORD
+          {{- with .Values.workerBrowser.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.workerBrowser.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.workerBrowser.resources | nindent 12 }}
+          volumeMounts:
+            - name: artifacts
+              mountPath: /data/artifacts
+      volumes:
+        - name: artifacts
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.existingClaim | default (printf "%s-artifacts" (include "scraper.fullname" .)) }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+      {{- with .Values.workerBrowser.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.workerBrowser.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
