@@ -160,3 +160,54 @@
   - Same in-memory pattern as tasks
 
 **Issue encountered:** Python doesn't allow hyphens in package names (`services/control-plane` can't be imported as `services.control_plane`). Resolved with symlink: `services/control_plane` → `services/control-plane`. Will document this in CLAUDE.md and lessons.md.
+
+---
+
+## 2026-03-22 — Phase 4 (Partial): Tests + Storage Backends
+
+### TEST-001: Test Infrastructure
+- Created `tests/conftest.py` with shared fixtures (tenant_id, sample_url, sample_task_id)
+- Created `__init__.py` files for test packages
+- Installed pydantic, pydantic-settings, pytest, pytest-asyncio
+
+### SCHEMA-001: Task Schema Tests (13 tests)
+- TaskCreate: minimal valid, full valid, invalid URL rejection, priority bounds (0-10), task type enum
+- Task: defaults, serialization roundtrip, JSON roundtrip, status enum values
+- TaskUpdate: empty update, partial update, priority bounds
+
+### SCHEMA-002: Policy Schema Tests (19 tests)
+- RateLimit: defaults, custom values, minimum bounds
+- ProxyPolicy: defaults, custom values
+- SessionPolicy: defaults, bounds
+- RetryPolicy: defaults, bounds
+- PolicyCreate: minimal, full, name required, timeout bounds (1000-300000)
+- Policy: defaults, serialization, JSON roundtrip, lane preference values
+- PolicyUpdate: empty, partial
+
+### SCHEMA-003: Remaining Schema Tests (32 tests)
+- Session: create, defaults, health_score (computed: 0 requests=1.0, 80% success=0.88, 0% success=0.4), serialization, JSON, status/type enums
+- Run: create, defaults, attempt minimum, serialization, status values
+- Result: create, defaults, confidence bounds (0.0-1.0), serialization
+- Artifact: create, defaults, size nonneg, type values, serialization
+- Billing: usage counter defaults, plan defaults exist, tier ordering (free<starter<pro<enterprise), quota defaults, is_within_quota true/false/unknown, all resources, serialization
+
+### Router Tests (12 tests) + Bug Fix
+- **Bug found:** Router's domain matching was exact-only. `mystore.myshopify.com` didn't match `myshopify.com`.
+- **Fix:** Added `_match_domain()` method that checks exact match first, then suffix match (domain.endswith("."+known_domain)).
+- Tests: default HTTP, policy override, API domains (Shopify suffix), browser domains (Amazon), fallback chains, escalation, outcome recording, domain extraction (www stripping, port removal)
+
+### STORAGE-002: Filesystem Object Store (10 tests)
+- `FilesystemObjectStore`: put/get/delete/list_keys/presigned_url/checksum
+- Path traversal protection (rejects `../../etc/passwd`)
+- Nested directory auto-creation
+- Overwrite support
+- SHA-256 checksum generation
+
+### STORAGE-003: In-Memory Queue + Cache (18 tests)
+- `InMemoryQueue`: asyncio.Queue-based, FIFO ordering, ack/nack with re-queue, separate queue namespaces, dequeue with timeout
+- `InMemoryCache`: dict-based with TTL support, increment for counters, automatic expiry cleanup, exists check
+
+### Test Results
+```
+103 passed in 2.42s
+```

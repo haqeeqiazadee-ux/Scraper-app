@@ -209,3 +209,100 @@
 - **Issue found:** Python can't import packages with hyphens — resolved with symlink
 - **Pass/Fail:** PASS
 - **Final Status:** COMPLETE
+
+---
+
+## TEST-001: Set Up Test Infrastructure
+
+- **Task ID:** TEST-001
+- **Start Time:** 2026-03-22
+- **End Time:** 2026-03-22
+- **Steps:** Created tests/__init__.py, tests/unit/__init__.py, tests/unit/test_contracts/__init__.py, tests/conftest.py (fixtures: tenant_id, sample_url, sample_task_id). Installed pydantic, pydantic-settings, pytest, pytest-asyncio.
+- **Files touched:** 4 files
+- **Pass/Fail:** PASS
+- **Final Status:** COMPLETE
+
+---
+
+## SCHEMA-001: Task Schema Validation Tests
+
+- **Task ID:** SCHEMA-001
+- **Start Time:** 2026-03-22
+- **End Time:** 2026-03-22
+- **Steps:** Created tests/unit/test_contracts/test_task.py with 13 tests: TaskCreate (5), Task (4), TaskUpdate (3), covering URL validation, priority bounds, enum values, serialization roundtrip, JSON roundtrip.
+- **Files touched:** tests/unit/test_contracts/test_task.py
+- **Validation:** 13/13 tests passing
+- **Pass/Fail:** PASS
+- **Final Status:** COMPLETE
+
+---
+
+## SCHEMA-002: Policy Schema Validation Tests
+
+- **Task ID:** SCHEMA-002
+- **Start Time:** 2026-03-22
+- **End Time:** 2026-03-22
+- **Steps:** Created tests/unit/test_contracts/test_policy.py with 19 tests across 7 test classes: RateLimit (3), ProxyPolicy (2), SessionPolicy (2), RetryPolicy (2), PolicyCreate (4), Policy (4), PolicyUpdate (2).
+- **Files touched:** tests/unit/test_contracts/test_policy.py
+- **Validation:** 19/19 tests passing
+- **Pass/Fail:** PASS
+- **Final Status:** COMPLETE
+
+---
+
+## SCHEMA-003: Remaining Schema Tests
+
+- **Task ID:** SCHEMA-003
+- **Start Time:** 2026-03-22
+- **End Time:** 2026-03-22
+- **Steps:** Created tests/unit/test_contracts/test_schemas.py with 32 tests: Session (9), Run (5), Result (4), Artifact (5), Billing (9). Also created tests/unit/test_router.py with 12 tests for ExecutionRouter.
+- **Bug found:** Router domain matching was exact-only — mystore.myshopify.com didn't match myshopify.com. Fixed by adding _match_domain() with suffix matching.
+- **Files touched:** test_schemas.py, test_router.py, packages/core/router.py (bug fix)
+- **Validation:** 44/44 new tests passing (32 schema + 12 router)
+- **Pass/Fail:** PASS
+- **Final Status:** COMPLETE
+
+---
+
+## STORAGE-002: Filesystem Object Storage Adapter
+
+- **Task ID:** STORAGE-002
+- **Start Time:** 2026-03-22
+- **End Time:** 2026-03-22
+- **Steps:** Created packages/core/storage/filesystem_store.py (FilesystemObjectStore with put, get, delete, list_keys, presigned_url, checksum, path traversal protection). Created tests/unit/test_storage.py with 10 tests for filesystem store.
+- **Files touched:** packages/core/storage/__init__.py, packages/core/storage/filesystem_store.py, tests/unit/test_storage.py
+- **Validation:** 10/10 filesystem tests passing
+- **Pass/Fail:** PASS
+- **Final Status:** COMPLETE
+
+---
+
+## STORAGE-003: In-Memory Queue + Cache Backends
+
+- **Task ID:** STORAGE-003
+- **Start Time:** 2026-03-22
+- **End Time:** 2026-03-22
+- **Steps:** Created packages/core/storage/memory_queue.py (InMemoryQueue with asyncio.Queue, ack/nack, FIFO, separate namespaces). Created packages/core/storage/memory_cache.py (InMemoryCache with TTL, increment, cleanup). Added 18 tests to test_storage.py (8 queue + 10 cache).
+- **Files touched:** memory_queue.py, memory_cache.py, test_storage.py
+- **Validation:** 18/18 queue+cache tests passing. Total suite: 103 tests, 0 failures.
+- **Pass/Fail:** PASS
+- **Final Status:** COMPLETE
+
+---
+
+## STORAGE-001: SQLAlchemy Metadata Store
+
+- **Task ID:** STORAGE-001
+- **Start Time:** 2026-03-22
+- **End Time:** 2026-03-22
+- **Steps:**
+  1. Installed sqlalchemy + aiosqlite
+  2. Created packages/core/storage/models.py: 6 ORM models (Task, Policy, Session, Run, Result, Artifact) with composite indexes, JSON columns for nested data, foreign key relationships
+  3. Created packages/core/storage/database.py: Database class with async engine, session factory, create/drop tables
+  4. Created packages/core/storage/repositories.py: TaskRepository, PolicyRepository, RunRepository, ResultRepository — all with tenant_id isolation on every query
+  5. Created tests/unit/test_database.py: 14 tests (table creation, session, task CRUD, policy CRUD, tenant isolation, status filtering)
+  6. All 14 database tests passing with SQLite in-memory
+- **Files touched:** models.py, database.py, repositories.py, test_database.py
+- **Validation:** 117 total tests passing (103 previous + 14 new)
+- **Pass/Fail:** PASS
+- **Final Status:** COMPLETE

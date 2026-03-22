@@ -73,11 +73,12 @@ class ExecutionRouter:
                 fallback_lanes=self._get_fallback_lanes(lane),
             )
 
-        # 2. Check for known API availability
-        if domain in API_AVAILABLE_DOMAINS:
+        # 2. Check for known API availability (exact or suffix match)
+        api_match = self._match_domain(domain, API_AVAILABLE_DOMAINS)
+        if api_match:
             return RouteDecision(
                 lane=Lane.API,
-                reason=f"Known API available for {domain}",
+                reason=f"Known API available for {domain} (matched {api_match})",
                 fallback_lanes=[Lane.HTTP, Lane.BROWSER],
             )
 
@@ -91,8 +92,8 @@ class ExecutionRouter:
                 confidence=0.8,
             )
 
-        # 4. Check if domain requires browser
-        if domain in BROWSER_REQUIRED_DOMAINS:
+        # 4. Check if domain requires browser (exact or suffix match)
+        if self._match_domain(domain, {d: True for d in BROWSER_REQUIRED_DOMAINS}):
             return RouteDecision(
                 lane=Lane.BROWSER,
                 reason=f"{domain} requires browser rendering",
@@ -148,6 +149,15 @@ class ExecutionRouter:
         if ":" in domain:
             domain = domain.split(":")[0]
         return domain
+
+    def _match_domain(self, domain: str, lookup: dict) -> Optional[str]:
+        """Match domain exactly or by suffix (e.g., store.myshopify.com matches myshopify.com)."""
+        if domain in lookup:
+            return domain
+        for known_domain in lookup:
+            if domain.endswith("." + known_domain):
+                return known_domain
+        return None
 
     def _get_fallback_lanes(self, current: Lane) -> list[Lane]:
         """Get ordered fallback lanes for a given lane."""

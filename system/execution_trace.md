@@ -88,3 +88,39 @@
     - Python-compatible symlink: `services/control_plane` → `services/control-plane`
 - **Blockers found:** Python doesn't allow hyphens in package names — resolved with symlink `control_plane` → `control-plane`
 - **Next action:** Commit, push, then begin SCHEMA tasks and STORAGE tasks
+
+## Work Cycle 005 — 2026-03-22
+
+- **Timestamp:** 2026-03-22
+- **Active Task IDs:** TEST-001, SCHEMA-001, SCHEMA-002, SCHEMA-003, STORAGE-002, STORAGE-003
+- **What was read before action:** system/todo.md, docs/tasks_breakdown.md (execution order), system/lessons.md
+- **Action taken:** Phase 4 (partial) — Tests, schema validation, and storage backends
+- **Why:** Schema tests validate contracts before building on them; storage backends needed for API wiring
+- **Outputs produced:**
+  - **TEST-001:** Test infrastructure — conftest.py with shared fixtures, __init__.py files for test packages
+  - **SCHEMA-001:** 13 tests for Task contract (TaskCreate validation, URL validation, priority bounds, enum values, serialization roundtrip, JSON roundtrip, partial updates)
+  - **SCHEMA-002:** 19 tests for Policy contract (RateLimit, ProxyPolicy, SessionPolicy, RetryPolicy sub-models, PolicyCreate with nested validation, timeout bounds, name validation, serialization)
+  - **SCHEMA-003:** 32 tests for Session (health_score computation, status/type enums), Run (attempt bounds, status values), Result (confidence bounds, extraction method), Artifact (size bounds, type values), Billing (plan defaults ordering, quota checking, all resources)
+  - **Router tests:** 12 tests for ExecutionRouter (default HTTP, policy override, API domains, browser domains, fallback lanes, escalation, domain extraction, outcome recording)
+  - **Router fix:** Added _match_domain() for domain suffix matching (mystore.myshopify.com matches myshopify.com)
+  - **STORAGE-002:** FilesystemObjectStore — put, get, delete, list_keys, presigned_url, checksum, path traversal protection, nested dirs, overwrite (10 tests)
+  - **STORAGE-003:** InMemoryQueue — enqueue, dequeue, FIFO, ack, nack re-queue, separate queues, timeout (8 tests); InMemoryCache — set, get, delete, exists, increment, TTL expiry, overwrite, size (10 tests)
+  - **Total: 103 tests, all passing**
+- **Blockers found:** Router domain matching needed suffix support (fixed)
+- **Next action:** Update tracking files, commit, push; then STORAGE-001 (SQLAlchemy metadata store) and API wiring
+
+## Work Cycle 006 — 2026-03-22
+
+- **Timestamp:** 2026-03-22
+- **Active Task IDs:** STORAGE-001
+- **What was read before action:** system/todo.md, docs/tasks_breakdown.md (STORAGE-001 spec)
+- **Action taken:** Implemented SQLAlchemy metadata store with ORM models, database engine, and repository pattern
+- **Why:** Critical path — all API endpoints need database persistence
+- **Outputs produced:**
+  - **models.py:** 6 SQLAlchemy ORM models (TaskModel, PolicyModel, SessionModel, RunModel, ResultModel, ArtifactModel) with indexes, relationships, JSON columns
+  - **database.py:** Database class with async engine, session factory, create_tables/drop_tables
+  - **repositories.py:** 4 repository classes (TaskRepo, PolicyRepo, RunRepo, ResultRepo) with tenant isolation on all queries
+  - **test_database.py:** 14 tests — table creation, CRUD for tasks and policies, tenant isolation, status filtering, pagination
+  - **Total: 117 tests, all passing in 3.22s**
+- **Blockers found:** None
+- **Next action:** Commit and push, then continue with API wiring and workers
