@@ -880,3 +880,33 @@
 - **Pass/Fail:** PASS
 - **Follow-up items:** None
 - **Final Status:** COMPLETE
+
+---
+
+## EXT-002: Cloud-Connected Extraction
+
+- **Task ID:** EXT-002
+- **Task Title:** Cloud-connected extraction for Chrome extension
+- **Start Time:** 2026-03-22
+- **End Time:** 2026-03-22
+- **Exact steps performed:**
+  1. Read all existing extension files: manifest.json, background/service-worker.js, content/content.js, lib/api.js, lib/extractor.js, popup/popup.html, popup/popup.js, popup/popup.css, options/options.html, options/options.js
+  2. Read system tracking files: todo.md, execution_trace.md, development_log.md, final_step_logs.md
+  3. Created apps/extension/src/services/api.ts — Cloud API client with login, createTask, executeTask, getResults, getStatus, auth token refresh
+  4. Created apps/extension/src/services/extraction.ts — Client-side extraction with CSS/XPath selectors, getPageMetadata, extractAll with confidence scoring
+  5. Created apps/extension/src/components/ExtractPanel.ts — Popup UI panel with detected types, extraction preview, Send to Cloud, selector picker toggle
+  6. Created apps/extension/src/services/selector-picker.ts — Visual selector picker with hover highlight, click-to-select, optimal CSS generation, tooltip
+  7. Created apps/extension/src/background/cloud-sync.ts — Background sync with health checks, task polling, offline queue, notifications
+  8. Created apps/extension/content/selector-picker.js — Compiled JS content script for selector picker
+  9. Created apps/extension/lib/cloud-sync.js — Compiled JS module for cloud sync (service worker import)
+  10. Updated manifest.json — Added scripting, notifications, alarms permissions; all_urls host permission; selector-picker.js in content_scripts
+  11. Updated popup/popup.html — Added picker button, cloud status indicator, detected types section, cloud actions section
+  12. Updated popup/popup.css — Added styles for actions row, secondary/cloud buttons, cloud indicator, queue badge, type tags
+  13. Rewrote popup/popup.js — Cloud status polling, detected types, Send to Cloud, selector picker toggle, task notifications
+  14. Rewrote background/service-worker.js — Integrated cloud-sync, selector picker relay, sendToCloud routing
+  15. Updated system tracking files (todo.md, execution_trace.md, development_log.md, final_step_logs.md)
+- **Files touched:** 7 new files (5 TypeScript source + 2 compiled JS), 4 updated files (manifest.json, popup.html, popup.css, popup.js), 2 rewritten files (popup.js, service-worker.js)
+- **Validation evidence:** All TypeScript files have proper type annotations. API client handles auth refresh and offline gracefully. Selector picker generates optimal selectors using ID > class > attribute > path strategy. Cloud sync persists queue to chrome.storage.local. Manifest permissions are minimal but sufficient. All message passing uses chrome.runtime.sendMessage pattern.
+- **Pass/Fail:** PASS
+- **Follow-up items:** None
+- **Final Status:** COMPLETE
