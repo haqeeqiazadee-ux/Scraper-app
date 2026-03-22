@@ -13,10 +13,15 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://scraper:scraper@postgres:5432/scraper_db
       - REDIS_URL=redis://redis:6379/0
+      - QUEUE_BACKEND=redis
       - STORAGE_TYPE=filesystem
       - STORAGE_PATH=/app/artifacts
       - LOG_LEVEL=INFO
+      - RATE_LIMIT_PER_MINUTE=${RATE_LIMIT_PER_MINUTE:-60}
+      - RATE_LIMIT_PER_HOUR=${RATE_LIMIT_PER_HOUR:-1000}
+      - RATE_LIMIT_BURST=${RATE_LIMIT_BURST:-100}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - JWT_SECRET=${JWT_SECRET:-change-me-in-production}
     depends_on:
       postgres:
         condition: service_healthy
@@ -30,6 +35,79 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+
+  # ==========================================================================
+  # HTTP Worker — deterministic extraction
+  # ==========================================================================
+  worker-http:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.worker-http
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - QUEUE_BACKEND=redis
+      - WORKER_CONCURRENCY=${HTTP_WORKER_CONCURRENCY:-5}
+      - LOG_LEVEL=INFO
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ==========================================================================
+  # Browser Worker — Playwright-based extraction
+  # ==========================================================================
+  worker-browser:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.worker-browser
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - QUEUE_BACKEND=redis
+      - WORKER_CONCURRENCY=${BROWSER_WORKER_CONCURRENCY:-2}
+      - LOG_LEVEL=INFO
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ==========================================================================
+  # AI Worker — normalization and schema mapping
+  # ==========================================================================
+  worker-ai:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.worker-ai
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - QUEUE_BACKEND=redis
+      - WORKER_CONCURRENCY=${AI_WORKER_CONCURRENCY:-3}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - LOG_LEVEL=INFO
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ==========================================================================
+  # Hard-Target Worker — stealth browser with proxy/CAPTCHA
+  # ==========================================================================
+  worker-hard-target:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.worker-hard-target
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - QUEUE_BACKEND=redis
+      - WORKER_CONCURRENCY=${HARD_TARGET_WORKER_CONCURRENCY:-1}
+      - PROXY_PROVIDER=${PROXY_PROVIDER:-}
+      - PROXY_API_KEY=${PROXY_API_KEY:-}
+      - CAPTCHA_PROVIDER=${CAPTCHA_PROVIDER:-}
+      - CAPTCHA_API_KEY=${CAPTCHA_API_KEY:-}
+      - LOG_LEVEL=INFO
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
 
   # ==========================================================================
   # PostgreSQL — metadata storage

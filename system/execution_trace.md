@@ -642,3 +642,20 @@
 - **Blockers found:** None
 - **Next action:** Commit and push to remote
 
+
+## Work Cycle 033 — 2026-03-22 (Infrastructure & Documentation Completion)
+
+- **Timestamp:** 2026-03-22
+- **Active Task IDs:** INFRA-001 through INFRA-007
+- **Action taken:** Completed remaining infrastructure, documentation, and deployment gaps:
+  1. Rewrote README.md — replaced legacy scraper_pro readme with comprehensive platform docs
+  2. Created Dockerfile.worker-hard-target — Playwright + stealth browser deps
+  3. Updated docker-compose.yml — added all 4 worker services with env vars
+  4. Updated .env.example — added QUEUE_BACKEND, RATE_LIMIT_*, WORKER_CONCURRENCY vars
+  5. Created Helm deployment-worker-hard-target.yaml — K8s deployment template
+  6. Updated values.yaml — added workerHardTarget section with proxy/CAPTCHA config
+  7. Updated deploy.yml CI — added worker-hard-target to build matrix and Helm sets
+  8. Created services/worker-hard-target/main.py — consumption loop entry point
+- **Blockers found:** None
+- **Next action:** Final commit and push
+

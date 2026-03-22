@@ -1034,3 +1034,26 @@
 - **Pass/Fail:** PASS
 - **Final Status:** COMPLETE
 
+
+---
+
+## INFRA-COMPLETION: Infrastructure & Documentation Gap Closure
+
+- **Task ID:** INFRA-COMPLETION
+- **Task Title:** Infrastructure, Docker, Helm, CI/CD, and documentation completion
+- **Start Time:** 2026-03-22
+- **End Time:** 2026-03-22
+- **Exact steps performed:**
+  1. Rewrote README.md — full platform documentation replacing legacy scraper_pro readme
+  2. Created infrastructure/docker/Dockerfile.worker-hard-target
+  3. Updated infrastructure/docker/docker-compose.yml — added 4 worker services
+  4. Updated .env.example — 8 new environment variables
+  5. Created infrastructure/helm/scraper-platform/templates/deployment-worker-hard-target.yaml
+  6. Updated infrastructure/helm/scraper-platform/values.yaml — workerHardTarget section
+  7. Updated .github/workflows/deploy.yml — hard-target in build matrix and Helm sets
+  8. Created services/worker-hard-target/main.py — consumption loop entry point
+- **Files touched:** 8 files (3 new, 5 updated)
+- **Validation evidence:** All 648 tests still passing
+- **Pass/Fail:** PASS
+- **Final Status:** COMPLETE
+

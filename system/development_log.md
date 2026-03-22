@@ -1097,3 +1097,28 @@ Implemented full rate limiting and quota enforcement stack:
 
 **Test Results:** 648 passed, 6 skipped, 0 failed (up from 525)
 
+
+---
+
+## 2026-03-22 — Infrastructure & Documentation Completion
+
+### README.md
+- Rewrote from legacy scraper_pro readme to comprehensive platform documentation
+- Added: architecture diagram, quick start, Docker Compose, API usage, runtime modes table, tech stack, key features list
+
+### Docker Infrastructure
+- Created Dockerfile.worker-hard-target (Playwright + stealth browser deps)
+- Updated docker-compose.yml: added worker-http, worker-browser, worker-ai, worker-hard-target services
+- All workers connect to Redis queue with configurable concurrency
+
+### Helm Charts
+- Created deployment-worker-hard-target.yaml with proxy/CAPTCHA env var injection
+- Updated values.yaml with workerHardTarget section
+
+### CI/CD
+- Updated deploy.yml build matrix to include worker-hard-target
+- Updated Helm deploy sets for both staging and production
+
+### Environment Configuration
+- Added to .env.example: QUEUE_BACKEND, RATE_LIMIT_PER_MINUTE/HOUR/BURST, worker concurrency vars
+

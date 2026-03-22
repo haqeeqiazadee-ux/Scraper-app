@@ -147,6 +147,28 @@ workerAi:
     periodSeconds: 10
     failureThreshold: 3
 
+# ── Hard-Target Worker ─────────────────────────
+workerHardTarget:
+  image:
+    repository: scraper-platform/worker-hard-target
+    tag: ""
+    pullPolicy: IfNotPresent
+  replicas: 1
+  concurrency: 1
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+  proxyProvider: ""              # brightdata | smartproxy | oxylabs | free
+  proxyApiKey: ""
+  captchaProvider: ""            # 2captcha | anticaptcha | capmonster
+  captchaApiKey: ""
+  nodeSelector: {}
+  tolerations: []
+
 # ── PostgreSQL (Bitnami subchart) ────────────
 postgresql:
   enabled: true
