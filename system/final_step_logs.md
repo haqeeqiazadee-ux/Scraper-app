@@ -814,3 +814,43 @@
 - **Files touched:** packages/connectors/proxy_providers/__init__.py (fixed), system/todo.md, system/execution_trace.md, system/development_log.md, system/final_step_logs.md, system/lessons.md
 - **Validation:** All checks pass. 436+ tests green. No critical issues found.
 - **Pass/Fail:** PASS | **Final Status:** COMPLETE
+
+---
+
+## PKG-002: Windows EXE Packaging
+
+- **Task ID:** PKG-002
+- **Task Title:** Windows EXE packaging configuration
+- **Start/End:** 2026-03-22
+- **Steps:**
+  1. Read apps/desktop/package.json — understood existing scripts (dev, build, tauri, tauri:dev, tauri:build)
+  2. Read apps/desktop/src-tauri/tauri.conf.json — understood bundle config (NSIS, WiX, icons, resources, file associations)
+  3. Read .github/workflows/ci.yml and deploy.yml — understood CI patterns (actions/checkout@v4, matrix, artifacts)
+  4. Created scripts/package-desktop.sh — env validation, version derivation, build pipeline, artifact collection, checksums
+  5. Created apps/desktop/src-tauri/resources/ directory
+  6. Created apps/desktop/src-tauri/resources/README.md — bundled resources documentation
+  7. Created .github/workflows/build-desktop.yml — Windows matrix CI with Rust cache, Tauri build, GitHub Release
+  8. Made scripts executable (chmod +x)
+- **Files touched:** scripts/package-desktop.sh (new), apps/desktop/src-tauri/resources/README.md (new), .github/workflows/build-desktop.yml (new)
+- **Validation:** Scripts have correct shebang and set -euo pipefail. Workflow YAML structure matches existing deploy.yml patterns. Resources README covers all 4 bundle categories with size budget.
+- **Pass/Fail:** PASS | **Final Status:** COMPLETE
+
+---
+
+## PKG-003: Chrome Extension Packaging
+
+- **Task ID:** PKG-003
+- **Task Title:** Chrome extension packaging configuration
+- **Start/End:** 2026-03-22
+- **Steps:**
+  1. Read apps/extension/manifest.json — understood MV3 structure (activeTab, storage, identity permissions, service worker, content scripts)
+  2. Read .github/workflows/ for CI patterns
+  3. Created scripts/package-extension.sh — version bump, validation, TypeScript build, file copying, .zip creation, checksums
+  4. Created apps/extension/build.config.js — ES module build config with manifest validation, asset copying, production mode
+  5. Created .github/workflows/build-extension.yml — CI with validation, build, package, upload, optional Chrome Web Store publish
+  6. Created scripts/validate-extension.sh — 9-section validation (manifest, fields, MV3, version, permissions, icons, files, CSP, size)
+  7. Created apps/extension/package.json — build/package/validate/version scripts
+  8. Made all scripts executable
+- **Files touched:** scripts/package-extension.sh (new), apps/extension/build.config.js (new), .github/workflows/build-extension.yml (new), scripts/validate-extension.sh (new), apps/extension/package.json (new)
+- **Validation:** validate-extension.sh runs successfully against existing apps/extension/ directory. Workflow YAML structure valid. Build config handles all required validation checks. Package.json scripts reference correct relative paths.
+- **Pass/Fail:** PASS | **Final Status:** COMPLETE

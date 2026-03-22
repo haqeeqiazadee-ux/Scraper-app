@@ -904,3 +904,34 @@ Reviewed all existing documentation for completeness and accuracy:
 - Chrome Web Store publish is conditional on secrets being configured — no failure if secrets absent
 - Validation is a separate script so it can be run independently in CI or locally
 - Build config is pure Node.js (no webpack/rollup dependency) — extension files are simple enough for direct copy
+
+---
+
+## 2026-03-22 — WEB-002: Task Management UI Interactivity
+
+### Summary
+Added full interactive task management to the web dashboard: create/edit forms, sortable table with inline actions, detail view with run history, and custom React hooks for all task operations.
+
+### Files Created (8 new)
+1. **apps/web/src/lib/api.ts** — API client helper with auth token management, apiRequest(), buildQuery()
+2. **apps/web/src/hooks/useTasks.ts** — 8 React Query hooks with TASK_KEYS factory
+3. **apps/web/src/components/TaskForm.tsx** — Create/edit form with dynamic selectors, validation, policy dropdown
+4. **apps/web/src/components/TaskTable.tsx** — Sortable table with inline edit/run/delete actions
+5. **apps/web/src/components/TaskDetail.tsx** — Task config display with run/cancel buttons and results
+6. **apps/web/src/components/RunHistory.tsx** — Run history table with duration formatting
+7. **apps/web/src/pages/TasksPage.tsx** — Tasks list page with modal form overlay
+8. **apps/web/src/pages/TaskDetailPage.tsx** — Task detail page with TaskDetail + RunHistory
+
+### Files Modified (4)
+- **App.tsx** — Routes updated to new page components
+- **api/types.ts** — Added ExtractionType, RunListItem, extended Task types
+- **api/client.ts** — Added tasks.runs(), delete(), execute()
+- **styles/globals.css** — Added modal, form, toolbar, pagination styles
+
+### Design Decisions
+- Vanilla CSS with CSS custom properties (matching project convention)
+- React Query key factory for cache invalidation
+- Modal with click-outside-to-close and animation
+- Inline delete confirmation (no browser confirm())
+- useState-based form (no external form library)
+- Conditional selector fields (only for css/xpath extraction types)
