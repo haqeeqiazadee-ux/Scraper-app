@@ -31,7 +31,11 @@
 - [x] **API-005:** Result and export endpoints
 - [x] **SELFHOST-001:** Docker Compose stack (control-plane + PostgreSQL + Redis)
 
-## Test Status: 200 passed, 0 failed (4.50s)
+- [x] **REPO-003:** GitHub Actions CI pipeline (lint + test + typecheck)
+- [x] **OBS-001:** Structured logging — JSON formatter, configure_logging()
+- [x] **SEC-001:** Secrets management — SecretsManager with provider chain (10 tests)
+
+## Test Status: 210 passed, 0 failed (4.44s)
 
 ## Pending (Next Up)
 - [ ] WORKER-002: Browser lane worker
