@@ -1,6 +1,6 @@
 # TODO — Current Actionable Queue
 
-## Completed (67/69 tasks)
+## Completed (68/69 tasks)
 - [x] **PHASE-0:** Repository and memory initialization
 - [x] **PHASE-1:** Create docs/final_specs.md (1233 lines, all 24 sections)
 - [x] **PHASE-2:** Create docs/tasks_breakdown.md (69 tasks across 24 epics)
@@ -73,8 +73,8 @@
 - [x] **VERIFY-001:** Final documentation review — ARCHITECTURE.md, DEPLOYMENT.md, CHANGELOG.md, README audit
 - [x] **VERIFY-002:** System audit — __init__.py verification, entry points, test coverage, TODO scan, .env.example
 
-## Pending (1 remaining — future work, not blocking release)
-- [ ] **EXT-002:** Cloud-connected extraction
+## Pending (0 remaining)
+- [x] **EXT-002:** Cloud-connected extraction — API client, extraction service, ExtractPanel, selector picker, cloud sync (7 new files + 4 updated)
 - [x] **TEST-002/003/004:** Integration + E2E test suites (47 passed, 5 skipped — 8 lifecycle, 6 storage, 6 worker pipeline, 5 auth, 8 API e2e, 4 health/metrics + conftest/factories)
 
 ## Blocked
