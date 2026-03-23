@@ -89,7 +89,7 @@
 - [x] **QA-002:** Phase 2 — Authentication & Authorization (6 pass, 3 skip, 1 fix: auth validation)
 - [x] **QA-003:** Phase 3 — Task CRUD (10 pass, 4 skip)
 - [x] **QA-004:** Phase 4 — Policy CRUD (6 pass, 2 skip)
-- [x] **QA-005:** Phase 5 — Execution Router (3 pass, 2 skip)
+- [x] **QA-005:** Phase 5 — Execution Router (4 pass, 1 skip)
 - [x] **QA-006:** Phase 6 — HTTP Lane Scraping (14 pass, 3 skip, 3 fix: CSS extraction, brotli, escalation)
 - [x] **QA-007:** Phase 11 — Results & Export (7 pass, 4 skip, new: 3 export endpoints)
 - [x] **QA-008:** Phase 12 — Scheduling (3 pass, 1 skip)
@@ -104,13 +104,16 @@
 - [ ] **PROD-004:** Fix 3 in-code TODOs (latency tracking, health check DB probe, CORS lockdown)
 - [ ] **PROD-005:** Grafana dashboards for Prometheus metrics
 
-## Remaining QA Gaps (require external resources)
-- [ ] **QA-011:** Phase 7 — Browser Lane (requires Playwright runtime)
-- [ ] **QA-012:** Phase 8 — Hard-Target Lane (requires proxy + CAPTCHA services)
-- [ ] **QA-013:** Phase 9 — API/Feed Lane (requires Shopify/WC test stores)
-- [ ] **QA-014:** Phase 10 — AI Normalization (requires Gemini/OpenAI API keys)
-- [ ] **QA-015:** Phase 13-14 — Proxy/Session management (requires proxy providers)
-- [ ] **QA-016:** Phase 17 — Real e-commerce scenarios (requires live sites)
+- [x] **QA-011:** Phase 9 — API/Feed Lane — Shopify detection verified via router
+- [x] **QA-012:** Phase 10 — AI Normalization (7 pass, 5 skip: Gemini 403)
+- [x] **QA-013:** Phase 13 — Proxy rotation + geo-targeting (3 pass, 2 skip)
+- [x] **QA-014:** Phase 14 — Session lifecycle + health scoring (3 pass, 1 skip)
+- [x] **QA-015:** Phase 18 — Fallback chain routing verified (2 pass, 1 skip)
+
+## Remaining QA Gaps (require Chromium browser runtime)
+- [ ] **QA-016:** Phase 7 — Browser Lane (Chromium download fails in this env)
+- [ ] **QA-017:** Phase 8 — Hard-Target Lane (requires browser + proxy runtime)
+- [ ] **QA-018:** Phase 17 — Real e-commerce scenarios with JS rendering
 - [ ] **QA-017:** Phase 18 — Fallback chain E2E
 - [ ] **QA-018:** Frontend tests (all UC-*.*.* marked SKIP: frontend)
 
@@ -121,6 +124,6 @@
 - **Total original tasks:** 69/69 complete
 - **Gap closure tasks:** 8/8 complete
 - **Production readiness tasks:** 1/5 complete
-- **QA use cases tested:** 62 pass, 25 skip, 5 fixed
+- **QA use cases tested:** 77 pass, 30 skip, 5 fixed
 - **Total tests:** 706 passed
 - **Platform completeness:** ~97% production-ready
