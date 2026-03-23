@@ -127,3 +127,17 @@
 55. **Python __pycache__ causes stale code** — When modifying Python files during testing, always clear `__pycache__` directories to ensure fresh imports. Otherwise, old bytecode can mask fixes.
 
 56. **Test against real sites early** — Unit tests with mocked responses don't catch real-world issues like Brotli encoding, HTML structure variations, or DNS resolution failures. Testing against books.toscrape.com and httpbin.org caught 3 bugs that unit tests missed.
+
+57. **Chunk complex QA into small, independent tests** — Breaking QA into 9 small chunks (extraction fallback, webhooks, proxy health, sessions, quotas, logging, e-commerce, JSON endpoints) prevents context overload and makes each failure easy to diagnose. Read system memory files first to avoid repeating work.
+
+58. **Weighted proxy selection > strict round-robin** — Using proxy health scores for weighted random selection naturally deprioritizes bad proxies without hard-removing them. A proxy with 10% success rate still gets 7% of traffic (not zero), allowing recovery detection.
+
+59. **Gemini API keys may be geo-restricted** — The Gemini API key returned 403 from this environment. AI provider fallback chains must always include a deterministic provider as the final option. Never depend on a single AI provider in production.
+
+60. **Check for pre-installed browsers before downloading** — Playwright `install` may fail if CDN is blocked, but an older version (chromium-1194) may already be in `~/.cache/ms-playwright/`. Use `executable_path` to point to the existing binary instead of downloading a newer version.
+
+61. **`networkidle` wait strategy hangs on pages with external resources** — If a page loads external assets that are blocked by proxy/firewall, `wait_until='networkidle'` never resolves. Use `domcontentloaded` + explicit `wait_for_timeout()` as a safer alternative for test environments.
+
+62. **Local test servers are better than mocks for browser testing** — Python's `http.server.HTTPServer` in a daemon thread provides a reliable local server for Playwright tests. This avoids network issues, is deterministic, and tests the full browser rendering pipeline without mocking.
+
+63. **`executable_path` should always be an optional parameter** — Browser connectors should accept an optional `executable_path` for environments where Playwright's auto-detection fails. This is a zero-cost addition that prevents hard blocks in CI/container environments.

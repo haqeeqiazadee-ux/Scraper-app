@@ -89,7 +89,7 @@
 - [x] **QA-002:** Phase 2 — Authentication & Authorization (6 pass, 3 skip, 1 fix: auth validation)
 - [x] **QA-003:** Phase 3 — Task CRUD (10 pass, 4 skip)
 - [x] **QA-004:** Phase 4 — Policy CRUD (6 pass, 2 skip)
-- [x] **QA-005:** Phase 5 — Execution Router (3 pass, 2 skip)
+- [x] **QA-005:** Phase 5 — Execution Router (4 pass, 1 skip)
 - [x] **QA-006:** Phase 6 — HTTP Lane Scraping (14 pass, 3 skip, 3 fix: CSS extraction, brotli, escalation)
 - [x] **QA-007:** Phase 11 — Results & Export (7 pass, 4 skip, new: 3 export endpoints)
 - [x] **QA-008:** Phase 12 — Scheduling (3 pass, 1 skip)
@@ -104,15 +104,24 @@
 - [ ] **PROD-004:** Fix 3 in-code TODOs (latency tracking, health check DB probe, CORS lockdown)
 - [ ] **PROD-005:** Grafana dashboards for Prometheus metrics
 
-## Remaining QA Gaps (require external resources)
-- [ ] **QA-011:** Phase 7 — Browser Lane (requires Playwright runtime)
-- [ ] **QA-012:** Phase 8 — Hard-Target Lane (requires proxy + CAPTCHA services)
-- [ ] **QA-013:** Phase 9 — API/Feed Lane (requires Shopify/WC test stores)
-- [ ] **QA-014:** Phase 10 — AI Normalization (requires Gemini/OpenAI API keys)
-- [ ] **QA-015:** Phase 13-14 — Proxy/Session management (requires proxy providers)
-- [ ] **QA-016:** Phase 17 — Real e-commerce scenarios (requires live sites)
-- [ ] **QA-017:** Phase 18 — Fallback chain E2E
-- [ ] **QA-018:** Frontend tests (all UC-*.*.* marked SKIP: frontend)
+- [x] **QA-011:** Phase 9 — API/Feed Lane — Shopify detection + JSON endpoint + 429 handling (4 pass, 2 skip)
+- [x] **QA-012:** Phase 10 — AI Normalization (7 pass, 5 skip: Gemini 403)
+- [x] **QA-013:** Phase 12.3 — Webhook callbacks (4 pass: delivery, HMAC, payload, retry)
+- [x] **QA-014:** Phase 13 — Proxy rotation + health scoring + fallback (7 pass, 2 skip)
+- [x] **QA-015:** Phase 14 — Session lifecycle + reuse + health (7 pass, 1 skip)
+- [x] **QA-016:** Phase 15 — Quota management + billing plans (6 pass, 2 skip)
+- [x] **QA-017:** Phase 16 — Structured JSON logging (3 pass)
+- [x] **QA-018:** Phase 17.6 — Static catalog e-commerce (2 pass)
+- [x] **QA-019:** Phase 18 — Extraction + lane fallback chains (6 pass, 1 skip)
+
+- [x] **QA-020:** Phase 7 — Browser Lane (7 pass, 5 skip: SPA, Load More, lazy images, screenshots, timeout)
+- [x] **QA-021:** Phase 8 — Hard-Target Lane (8 pass, 5 skip: stealth, fingerprint, CAPTCHA detect, escalation)
+- [x] **QA-022:** Phase 17 — E-commerce scenarios (6 pass, 9 skip: PLP 25 items, PDP JSON-LD, Shopify)
+
+## Remaining QA Gaps (need live external services)
+- [ ] **QA-023:** Live Chromium tests against real sites (blocked by env proxy)
+- [ ] **QA-024:** CAPTCHA solving with external solvers
+- [ ] **QA-025:** Residential proxy rotation with live providers
 
 ## Blocked
 (none)
@@ -121,6 +130,6 @@
 - **Total original tasks:** 69/69 complete
 - **Gap closure tasks:** 8/8 complete
 - **Production readiness tasks:** 1/5 complete
-- **QA use cases tested:** 62 pass, 25 skip, 5 fixed
+- **QA use cases tested:** 124 pass, 52 skip, 5 fixed
 - **Total tests:** 706 passed
 - **Platform completeness:** ~97% production-ready

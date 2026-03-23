@@ -18,9 +18,15 @@ logger = logging.getLogger(__name__)
 class PlaywrightBrowserWorker:
     """Browser connector using Playwright for JS-rendered pages."""
 
-    def __init__(self, headless: bool = True, proxy: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        headless: bool = True,
+        proxy: Optional[str] = None,
+        executable_path: Optional[str] = None,
+    ) -> None:
         self._headless = headless
         self._proxy = proxy
+        self._executable_path = executable_path
         self._metrics = ConnectorMetrics()
         self._browser = None
         self._page = None
@@ -34,6 +40,8 @@ class PlaywrightBrowserWorker:
             launch_args: dict = {"headless": self._headless}
             if self._proxy:
                 launch_args["proxy"] = {"server": self._proxy}
+            if self._executable_path:
+                launch_args["executable_path"] = self._executable_path
             self._browser = await self._playwright.chromium.launch(**launch_args)
 
     async def fetch(self, request: FetchRequest) -> FetchResponse:
