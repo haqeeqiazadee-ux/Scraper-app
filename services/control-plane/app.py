@@ -58,14 +58,24 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application startup and shutdown lifecycle."""
     global _task_scheduler, _webhook_executor
     logger.info("Control plane starting up")
-    db = init_database(settings.database_url)
+
+    # Validate DATABASE_URL before connecting — catch common misconfiguration
+    db_url = settings.database_url
+    if "asyncpg" in db_url and "#" in db_url:
+        raise RuntimeError(
+            "DATABASE_URL contains an unescaped '#' character. "
+            "URL-encode it as '%23' and quote the value in .env. "
+            "Example: DATABASE_URL=\"postgresql+asyncpg://user:pass%23word@host:5432/db\""
+        )
+
+    db = init_database(db_url)
 
     # Auto-create tables for all backends (SQLite & PostgreSQL).
     # For production PostgreSQL, Alembic is preferred but create_tables()
     # is safe — it uses CREATE TABLE IF NOT EXISTS semantics.
     try:
         await db.create_tables()
-        if "sqlite" in settings.database_url:
+        if "sqlite" in db_url:
             logger.info("Database tables created (SQLite dev mode)")
         else:
             logger.info("Database tables ensured (PostgreSQL)")
