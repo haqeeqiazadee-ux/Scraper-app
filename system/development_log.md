@@ -1281,3 +1281,41 @@ Categorized all 52 skipped items into 3 groups:
 - **Test suite: 706 passed, 0 failed**
 - **Remaining 36 skips:** All require live external services (frontend UI, Gemini AI, live proxies, external sites)
 
+---
+
+## 2026-03-23 — Frontend UI Upgrade (Major)
+
+### Overview
+Complete frontend upgrade to represent all backend functionality. 22 new files, 5 modified. Modern SaaS dashboard design inspired by Linear/Vercel/Supabase.
+
+### New Pages (6)
+1. **SchedulesPage** — Cron/interval schedule management with create modal, status toggles, last-fired timestamps
+2. **BillingPage** — Plan tier cards (Free/Starter/Pro/Enterprise), 5 usage meters with color thresholds, upgrade flow
+3. **SessionsPage** — Active sessions per domain, health score bars, status badges, auto-refresh 10s
+4. **ProxyPage** — Proxy pool stats, geo distribution, health scores, latency, rotation metrics
+5. **RouteTesterPage** — URL input + policy selector, dry-run routing with RouteVisualizer showing lane/reason/fallbacks
+6. **WebhookHistoryPage** — Delivery log with HMAC status, retry attempts, response codes, expandable payloads
+
+### New Components (10)
+- **PageShell** — Reusable page wrapper with title/subtitle/actions
+- **EmptyState** — Centered icon + title + description + optional action
+- **ConfirmDialog** — Modal confirmation for destructive actions
+- **UsageMeter** — Horizontal progress bar with label, current/max, color thresholds
+- **ScheduleForm** — Modal with cron/interval input, interval shortcuts, priority slider
+- **RouteVisualizer** — Lane icon + reason + confidence bar + fallback chain arrows
+- **ArtifactViewer** — Card list of artifacts with type icons, size, download buttons
+- **GlobalSearch** — Cmd+K search with categorized dropdown results
+- **AnalyticsCards** — Success rate, avg duration, lane distribution, top domains
+- **SidebarNav** — Grouped navigation (Core/Tools/Monitoring/Account) with SVG icons
+
+### New Hooks (6)
+- useSchedules, useBilling, useSessions, useRouting, useMetrics, useSearch
+
+### Design System Upgrades
+- Modern CSS with softer colors, rounded corners, subtle shadows
+- Status colors: success green, warning amber, error red, info blue
+- Grouped sidebar with section labels and SVG icons
+- Gradient logo icon, smooth hover transitions
+- Usage meters with green → amber → red thresholds
+- No new npm dependencies (pure CSS, inline SVGs)
+

@@ -23,6 +23,12 @@ import type {
   UserProfile,
   Schedule,
   ScheduleCreate,
+  ScheduleResponse,
+  ScheduleCreateRequest,
+  BillingPlan,
+  TenantQuota,
+  WebhookDelivery,
+  SessionInfo,
   HealthStatus,
   MetricsResponse,
   ExecuteResponse,
@@ -328,7 +334,13 @@ export const results = {
 /* ── Schedules ── */
 
 export const schedules = {
+  /** Legacy list — returns old Schedule shape */
   list(): Promise<{ items: Schedule[]; total: number }> {
+    return request("/schedules");
+  },
+
+  /** New list — returns ScheduleResponse shape from updated backend */
+  listV2(): Promise<{ items: ScheduleResponse[]; total: number }> {
     return request("/schedules");
   },
 
@@ -339,8 +351,58 @@ export const schedules = {
     });
   },
 
+  /** New create — uses ScheduleCreateRequest shape */
+  createV2(data: ScheduleCreateRequest): Promise<ScheduleResponse> {
+    return request("/schedules", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
   delete(scheduleId: string): Promise<void> {
     return request(`/schedules/${scheduleId}`, { method: "DELETE" });
+  },
+};
+
+/* ── Billing ── */
+
+export const billing = {
+  plans(): Promise<{ plans: BillingPlan[] }> {
+    return request("/billing/plans");
+  },
+
+  quota(): Promise<TenantQuota> {
+    return request("/billing/quota");
+  },
+};
+
+/* ── Sessions ── */
+
+export const sessions = {
+  list(params?: {
+    limit?: number;
+    offset?: number;
+  }): Promise<{ items: SessionInfo[]; total: number }> {
+    const qs = buildQuery({
+      limit: params?.limit,
+      offset: params?.offset,
+    });
+    return request(`/sessions${qs}`);
+  },
+};
+
+/* ── Webhooks ── */
+
+export const webhooks = {
+  history(params?: {
+    limit?: number;
+    offset?: number;
+  }): Promise<{ items: WebhookDelivery[]; total: number }> {
+    const qs = buildQuery({
+      limit: params?.limit,
+      offset: params?.offset,
+    });
+    return request(`/webhooks/history${qs}`);
   },
 };
 

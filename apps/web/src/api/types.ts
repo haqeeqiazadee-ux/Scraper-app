@@ -358,3 +358,81 @@ export interface PaginatedResponse<T> {
   limit: number;
   offset: number;
 }
+
+/* ── Schedule (updated to match backend) ── */
+export interface ScheduleResponse {
+  schedule_id: string;
+  task_id: string;
+  schedule: string;
+  schedule_type: "cron" | "interval" | "one_time";
+  active: boolean;
+  url: string;
+  created_at: string;
+  last_fired: string | null;
+}
+
+export interface ScheduleCreateRequest {
+  url: string;
+  schedule: string;
+  task_type?: TaskType;
+  priority?: number;
+  callback_url?: string;
+  webhook_secret?: string;
+  metadata?: Record<string, unknown>;
+}
+
+/* ── Billing ── */
+export interface BillingPlan {
+  tier: PlanTier;
+  price_cents: number;
+  price_display: string;
+}
+
+/* ── Webhook ── */
+export interface WebhookDelivery {
+  task_id: string;
+  callback_url: string;
+  status_code: number | null;
+  success: boolean;
+  attempts: number;
+  error: string | null;
+  delivered_at: string;
+}
+
+/* ── Session ── */
+export interface SessionInfo {
+  id: string;
+  domain: string;
+  session_type: SessionType;
+  status: SessionStatus;
+  health_score: number;
+  request_count: number;
+  success_count: number;
+  failure_count: number;
+  created_at: string;
+}
+
+/* ── Proxy ── */
+export interface ProxyInfo {
+  host: string;
+  port: number;
+  protocol: string;
+  geo: string | null;
+  success_rate: number;
+  avg_response_time: number;
+  score: number;
+  total_requests: number;
+  is_available: boolean;
+}
+
+/* ── Analytics ── */
+export interface AnalyticsData {
+  total_tasks: number;
+  completed_tasks: number;
+  failed_tasks: number;
+  success_rate: number;
+  avg_duration_ms: number;
+  lane_distribution: Record<string, number>;
+  top_domains: { domain: string; count: number }[];
+  tasks_today: number;
+}
