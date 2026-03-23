@@ -8,7 +8,7 @@
 [build]
   base = "apps/web"
   command = "npm install && npm run build"
-  publish = "apps/web/dist"
+  publish = "dist"
 
 # SPA fallback — all routes serve index.html for client-side routing
 [[redirects]]
