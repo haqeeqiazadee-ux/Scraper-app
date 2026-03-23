@@ -1,14 +1,25 @@
 # =============================================================================
 # Railway Configuration — AI Scraping Platform Backend
 # =============================================================================
-# Deploys the FastAPI control plane + workers on Railway
+# This config deploys the control-plane (API server).
+# Workers are deployed as separate Railway services from the same repo,
+# each overriding the start command in the Railway dashboard.
 #
 # Railway Setup:
-#   1. Create a new project on Railway
-#   2. Add a Redis plugin (provides REDIS_URL automatically)
-#   3. Connect this GitHub repo
-#   4. Set DATABASE_URL to your Supabase connection string
-#   5. Railway auto-detects this config and deploys
+#   1. Create project → "Deploy from GitHub repo"
+#   2. Add Redis plugin (auto-injects REDIS_URL)
+#   3. Set env vars (see env.keys):
+#      - DATABASE_URL (Supabase connection string)
+#      - GEMINI_API_KEY
+#      - SECRET_KEY
+#      - CORS_ORIGINS (your Netlify URL)
+#   4. For workers: "New Service" → same repo → override start command
+#
+# Worker Start Commands (set in Railway dashboard per service):
+#   HTTP Worker:        python -m services.worker_http.main
+#   Browser Worker:     python -m services.worker_browser.main
+#   AI Worker:          python -m services.worker_ai.main
+#   Hard-Target Worker: python -m services.worker_hard_target.main
 # =============================================================================
 
 [build]
