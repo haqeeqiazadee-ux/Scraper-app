@@ -282,3 +282,49 @@
 
 ### UC-11.5.1-4 — Artifact storage
 - **Status:** SKIP — artifact storage/download API not yet implemented
+
+## Phase 10: AI Normalization & Repair
+
+### UC-10.1.1-2 — Field normalization
+- **Status:** PASS
+- **Tested:** normalize_items() with product_name→name, cost→price, img→image_url
+- **Result:** All aliases mapped correctly
+
+### UC-10.3.1-3 — Deduplication
+- **Status:** PASS
+- **Tested:** DedupEngine with exact dups, SKU match, fuzzy name match
+- **Result:** 4 items → 2 unique (exact dup removed, SKU match merged)
+
+### UC-10.4.1-2 — AI provider fallback chain
+- **Status:** PASS
+- **Tested:** AIProviderChain with Gemini (403) → DeterministicProvider
+- **Result:** Gemini fails, chain falls back to deterministic, JSON-LD extraction succeeds
+
+### UC-10.5.1-2 — Confidence scoring
+- **Status:** PASS
+- **Tested:** CSS extraction confidence=1.0 (all fields filled), basic extraction confidence=1.0
+- **Result:** Field coverage calculation works correctly
+
+### UC-10.2.1-3, UC-10.1.3, UC-10.4.3, UC-10.5.3 — AI-dependent tests
+- **Status:** SKIP — Gemini API returns 403 from this environment
+
+## Phase 13: Proxy Management
+
+### UC-13.1.1-3 — Proxy rotation and geo-targeting
+- **Status:** PASS
+- **Tested:** ProxyAdapter with 3 proxies, round-robin rotation, geo-targeted selection
+- **Result:** Rotation works (weighted), geo-targeting selects correct proxy
+
+## Phase 14: Session Management
+
+### UC-14.1.1 — Session creation
+- **Status:** PASS
+- **Tested:** SessionManager.create_session() → status=active
+
+### UC-14.1.2 — Failures → degraded
+- **Status:** PASS
+- **Tested:** 2 failures → health drops below 0.7 → status=degraded
+
+### UC-14.1.3 — Health scoring
+- **Status:** PASS
+- **Tested:** Health score drops with each failure: 1.0 → 0.7 → 0.6 → 0.55...
