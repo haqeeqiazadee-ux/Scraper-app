@@ -8,6 +8,12 @@ import { Policies } from "./pages/Policies";
 import { ResultsPage } from "./pages/ResultsPage";
 import { ResultDetailPage } from "./pages/ResultDetailPage";
 import { Login } from "./pages/Login";
+import { SchedulesPage } from "./pages/SchedulesPage";
+import { BillingPage } from "./pages/BillingPage";
+import { SessionsPage } from "./pages/SessionsPage";
+import { ProxyPage } from "./pages/ProxyPage";
+import { RouteTesterPage } from "./pages/RouteTesterPage";
+import { WebhookHistoryPage } from "./pages/WebhookHistoryPage";
 
 /** Wrapper that redirects unauthenticated users to /login. */
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -89,6 +95,12 @@ export function App() {
         <Route path="/policies" element={<Policies />} />
         <Route path="/results" element={<ResultsPage />} />
         <Route path="/results/:id" element={<ResultDetailPage />} />
+        <Route path="/schedules" element={<SchedulesPage />} />
+        <Route path="/route-tester" element={<RouteTesterPage />} />
+        <Route path="/sessions" element={<SessionsPage />} />
+        <Route path="/proxies" element={<ProxyPage />} />
+        <Route path="/webhooks" element={<WebhookHistoryPage />} />
+        <Route path="/billing" element={<BillingPage />} />
       </Route>
 
       {/* Catch-all redirect */}
