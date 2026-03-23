@@ -23,12 +23,25 @@ async def health_check() -> dict:
 @router.get("/ready")
 async def readiness_check() -> dict:
     """Readiness check — verifies all dependencies are available."""
+    from services.control_plane.dependencies import get_database
+    from sqlalchemy import text
+
     checks = {
         "database": "not_configured",
         "redis": "not_configured",
         "storage": "not_configured",
     }
-    # TODO: Actually check database, Redis, and storage connectivity
+
+    # Check database connectivity
+    try:
+        db = get_database()
+        async with db.session() as session:
+            await session.execute(text("SELECT 1"))
+        checks["database"] = "healthy"
+    except RuntimeError as e:
+        checks["database"] = f"error: {e}"
+    except Exception as e:
+        checks["database"] = f"error: {type(e).__name__}: {e}"
 
     all_healthy = all(v == "healthy" for v in checks.values())
     return {
