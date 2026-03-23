@@ -43,9 +43,9 @@ async def readiness_check() -> dict:
     except Exception as e:
         checks["database"] = f"error: {type(e).__name__}: {e}"
 
-    all_healthy = all(v == "healthy" for v in checks.values())
+    all_ok = all(v in ("healthy", "not_configured") for v in checks.values())
     return {
-        "status": "ready" if all_healthy else "degraded",
+        "status": "ready" if all_ok else "degraded",
         "checks": checks,
         "timestamp": datetime.utcnow().isoformat(),
     }

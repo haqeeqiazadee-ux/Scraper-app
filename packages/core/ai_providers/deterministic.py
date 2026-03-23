@@ -41,19 +41,19 @@ class DeterministicProvider(BaseAIProvider):
 
     async def extract(self, html: str, url: str, prompt: Optional[str] = None) -> list[dict]:
         """Extract structured data using deterministic methods."""
-        products = []
-
         # 1. Try JSON-LD extraction (most reliable)
         jsonld_products = self._extract_jsonld(html)
         if jsonld_products:
             return jsonld_products
 
-        # 2. Try basic HTML pattern matching
-        basic = self._extract_basic(html, url)
-        if basic:
-            products.append(basic)
+        # 2. Try CSS selector extraction (multi-item capable)
+        css_products = self._extract_css(html, url)
+        if css_products:
+            return css_products
 
-        return products
+        # 3. Fall back to basic HTML pattern matching (single item)
+        basic = self._extract_basic(html, url)
+        return [basic] if basic else []
 
     async def classify(self, text: str, labels: list[str]) -> str:
         """Simple keyword-based classification."""
@@ -76,6 +76,91 @@ class DeterministicProvider(BaseAIProvider):
             mapped_key = field_aliases.get(key.lower(), key)
             normalized[mapped_key] = value
         return normalized
+
+    def _extract_css(self, html: str, url: str) -> list[dict]:
+        """Extract multiple products using CSS selectors and BeautifulSoup."""
+        try:
+            from bs4 import BeautifulSoup
+        except ImportError:
+            return []
+
+        soup = BeautifulSoup(html, "html.parser")
+        products = []
+
+        # Common card container selectors (ordered by specificity)
+        card_selectors = [
+            "article.product_pod",       # books.toscrape.com
+            "div.quote",                 # quotes.toscrape.com
+            ".product-card",
+            ".product-item",
+            "[data-product]",
+            ".product",
+            ".quote",
+            ".item",
+            'li[itemtype*="Product"]',
+            'div[itemtype*="Product"]',
+        ]
+
+        cards = []
+        for selector in card_selectors:
+            cards = soup.select(selector)
+            if len(cards) >= 2:
+                break
+
+        if len(cards) < 2:
+            return []
+
+        for card in cards:
+            product: dict[str, str] = {"product_url": url}
+
+            # Extract name from heading, title, or text element
+            name_el = card.select_one("h3 a, h2 a, h4 a, .product-name, .title a, a[title], span.text, .text")
+            if name_el:
+                product["name"] = name_el.get("title") or name_el.get_text(strip=True)
+                href = name_el.get("href", "")
+                if href and not href.startswith(("http://", "https://")):
+                    from urllib.parse import urljoin
+                    href = urljoin(url, href)
+                if href:
+                    product["product_url"] = href
+
+            # Extract author (for quote-type content)
+            author_el = card.select_one("small.author, .author, [itemprop='author']")
+            if author_el:
+                product["author"] = author_el.get_text(strip=True)
+
+            # Extract price
+            price_el = card.select_one(".price_color, .price, .product-price, [itemprop='price']")
+            if price_el:
+                price_text = price_el.get_text(strip=True)
+                price_match = PRICE_PATTERN.search(price_text)
+                if price_match:
+                    product["price"] = price_match.group(1).replace(",", "")
+
+            # Extract image
+            img_el = card.select_one("img")
+            if img_el:
+                src = img_el.get("src") or img_el.get("data-src", "")
+                if src and not src.startswith(("http://", "https://")):
+                    from urllib.parse import urljoin
+                    src = urljoin(url, src)
+                if src:
+                    product["image_url"] = src
+
+            # Extract rating (e.g., star-rating class)
+            rating_el = card.select_one("[class*='star-rating'], .rating")
+            if rating_el:
+                classes = rating_el.get("class", [])
+                rating_map = {"One": "1", "Two": "2", "Three": "3", "Four": "4", "Five": "5"}
+                for cls in classes:
+                    if cls in rating_map:
+                        product["rating"] = rating_map[cls]
+                        break
+
+            if product.get("name") or product.get("price"):
+                products.append(product)
+
+        return products
 
     def _extract_jsonld(self, html: str) -> list[dict]:
         """Extract product data from JSON-LD script tags."""

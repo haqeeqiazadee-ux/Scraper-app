@@ -113,3 +113,17 @@
 49. **Cron parsing should be minimal** — Don't pull in a heavy cron library; 5-field cron parsing (minute hour day month weekday) with basic wildcards and lists covers 95% of use cases. Keep it in a single module.
 
 50. **Parallel agents maximize throughput** — Running 5 independent implementation agents in parallel closes gaps 5x faster than sequential. Key is ensuring zero file overlap between agents.
+
+## QA Session Observations
+
+51. **Brotli support is essential for web scraping** — Many sites serve Brotli-compressed responses. Without the `brotli` Python package, httpx returns garbled content. Always include `brotli` in scraping project dependencies.
+
+52. **"not_configured" ≠ "unhealthy"** — Readiness checks should distinguish between "service not configured" (acceptable in minimal deployments) and "service failed" (actual problem). Using `all(v == "healthy")` incorrectly rejects valid configurations.
+
+53. **CSS selector extraction fills the gap between JSON-LD and regex** — JSON-LD is ideal but rare on listing pages. Regex is too crude for multi-item extraction. BeautifulSoup CSS selectors provide reliable multi-item extraction for common page structures (product grids, quote lists, etc.).
+
+54. **Escalation should be semantic, not blanket** — HTTP 404 means "page not found" — escalating to browser/hard-target won't help. Only escalate on 403 (blocked), 429 (rate limited), or 5xx (server errors). This saves expensive browser/proxy resources.
+
+55. **Python __pycache__ causes stale code** — When modifying Python files during testing, always clear `__pycache__` directories to ensure fresh imports. Otherwise, old bytecode can mask fixes.
+
+56. **Test against real sites early** — Unit tests with mocked responses don't catch real-world issues like Brotli encoding, HTML structure variations, or DNS resolution failures. Testing against books.toscrape.com and httpbin.org caught 3 bugs that unit tests missed.

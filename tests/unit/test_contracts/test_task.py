@@ -23,7 +23,7 @@ class TestTaskCreate:
 
     def test_valid_task_create_full(self):
         """Full task creation with all fields."""
-        policy_id = uuid4()
+        policy_id = str(uuid4())
         task = TaskCreate(
             url="https://shop.com/items",
             task_type=TaskType.MONITOR,
