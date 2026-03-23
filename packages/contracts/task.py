@@ -25,12 +25,22 @@ class TaskType(StrEnum):
     EXTRACT = "extract"
 
 
+class ExtractionType(StrEnum):
+    AUTO = "auto"
+    CSS = "css"
+    XPATH = "xpath"
+    AI = "ai"
+
+
 class TaskCreate(BaseModel):
     """Schema for creating a new task via API."""
 
+    name: str = ""
     url: HttpUrl
     task_type: TaskType = TaskType.SCRAPE
-    policy_id: Optional[UUID] = None
+    extraction_type: ExtractionType = ExtractionType.AUTO
+    selectors: list[str] = Field(default_factory=list)
+    policy_id: Optional[str] = None
     priority: int = Field(default=5, ge=0, le=10)
     schedule: Optional[str] = None
     callback_url: Optional[HttpUrl] = None
@@ -41,7 +51,12 @@ class TaskCreate(BaseModel):
 class TaskUpdate(BaseModel):
     """Schema for updating a task."""
 
+    name: Optional[str] = None
+    url: Optional[HttpUrl] = None
+    extraction_type: Optional[ExtractionType] = None
+    selectors: Optional[list[str]] = None
     status: Optional[TaskStatus] = None
+    policy_id: Optional[str] = None
     priority: Optional[int] = Field(default=None, ge=0, le=10)
     schedule: Optional[str] = None
     callback_url: Optional[HttpUrl] = None

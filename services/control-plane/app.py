@@ -122,6 +122,18 @@ def create_app() -> FastAPI:
     # Quota enforcement middleware
     app.add_middleware(QuotaMiddleware)
 
+    # Global exception handler for debugging
+    from fastapi.responses import JSONResponse
+    from starlette.requests import Request
+
+    @app.exception_handler(Exception)
+    async def global_exception_handler(request: Request, exc: Exception):
+        logger.error("Unhandled exception", extra={"error": str(exc), "type": type(exc).__name__, "path": request.url.path})
+        return JSONResponse(
+            status_code=500,
+            content={"detail": f"{type(exc).__name__}: {exc}", "path": str(request.url.path)},
+        )
+
     # Register routers
     app.include_router(health.router, tags=["Health"])
     app.include_router(metrics.router, tags=["Metrics"])
