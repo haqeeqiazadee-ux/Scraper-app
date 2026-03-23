@@ -15,8 +15,12 @@ import logging
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
-from fastapi import FastAPI
+from pathlib import Path
+
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
 
 from services.control_plane.routers import health, tasks, policies, results, execution, metrics, schedules, billing  # noqa: E402 — uses symlink
 from services.control_plane.middleware.metrics import MetricsMiddleware
@@ -129,6 +133,28 @@ def create_app() -> FastAPI:
     app.include_router(billing.router, prefix="/api/v1", tags=["Billing"])
     if _auth_available:
         app.include_router(auth_router.router, prefix="/api/v1", tags=["Auth"])
+
+    # --- Serve the web dashboard (pre-built Vite dist) ---
+    # Resolve dist path relative to repo root
+    _repo_root = Path(__file__).resolve().parent.parent.parent
+    _dist_dir = _repo_root / "apps" / "web" / "dist"
+    _assets_dir = _dist_dir / "assets"
+
+    if _dist_dir.is_dir() and _assets_dir.is_dir():
+        # Serve JS/CSS assets
+        app.mount("/assets", StaticFiles(directory=str(_assets_dir)), name="dashboard-assets")
+
+        # Catch-all: serve index.html for any non-API route (SPA routing)
+        _index_html = _dist_dir / "index.html"
+
+        @app.get("/{full_path:path}", include_in_schema=False)
+        async def serve_spa(request: Request, full_path: str):
+            # If a static file exists in dist, serve it
+            file_path = _dist_dir / full_path
+            if full_path and file_path.is_file():
+                return FileResponse(str(file_path))
+            # Otherwise serve index.html for SPA client-side routing
+            return FileResponse(str(_index_html))
 
     return app
 
