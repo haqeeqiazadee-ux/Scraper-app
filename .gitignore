@@ -43,6 +43,7 @@ desktop.ini
 *.key
 credentials.json
 secrets.json
+system/credentials_registry.md
 
 # Node.js (web dashboard, extension)
 node_modules/
