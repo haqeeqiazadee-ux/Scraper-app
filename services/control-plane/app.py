@@ -55,7 +55,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     global _task_scheduler, _webhook_executor
     logger.info("Control plane starting up")
     db = init_database(settings.database_url)
-    await db.create_tables()
+
+    # Use Alembic migrations for production (PostgreSQL).
+    # Fall back to create_tables() for SQLite / development.
+    if "sqlite" in settings.database_url:
+        await db.create_tables()
+        logger.info("Database tables created (SQLite dev mode)")
+    else:
+        logger.info("Skipping auto-create — use 'alembic upgrade head' for production migrations")
     logger.info("Database initialized", extra={"url": settings.database_url})
 
     # Initialize webhook executor
