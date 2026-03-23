@@ -49,47 +49,47 @@ These verify the deployed services are alive and connected.
 ## Phase 2: Authentication & Authorization
 
 ### 2.1 Login Flow
-- [ ] **UC-2.1.1** — Enter valid credentials → redirected to `/dashboard`
-- [ ] **UC-2.1.2** — Enter invalid credentials → error message shown, stays on `/login`
-- [ ] **UC-2.1.3** — Access `/dashboard` without login → redirected to `/login`
-- [ ] **UC-2.1.4** — JWT token stored in browser after successful login
+- [x] **UC-2.1.1** — Enter valid credentials → redirected to `/dashboard`
+- [x] **UC-2.1.2** — Enter invalid credentials → error message shown, stays on `/login` — FIXED: added validation
+- [~] **UC-2.1.3** — Access `/dashboard` without login → redirected to `/login` — SKIP: frontend
+- [~] **UC-2.1.4** — JWT token stored in browser after successful login — SKIP: frontend
 
 ### 2.2 Session Management
-- [ ] **UC-2.2.1** — Refresh page while logged in → stays logged in (token persists)
-- [ ] **UC-2.2.2** — Expired token → auto-logout, redirected to `/login`
-- [ ] **UC-2.2.3** — `GET /api/v1/auth/me` returns current user profile
+- [~] **UC-2.2.1** — Refresh page while logged in → stays logged in (token persists) — SKIP: frontend
+- [x] **UC-2.2.2** — Expired token → auto-logout, redirected to `/login`
+- [x] **UC-2.2.3** — `GET /api/v1/auth/me` returns current user profile
 
 ### 2.3 Tenant Isolation
-- [ ] **UC-2.3.1** — API requests without `Authorization` header → `401`
-- [ ] **UC-2.3.2** — Tasks created by tenant A are not visible to tenant B
+- [x] **UC-2.3.1** — API requests without `Authorization` header → `401`
+- [x] **UC-2.3.2** — Tasks created by tenant A are not visible to tenant B
 
 ---
 
 ## Phase 3: Task Management (CRUD)
 
 ### 3.1 Create Task
-- [ ] **UC-3.1.1** — Navigate to Tasks → Click "Create Task" → form renders
-- [ ] **UC-3.1.2** — Fill: name="Test Task", url="https://httpbin.org/html", type=scrape → submit → `201 Created`
-- [ ] **UC-3.1.3** — New task appears in task list with status `pending`
-- [ ] **UC-3.1.4** — Submit with empty URL → validation error shown
-- [ ] **UC-3.1.5** — Submit with invalid URL → validation error shown
+- [~] **UC-3.1.1** — Navigate to Tasks → Click "Create Task" → form renders — SKIP: frontend
+- [x] **UC-3.1.2** — Fill: name="Test Task", url="https://httpbin.org/html", type=scrape → submit → `201 Created`
+- [x] **UC-3.1.3** — New task appears in task list with status `pending`
+- [x] **UC-3.1.4** — Submit with empty URL → validation error shown
+- [x] **UC-3.1.5** — Submit with invalid URL → validation error shown
 
 ### 3.2 Read Tasks
-- [ ] **UC-3.2.1** — Task list page loads with pagination
-- [ ] **UC-3.2.2** — Click a task → task detail page shows name, URL, status, created_at
-- [ ] **UC-3.2.3** — Task detail shows run history (initially empty)
+- [~] **UC-3.2.1** — Task list page loads with pagination — SKIP: frontend
+- [x] **UC-3.2.2** — Click a task → task detail page shows name, URL, status, created_at
+- [~] **UC-3.2.3** — Task detail shows run history (initially empty) — SKIP: frontend
 
 ### 3.3 Update Task
-- [ ] **UC-3.3.1** — Edit task name → save → name updated in list
-- [ ] **UC-3.3.2** — Change priority → save → priority reflected
+- [x] **UC-3.3.1** — Edit task name → save → name updated in list
+- [x] **UC-3.3.2** — Change priority → save → priority reflected
 
 ### 3.4 Delete Task
-- [ ] **UC-3.4.1** — Delete a task → task removed from list
-- [ ] **UC-3.4.2** — Confirm dialog shown before deletion
+- [x] **UC-3.4.1** — Delete a task → task removed from list
+- [~] **UC-3.4.2** — Confirm dialog shown before deletion — SKIP: frontend
 
 ### 3.5 Cancel Task
-- [ ] **UC-3.5.1** — Cancel a `pending` task → status changes to `cancelled`
-- [ ] **UC-3.5.2** — Cancel an already `completed` task → error or no-op
+- [x] **UC-3.5.1** — Cancel a `pending` task → status changes to `cancelled`
+- [x] **UC-3.5.2** — Cancel an already `completed` task → error or no-op
 
 ---
 

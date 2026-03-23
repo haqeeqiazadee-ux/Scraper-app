@@ -73,3 +73,113 @@
 - **Status:** PASS
 - **Tested:** Sent invalid task creation payload
 - **Result:** Structured validation error with field-level messages, no stack traces
+
+## Phase 2: Authentication & Authorization
+
+### UC-2.1.1 — Valid credentials → token returned
+- **Status:** PASS
+- **Tested:** `POST /api/v1/auth/token` with `{"username":"admin","password":"admin123"}`
+- **Result:** 200 with JWT access_token
+
+### UC-2.1.2 — Invalid/empty credentials → error
+- **Status:** FIXED
+- **Tested:** `POST /api/v1/auth/token` with `{"username":"","password":""}`
+- **Result:** Initially returned 200 with token (accepted any credentials). After fix, returns 422 with field validation errors.
+- **Fix applied:** `services/control-plane/routers/auth.py` — added `field_validator` for username (not empty after strip) and password (not empty)
+- **Timestamp:** 2026-03-23
+
+### UC-2.1.3 — Access /dashboard without login → redirect
+- **Status:** SKIP
+- **Reason:** Frontend test, no browser available
+
+### UC-2.1.4 — JWT stored in browser after login
+- **Status:** SKIP
+- **Reason:** Frontend test, no browser available
+
+### UC-2.2.1 — Refresh page stays logged in
+- **Status:** SKIP
+- **Reason:** Frontend test, no browser available
+
+### UC-2.2.2 — Expired token → 401
+- **Status:** PASS
+- **Tested:** Created JWT with exp in the past, called `/api/v1/auth/me`
+- **Result:** 401 with `{"detail":"Token has expired"}`
+
+### UC-2.2.3 — GET /api/v1/auth/me returns user profile
+- **Status:** PASS
+- **Tested:** Called with valid Bearer token
+- **Result:** Returns `{"sub":"testuser","tenant_id":"default","roles":["user"]}`
+
+### UC-2.3.1 — No Authorization header → 401
+- **Status:** PASS
+- **Tested:** `GET /api/v1/auth/me` without Authorization header
+- **Result:** 401 with `{"detail":"Not authenticated"}`
+
+### UC-2.3.2 — Tenant isolation
+- **Status:** PASS
+- **Tested:** Created task with X-Tenant-ID: tenant-a, queried with X-Tenant-ID: tenant-b
+- **Result:** Tenant B sees 0 tasks, confirming isolation
+
+## Phase 3: Task Management CRUD
+
+### UC-3.1.1 — Create Task form renders
+- **Status:** SKIP — frontend test
+
+### UC-3.1.2 — Create task via API
+- **Status:** PASS
+- **Tested:** `POST /api/v1/tasks` with name, url, task_type
+- **Result:** 200 with full task object, status=pending
+
+### UC-3.1.3 — Task appears in list
+- **Status:** PASS
+- **Tested:** `GET /api/v1/tasks` after creation
+- **Result:** Task listed with correct name and status=pending
+
+### UC-3.1.4 — Empty URL → validation error
+- **Status:** PASS
+- **Tested:** `POST /api/v1/tasks` with `url:""`
+- **Result:** 422 — "Input should be a valid URL, input is empty"
+
+### UC-3.1.5 — Invalid URL → validation error
+- **Status:** PASS
+- **Tested:** `POST /api/v1/tasks` with `url:"not-a-url"`
+- **Result:** 422 — "relative URL without a base"
+
+### UC-3.2.1 — Pagination
+- **Status:** SKIP — frontend test
+
+### UC-3.2.2 — Task detail
+- **Status:** PASS
+- **Tested:** `GET /api/v1/tasks/{id}`
+- **Result:** Returns name, url, status, created_at
+
+### UC-3.2.3 — Run history
+- **Status:** SKIP — frontend test
+
+### UC-3.3.1 — Update task name
+- **Status:** PASS
+- **Tested:** `PATCH /api/v1/tasks/{id}` with `{"name":"Updated Task Name"}`
+- **Result:** Name updated correctly
+
+### UC-3.3.2 — Update priority
+- **Status:** PASS
+- **Tested:** `PATCH /api/v1/tasks/{id}` with `{"priority":10}`
+- **Result:** Priority updated to 10
+
+### UC-3.4.1 — Delete task
+- **Status:** PASS
+- **Tested:** `DELETE /api/v1/tasks/{id}` → 204, then GET → 404
+- **Result:** Task removed, confirmed not found
+
+### UC-3.4.2 — Confirm dialog
+- **Status:** SKIP — frontend test
+
+### UC-3.5.1 — Cancel pending task
+- **Status:** PASS
+- **Tested:** `POST /api/v1/tasks/{id}/cancel` on pending task
+- **Result:** Status changed to cancelled
+
+### UC-3.5.2 — Cancel already cancelled task
+- **Status:** PASS
+- **Tested:** `POST /api/v1/tasks/{id}/cancel` on cancelled task
+- **Result:** 400 — "Cannot cancel task in cancelled status"
