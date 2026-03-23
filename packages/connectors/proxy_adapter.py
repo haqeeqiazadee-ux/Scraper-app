@@ -154,6 +154,60 @@ class ListProxyProvider:
         return await self.get_proxies()
 
 
+class IPRoyalProxyProvider:
+    """IPRoyal residential proxy provider.
+
+    Uses IPRoyal's residential proxy gateway with session-based rotation.
+    Endpoint: geo.iproyal.com:12321 (HTTP/HTTPS) or :32325 (SOCKS5).
+    """
+
+    DEFAULT_HOST = "geo.iproyal.com"
+    HTTP_PORT = 12321
+    SOCKS5_PORT = 32325
+
+    def __init__(
+        self,
+        api_key: str,
+        country: str = "",
+        protocol: str = "http",
+        num_sessions: int = 10,
+        session_lifetime: str = "5m",
+    ) -> None:
+        self._api_key = api_key
+        self._country = country
+        self._protocol = protocol
+        self._num_sessions = num_sessions
+        self._session_lifetime = session_lifetime
+
+    async def get_proxies(self) -> list[Proxy]:
+        port = self.SOCKS5_PORT if self._protocol == "socks5" else self.HTTP_PORT
+        proxies: list[Proxy] = []
+        for i in range(self._num_sessions):
+            # IPRoyal format: username_country-XX_session-ID_lifetime-5m
+            username_parts = [self._api_key]
+            if self._country:
+                username_parts.append(f"country-{self._country}")
+            username_parts.append(f"session-scraper{i}")
+            username_parts.append(f"lifetime-{self._session_lifetime}")
+            username = "_".join(username_parts)
+
+            proxies.append(
+                Proxy(
+                    host=self.DEFAULT_HOST,
+                    port=port,
+                    username=username,
+                    password=self._api_key,
+                    protocol=self._protocol,
+                    geo=self._country.upper() if self._country else None,
+                    session_id=f"iproyal_{i}",
+                )
+            )
+        return proxies
+
+    async def refresh(self) -> list[Proxy]:
+        return await self.get_proxies()
+
+
 class RotatingProxyProvider:
     """Provider for rotating proxy services (e.g. BrightData, SmartProxy).
 
