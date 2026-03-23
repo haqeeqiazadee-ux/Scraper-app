@@ -64,6 +64,25 @@ HARD_TARGET_DOMAINS: set[str] = {
     "ticketmaster.com",
 }
 
+# B4: WooCommerce URL pattern
+WOOCOMMERCE_PATH_MARKER = "/wp-json/wc/"
+
+# B4: RSS/feed URL suffixes and patterns
+RSS_SUFFIXES = ("/feed", "/rss", ".xml", "/feed/", "/rss/")
+
+
+def _is_woocommerce_url(url: str) -> bool:
+    """Return True if the URL looks like a WooCommerce REST API endpoint."""
+    return WOOCOMMERCE_PATH_MARKER in url
+
+
+def _is_rss_url(url: str) -> bool:
+    """Return True if the URL looks like an RSS or XML feed."""
+    # Strip query string and fragment for suffix check
+    from urllib.parse import urlparse
+    path = urlparse(url).path.lower().rstrip("/")
+    return any(path.endswith(suffix.rstrip("/")) for suffix in RSS_SUFFIXES) or path.endswith(".xml")
+
 
 class RateLimitExceededError(Exception):
     """Raised when a tenant's rate limit is exceeded during routing."""
@@ -134,7 +153,25 @@ class ExecutionRouter:
                 fallback_lanes=[Lane.HARD_TARGET],
             )
 
-        # 6. Default: try HTTP first
+        # 6. B4: WooCommerce REST API → use API lane
+        raw_url = str(task.url)
+        if _is_woocommerce_url(raw_url):
+            return RouteDecision(
+                lane=Lane.API,
+                reason="WooCommerce REST API detected (/wp-json/wc/)",
+                fallback_lanes=[Lane.HTTP],
+            )
+
+        # 7. B4: RSS / XML feed → use HTTP lane (lightweight, no JS needed)
+        if _is_rss_url(raw_url):
+            return RouteDecision(
+                lane=Lane.HTTP,
+                reason="RSS/XML feed detected — HTTP lane sufficient",
+                fallback_lanes=[],
+                confidence=0.9,
+            )
+
+        # 8. Default: try HTTP first
         return RouteDecision(
             lane=Lane.HTTP,
             reason="Default: try HTTP lane first",

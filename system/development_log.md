@@ -1122,3 +1122,162 @@ Implemented full rate limiting and quota enforcement stack:
 ### Environment Configuration
 - Added to .env.example: QUEUE_BACKEND, RATE_LIMIT_PER_MINUTE/HOUR/BURST, worker concurrency vars
 
+---
+
+## 2026-03-22 — QA Session 1: Use-Case-Based Testing (Phases 1-6, 11-12, 15-16)
+
+### QA Strategy
+- Created `docs/qa_strategy.md` — 472-line use-case-based QA plan covering 18 phases
+- Created `docs/qa_execution_log.md` — chronological record of every test
+
+### Code Fixes During QA
+1. **`/ready` endpoint** — treat "not_configured" as acceptable (health.py)
+2. **Auth token validation** — reject empty username/password (auth.py)
+3. **CSS selector extraction** — BeautifulSoup-based multi-item extraction (deterministic.py)
+4. **Brotli decompression** — added brotli dependency (requirements.txt)
+5. **HTTP worker escalation** — 404 no longer triggers escalation (worker.py)
+
+### New Features Added
+1. `POST /api/v1/results` — store extraction results
+2. `GET /api/v1/tasks/{id}/export/json|csv|xlsx` — 3 export endpoints
+3. `ResultCreateRequest` schema for result ingestion
+
+### Results
+- 62 use cases passed, 25 skipped (frontend/external deps), 5 fixed
+- Test suite: 706 passed, 0 failed (up from 686)
+
+---
+
+## 2026-03-23 — QA Session 2: Extended Coverage (Phases 9-10, 13-15, 18)
+
+### Tests Run
+- Phase 9: API/Feed Lane — Shopify detection, router correctly identifies myshopify.com
+- Phase 10: AI Normalization — field mapping, deduplication, provider fallback (Gemini 403 → deterministic)
+- Phase 13: Proxy rotation + geo-targeting — round-robin, weighted, country-based selection
+- Phase 14: Session lifecycle — creation, degradation, health scoring
+- Phase 18: Fallback chain routing — lane fallback_lanes=[browser, hard_target] verified
+
+### Results
+- 77 use cases passed, 30 skipped, 5 fixed
+
+---
+
+## 2026-03-23 — QA Session 3: Chunked Testing (Phases 9, 12, 13, 14, 15, 16, 17, 18)
+
+### Methodology
+- Broke testing into 9 small independent chunks per user request
+- Each chunk tests one subsystem in isolation before moving to next
+
+### Tests Run
+1. **Extraction fallback chain** — JSON-LD → CSS → regex → AI fallback order verified
+2. **Webhook callbacks** — HMAC-SHA256 signing, httpbin delivery, 3x retry with exponential backoff
+3. **Proxy health scoring** — weighted selection: healthy=64%, degraded=29%, unhealthy=7%
+4. **Session reuse** — same-domain returns same session, cookies persisted, tenant isolation confirmed
+5. **Quota management** — free plan 50 tasks/day enforced, 51st rejected, concurrent limits correct
+6. **Structured logging** — JSONFormatter with timestamp, correlation_id, tenant_id, task_id
+7. **Static catalog** — books.toscrape.com → 20 products via HTTP lane
+8. **JSON endpoint** — httpbin.org/json parsed, 429 → should_escalate=True
+9. **Billing plans** — /api/v1/billing/plans returns 4 tiers with pricing
+
+### Results
+- 103 use cases passed, 33 skipped, 5 fixed
+
+---
+
+## 2026-03-23 — QA Session 4: Chromium Browser Testing (Phases 7, 8, 17)
+
+### Discovery
+- Pre-installed Chromium v141 found in `~/.cache/ms-playwright/chromium-1194/`
+- Playwright install command failed (CDN blocked) but existing binary works
+
+### Code Changes
+- `packages/connectors/browser_worker.py` — added `executable_path` parameter to PlaywrightBrowserWorker
+- `packages/connectors/hard_target_worker.py` — added `executable_path` parameter to HardTargetWorker
+- Both changes are backwards-compatible (parameter defaults to None)
+
+### Phase 7 — Browser Lane
+- SPA rendering: "Loading..." → 3 products via setTimeout JS
+- Load More button: 3 → 7 items after click
+- Lazy images: data-src → src set by JS
+- Screenshot: 13KB PNG captured
+- Timeout: caught in 3.0s as playwright TimeoutError
+- BrowserLaneWorker full integration: SPA → CSS extraction → 3 products with name+price
+
+### Phase 8 — Hard-Target Lane
+- Fingerprint randomization: unique UAs, viewports, timezones per request
+- Stealth patches: navigator.webdriver=undefined, plugins=5, chrome stub injected
+- CAPTCHA detection: g-recaptcha element found, data-sitekey extracted
+- No solver → graceful failure (no crash)
+- Escalation: HTTP → [browser, hard_target], max depth=3
+
+### Phase 17 — JS-Rendered E-Commerce
+- Product Listing Page: 25 JS-rendered products with name, price, image_url, product_url
+- Product Detail Page: JSON-LD extracted (name, price, SKU, description)
+- Shopify-like: JSON-LD detected and used
+
+### Test Infrastructure
+- All browser tests run against local HTTP server (Python http.server in daemon thread)
+- Env proxy blocks outbound browser connections — local server workaround
+
+### Results
+- 124 use cases passed, 52 skipped, 5 fixed
+- Test suite: 706 passed, 0 failed (unchanged)
+
+---
+
+## 2026-03-23 — QA Session 5: Skip Resolution
+
+### Approach
+Categorized all 52 skipped items into 3 groups:
+- **Group A (11):** Testable with better tests, no code changes needed
+- **Group B (14):** Need code implementation (features missing)
+- **Group C (27):** Truly blocked (external dependencies)
+
+### Group A — Better Tests
+- Infinite scroll: 10 → 60 items after 5 scrolls (150px tall cards trigger scroll events)
+- Multi Load More: 3 click rounds, button auto-hides after round 3
+- AJAX pagination: 3 pages via button clicks, 6 unique items collected
+- Proxy sticky/random: sticky=same domain same proxy; random=3 proxies used equally
+- Session TTL: backdated session by 25h → expired → cleanup removes
+- Token bucket refill: exhausted burst → wait 1.1s → refilled → allowed
+- Per-policy limits: strict policy (burst=2) enforced independently from tenant
+- Escalation logging: RouteDecision has lane + reason + fallback_lanes
+- Scheduler: cron parsing + matching verified, enqueue_fn wired
+
+### Group B — Feature Implementation (6 new features)
+
+**B1: Policy preferred_lane override (router.py +39 lines)**
+- Added LanePreference enum to Policy contract
+- Router checks policy.preferred_lane before default logic
+- Tested: AUTO, BROWSER, HARD_TARGET all route correctly
+
+**B2: Custom CSS selectors (deterministic.py)**
+- DeterministicProvider.extract() accepts optional css_selectors dict
+- Custom selectors override default card/name/price selectors
+- Tested: custom .prod-title/.prod-price selectors extract correctly
+
+**B3: HTTP pagination (worker.py +147 lines)**
+- Worker follows "next" links: a[rel="next"], .next a, .pagination .next a
+- Aggregates extracted_data across pages up to max_pages limit
+- Stores per-page artifacts with html_snapshot
+
+**B4: Retry-After + WooCommerce + RSS (router.py, worker.py)**
+- Router detects /wp-json/wc/ → API lane, /feed or .xml → HTTP lane
+- Worker respects Retry-After header on 429 responses
+- Tested: WooCommerce → API, RSS → HTTP, 429+Retry-After → wait → retry
+
+**B5: Artifact storage (worker.py)**
+- Worker stores html_snapshot key with raw HTML after successful extraction
+- Returns artifacts list with key, content_type, size_bytes, page, url, captured_at
+
+**B6: Variant + stock extraction (deterministic.py +113 lines)**
+- JSON-LD extraction now parses hasVariant array for color/size/price variants
+- Parses offers.availability for InStock/OutOfStock status
+- Handles both single offer (dict) and multiple offers (array)
+
+### Results
+- **25 items resolved:** 11 Group A (tests) + 14 Group B (features)
+- **Final QA: 157 pass, 36 skip, 5 fixed**
+- **Test suite: 706 passed, 0 failed**
+- **Remaining 36 skips:** All require live external services (frontend UI, Gemini AI, live proxies, external sites)
+
