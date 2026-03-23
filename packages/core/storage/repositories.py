@@ -13,7 +13,7 @@ from uuid import UUID
 from sqlalchemy import select, update, delete, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from packages.core.storage.models import TaskModel, PolicyModel, RunModel, ResultModel
+from packages.core.storage.models import TaskModel, PolicyModel, RunModel, ResultModel, ArtifactModel
 
 logger = logging.getLogger(__name__)
 
@@ -180,3 +180,59 @@ class ResultRepository:
         )
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
+
+
+class ArtifactRepository:
+    """CRUD operations for artifacts with tenant isolation."""
+
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def create(self, tenant_id: str, **kwargs) -> ArtifactModel:
+        artifact = ArtifactModel(tenant_id=tenant_id, **kwargs)
+        self._session.add(artifact)
+        await self._session.flush()
+        return artifact
+
+    async def get(self, artifact_id: str, tenant_id: str) -> Optional[ArtifactModel]:
+        stmt = select(ArtifactModel).where(
+            ArtifactModel.id == artifact_id,
+            ArtifactModel.tenant_id == tenant_id,
+        )
+        result = await self._session.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def list_by_result(self, result_id: str, tenant_id: str) -> list[ArtifactModel]:
+        stmt = (
+            select(ArtifactModel)
+            .where(ArtifactModel.result_id == result_id, ArtifactModel.tenant_id == tenant_id)
+            .order_by(ArtifactModel.created_at.desc())
+        )
+        result = await self._session.execute(stmt)
+        return list(result.scalars().all())
+
+    async def list_by_tenant(
+        self, tenant_id: str, limit: int = 50, offset: int = 0,
+    ) -> tuple[list[ArtifactModel], int]:
+        stmt = (
+            select(ArtifactModel)
+            .where(ArtifactModel.tenant_id == tenant_id)
+            .order_by(ArtifactModel.created_at.desc())
+            .limit(limit).offset(offset)
+        )
+        count_stmt = select(func.count()).select_from(ArtifactModel).where(
+            ArtifactModel.tenant_id == tenant_id,
+        )
+
+        result = await self._session.execute(stmt)
+        count_result = await self._session.execute(count_stmt)
+
+        return list(result.scalars().all()), count_result.scalar_one()
+
+    async def delete(self, artifact_id: str, tenant_id: str) -> bool:
+        stmt = delete(ArtifactModel).where(
+            ArtifactModel.id == artifact_id,
+            ArtifactModel.tenant_id == tenant_id,
+        )
+        result = await self._session.execute(stmt)
+        return result.rowcount > 0

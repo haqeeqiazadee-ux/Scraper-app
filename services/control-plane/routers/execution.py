@@ -129,10 +129,18 @@ async def execute_task(
         },
     )
 
+    # Include extraction config from policy extraction_rules (UC-6.3.1)
+    extraction_config = {
+        "css_selectors": (policy.extraction_rules or {}).get("css_selectors") if policy else None,
+        "paginate": (policy.extraction_rules or {}).get("paginate", False) if policy else False,
+        "max_pages": (policy.extraction_rules or {}).get("max_pages", 1) if policy else 1,
+    }
+
     return {
         "task_id": task_id,
         "status": "queued",
         "route": _route_decision_to_dict(decision),
+        "extraction_config": extraction_config,
     }
 
 

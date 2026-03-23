@@ -13,6 +13,7 @@ Endpoints:
 from __future__ import annotations
 
 import logging
+import os
 from typing import Optional
 
 from fastapi import APIRouter, Header, HTTPException, Request
@@ -179,8 +180,21 @@ async def list_plans():
 async def square_webhook(request: Request):
     """Receive and process Square webhook events (payment confirmations, subscription changes)."""
     body = await request.body()
-    # TODO: verify signature with SquareBillingAdapter.verify_webhook_signature
-    # when webhook signature key is configured
+
+    # Verify Square webhook signature if key is configured
+    signature_key = os.environ.get("SQUARE_WEBHOOK_SIGNATURE_KEY", "")
+    if signature_key:
+        signature = request.headers.get("X-Square-Hmacsha256-Signature", "")
+        notification_url = str(request.url)
+        if not SquareBillingAdapter.verify_webhook_signature(
+            body=body,
+            signature=signature,
+            signature_key=signature_key,
+            notification_url=notification_url,
+        ):
+            raise HTTPException(status_code=403, detail="Invalid webhook signature")
+    else:
+        logger.warning("SQUARE_WEBHOOK_SIGNATURE_KEY not configured — skipping webhook signature verification")
 
     import json
     try:
