@@ -295,3 +295,177 @@ AI processes raw extraction results for quality improvement.
 - [ ] **UC-11.5.2** — Screenshot (PNG) stored as artifact for browser tasks
 - [ ] **UC-11.5.3** — Export files stored as artifacts with correct MIME type
 - [ ] **UC-11.5.4** — Artifacts downloadable via API
+
+---
+
+## Phase 12: Scheduling & Webhooks
+
+### 12.1 Cron Scheduling
+- [ ] **UC-12.1.1** — Create task with schedule `*/30 * * * *` → schedule created
+- [ ] **UC-12.1.2** — Schedule appears in `GET /api/v1/schedules` list
+- [ ] **UC-12.1.3** — Scheduled task fires automatically at next cron interval
+- [ ] **UC-12.1.4** — Delete schedule → task stops recurring
+
+### 12.2 One-Time Tasks
+- [ ] **UC-12.2.1** — Create task with no schedule → executes once → no recurrence
+
+### 12.3 Webhook Callbacks
+- [ ] **UC-12.3.1** — Create task with `callback_url` → on completion, webhook POSTed
+- [ ] **UC-12.3.2** — Webhook payload includes task result data
+- [ ] **UC-12.3.3** — Webhook signed with HMAC-SHA256
+- [ ] **UC-12.3.4** — Webhook delivery failure → retried with backoff
+
+---
+
+## Phase 13: Proxy Management
+
+### 13.1 Proxy Rotation Strategies
+- [ ] **UC-13.1.1** — Round-robin rotation → each request uses next proxy in pool
+- [ ] **UC-13.1.2** — Weighted rotation → high-success proxies get more traffic
+- [ ] **UC-13.1.3** — Geo-targeted → proxy selected by country matches request
+- [ ] **UC-13.1.4** — Sticky session → same proxy for entire session duration
+- [ ] **UC-13.1.5** — Random → proxies selected randomly from healthy pool
+
+### 13.2 Proxy Health Scoring
+- [ ] **UC-13.2.1** — Successful request → proxy health score increases
+- [ ] **UC-13.2.2** — Failed request → proxy health score decreases
+- [ ] **UC-13.2.3** — Unhealthy proxy (score < threshold) → removed from rotation
+
+### 13.3 Proxy Fallback Chain
+- [ ] **UC-13.3.1** — No proxy → datacenter proxy → residential proxy → mobile proxy → unlocker
+
+---
+
+## Phase 14: Session Management
+
+### 14.1 Session Lifecycle
+- [ ] **UC-14.1.1** — New task for domain → session `Created` → `Active`
+- [ ] **UC-14.1.2** — 3 consecutive failures → session → `Degraded`
+- [ ] **UC-14.1.3** — 5 consecutive failures → session → `Invalidated`
+- [ ] **UC-14.1.4** — Session TTL exceeded → session → `Expired`
+
+### 14.2 Session Reuse
+- [ ] **UC-14.2.1** — Second task for same domain → reuses existing active session
+- [ ] **UC-14.2.2** — Session cookies persisted and sent on subsequent requests
+
+### 14.3 Health Scoring
+- [ ] **UC-14.3.1** — Health = 60% success_rate + 20% response_time + 20% age
+- [ ] **UC-14.3.2** — Health visible in session inspector
+
+---
+
+## Phase 15: Rate Limiting & Quotas
+
+### 15.1 Rate Limiting
+- [ ] **UC-15.1.1** — Exceed rate limit → request returns `429 Too Many Requests`
+- [ ] **UC-15.1.2** — Token bucket refills over time → requests allowed again
+- [ ] **UC-15.1.3** — Per-domain rate limits enforced separately
+
+### 15.2 Tenant Quotas
+- [ ] **UC-15.2.1** — Free plan: max 50 tasks/day → 51st task rejected with quota error
+- [ ] **UC-15.2.2** — Concurrent task limit enforced (free=2, starter=5, pro=20)
+- [ ] **UC-15.2.3** — AI token quota tracked and enforced
+- [ ] **UC-15.2.4** — Storage quota tracked and enforced
+- [ ] **UC-15.2.5** — Usage counters visible in dashboard
+
+### 15.3 Billing Integration
+- [ ] **UC-15.3.1** — `GET /api/v1/billing/plans` → returns available plans
+- [ ] **UC-15.3.2** — Subscribe to plan → quotas updated
+- [ ] **UC-15.3.3** — Overage charges calculated correctly
+
+---
+
+## Phase 16: Observability & Monitoring
+
+### 16.1 Structured Logging
+- [ ] **UC-16.1.1** — Backend logs are JSON format with correlation_id
+- [ ] **UC-16.1.2** — Each request has unique correlation_id
+- [ ] **UC-16.1.3** — tenant_id present in all log records
+
+### 16.2 Metrics
+- [ ] **UC-16.2.1** — `GET /metrics` returns tasks_submitted counter
+- [ ] **UC-16.2.2** — `GET /metrics` returns task_duration_ms histogram
+- [ ] **UC-16.2.3** — `GET /api/v1/metrics` returns JSON metrics for dashboard
+
+### 16.3 Task Lineage
+- [ ] **UC-16.3.1** — Task → Runs → Results → Artifacts chain queryable
+- [ ] **UC-16.3.2** — Task detail page shows full lineage
+
+---
+
+## Phase 17: Real-World E-Commerce Scraping Scenarios
+
+End-to-end tests against real e-commerce website patterns.
+
+### 17.1 Product Listing Page (PLP)
+- [ ] **UC-17.1.1** — Scrape product grid → extracts: name, price, image, URL for each product
+- [ ] **UC-17.1.2** — Handles 20+ products on a single page
+- [ ] **UC-17.1.3** — Pagination: follows to page 2, 3... collects all products
+
+### 17.2 Product Detail Page (PDP)
+- [ ] **UC-17.2.1** — Scrape single product page → extracts: title, price, description, images, SKU
+- [ ] **UC-17.2.2** — Variant data (sizes, colors) extracted if present
+- [ ] **UC-17.2.3** — Availability/stock status captured
+
+### 17.3 CJDropshipping-Style Sites
+- [ ] **UC-17.3.1** — Scrape wholesale listing (like cjdropshipping.com category) → product list extracted
+- [ ] **UC-17.3.2** — Handles dynamic loading (JS-rendered product cards)
+- [ ] **UC-17.3.3** — Extracts: product name, wholesale price, MOQ, supplier info
+
+### 17.4 Shopify Stores
+- [ ] **UC-17.4.1** — Detected as Shopify → uses API lane → products.json
+- [ ] **UC-17.4.2** — Falls back to HTML scraping if API blocked
+
+### 17.5 Amazon-Style Sites
+- [ ] **UC-17.5.1** — Complex product page with dynamic content → browser lane
+- [ ] **UC-17.5.2** — Anti-bot protection handled via hard-target lane
+- [ ] **UC-17.5.3** — Reviews, ratings extracted alongside product data
+
+### 17.6 Static Catalog Sites
+- [ ] **UC-17.6.1** — Simple HTML product catalog → HTTP lane → fast extraction
+- [ ] **UC-17.6.2** — Schema.org markup used when available
+
+---
+
+## Phase 18: Fallback Chain Verification
+
+### 18.1 Extraction Fallback
+- [ ] **UC-18.1.1** — JSON-LD available → used first (fastest, most reliable)
+- [ ] **UC-18.1.2** — No JSON-LD → CSS selectors used
+- [ ] **UC-18.1.3** — No CSS match → regex patterns used
+- [ ] **UC-18.1.4** — All deterministic fail → AI extraction as last resort
+
+### 18.2 Lane Fallback
+- [ ] **UC-18.2.1** — HTTP → Browser → Hard-Target chain works end-to-end
+- [ ] **UC-18.2.2** — Each escalation logged with reason
+- [ ] **UC-18.2.3** — Final result includes `extraction_method` field showing what worked
+
+---
+
+## Appendix A: Test URLs Reference
+
+| URL | Expected Lane | Expected Behavior |
+|-----|--------------|-------------------|
+| `https://httpbin.org/html` | HTTP | Simple HTML extraction |
+| `https://books.toscrape.com/` | HTTP | Product list + pagination |
+| `https://quotes.toscrape.com/` | HTTP | Quote + author extraction |
+| `https://quotes.toscrape.com/js/` | Browser | JS-rendered version |
+| Shopify store (any `.myshopify.com`) | API | products.json API |
+| CJDropshipping category page | Browser | Dynamic product grid |
+| Site behind Cloudflare | Hard-Target | Anti-bot bypass needed |
+
+---
+
+## Appendix B: Priority Order for Testing
+
+1. **Phase 1** — Infrastructure (blocks everything)
+2. **Phase 2** — Auth (blocks UI testing)
+3. **Phase 3** — Task CRUD (core functionality)
+4. **Phase 6** — HTTP Lane scraping (primary use case)
+5. **Phase 11** — Results & Export (user sees output)
+6. **Phase 7** — Browser Lane (second most common)
+7. **Phase 17** — Real e-commerce scenarios (validates real value)
+8. **Phase 5** — Router (ensures correct lane selection)
+9. **Phase 8** — Hard-Target (advanced use case)
+10. **Phase 10** — AI Normalization (quality improvement)
+11. **Phases 4, 9, 12-16, 18** — Supporting features
