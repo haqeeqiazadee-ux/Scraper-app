@@ -1,0 +1,34 @@
+# =============================================================================
+# Railway Configuration — AI Scraping Platform Backend
+# =============================================================================
+# This config deploys the control-plane (API server).
+# Workers are deployed as separate Railway services from the same repo,
+# each overriding the start command in the Railway dashboard.
+#
+# Railway Setup:
+#   1. Create project → "Deploy from GitHub repo"
+#   2. Add Redis plugin (auto-injects REDIS_URL)
+#   3. Set env vars (see env.keys):
+#      - DATABASE_URL (Supabase connection string)
+#      - GEMINI_API_KEY
+#      - SECRET_KEY
+#      - CORS_ORIGINS (your Netlify URL)
+#   4. For workers: "New Service" → same repo → override start command
+#
+# Worker Start Commands (set in Railway dashboard per service):
+#   HTTP Worker:        python -m services.worker_http.main
+#   Browser Worker:     python -m services.worker_browser.main
+#   AI Worker:          python -m services.worker_ai.main
+#   Hard-Target Worker: python -m services.worker_hard_target.main
+# =============================================================================
+
+[build]
+builder = "dockerfile"
+dockerfilePath = "infrastructure/docker/Dockerfile.railway"
+
+[deploy]
+startCommand = "uvicorn services.control_plane.app:app --host 0.0.0.0 --port $PORT"
+healthcheckPath = "/health"
+healthcheckTimeout = 30
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3

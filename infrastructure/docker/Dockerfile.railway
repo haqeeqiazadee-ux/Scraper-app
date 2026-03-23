@@ -1,0 +1,46 @@
+# =============================================================================
+# Dockerfile.railway — Optimized for Railway deployment
+# =============================================================================
+# Single image for control-plane. Workers can be deployed as separate
+# Railway services using the same image with different start commands.
+# =============================================================================
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# System dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Python dependencies
+COPY requirements.txt requirements-dev.txt ./
+RUN pip install --no-cache-dir -r requirements-dev.txt
+
+# Application code
+COPY packages/ packages/
+COPY services/ services/
+COPY apps/web/dist/ apps/web/dist/
+
+# Create symlinks for Python imports (hyphens → underscores)
+RUN cd services && \
+    ln -sf control-plane control_plane 2>/dev/null; \
+    ln -sf worker-http worker_http 2>/dev/null; \
+    ln -sf worker-browser worker_browser 2>/dev/null; \
+    ln -sf worker-ai worker_ai 2>/dev/null; \
+    ln -sf worker-hard-target worker_hard_target 2>/dev/null; \
+    cd ..
+
+# Create artifacts directory
+RUN mkdir -p /app/artifacts
+
+# Non-root user
+RUN useradd -m appuser && chown -R appuser:appuser /app
+USER appuser
+
+# Railway provides PORT env var dynamically
+EXPOSE 8000
+
+# Default: control plane. Override in Railway service settings for workers.
+CMD ["uvicorn", "services.control_plane.app:app", "--host", "0.0.0.0", "--port", "8000"]
