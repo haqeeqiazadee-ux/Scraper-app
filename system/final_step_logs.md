@@ -1085,3 +1085,110 @@
 - **Pass/Fail:** PASS
 - **Final Status:** COMPLETE
 
+---
+
+## QA-002: Use-Case QA Session 1 (Phases 1-6, 11-12, 15-16)
+
+- **Task ID:** QA-002
+- **Task Title:** Use-case-based QA testing — Infrastructure through HTTP Lane
+- **Start Time:** 2026-03-22
+- **End Time:** 2026-03-22
+- **Exact steps performed:**
+  1. Created docs/qa_strategy.md (472 lines, 18 phases, 170+ use cases)
+  2. Created docs/qa_execution_log.md (chronological test results)
+  3. Tested Phase 1 (Infrastructure Health): /health, /ready endpoints → 9 pass, 4 skip
+  4. Tested Phase 2 (Auth): token generation, validation, empty creds → 6 pass, 3 skip, 1 fix
+  5. Tested Phase 3 (Task CRUD): create, list, get, update, cancel → 10 pass, 4 skip
+  6. Tested Phase 4 (Policy CRUD): create, list, get, update, delete → 6 pass, 2 skip
+  7. Tested Phase 5 (Router): lane assignment, dry-run → 4 pass, 1 skip
+  8. Tested Phase 6 (HTTP Lane): static HTML, JSON-LD, CSS selectors, stealth headers, error handling → 14 pass, 3 skip, 3 fix
+  9. Tested Phase 11 (Results & Export): JSON/CSV/XLSX export → 7 pass, 4 skip, 3 new endpoints
+  10. Tested Phase 12 (Scheduling): cron schedule CRUD → 3 pass, 1 skip
+  11. Tested Phase 15 (Rate Limiting): 429 response → 1 pass, 2 skip
+  12. Tested Phase 16 (Metrics): /metrics Prometheus, /api/v1/metrics JSON → 3 pass
+- **Files touched:** docs/qa_strategy.md (new), docs/qa_execution_log.md (new), packages/core/ai_providers/deterministic.py (CSS extraction), services/control-plane/routers/health.py (/ready fix), services/control-plane/routers/auth.py (validation fix), services/worker-http/worker.py (escalation fix), requirements.txt (brotli), services/control-plane/routers/results.py (export endpoints)
+- **Validation evidence:** 62 pass, 25 skip, 5 fixed. Test suite: 706 passed, 0 failed
+- **Pass/Fail:** PASS
+- **Final Status:** COMPLETE
+
+---
+
+## QA-003: Extended QA Session 2 (Phases 9-10, 13-15, 18)
+
+- **Task ID:** QA-003
+- **Task Title:** Extended QA — API/Feed, AI Normalization, Proxy, Session, Fallback
+- **Start Time:** 2026-03-23
+- **End Time:** 2026-03-23
+- **Exact steps performed:**
+  1. Tested Phase 9 (API/Feed Lane): Shopify myshopify.com detection via router
+  2. Tested Phase 10 (AI Normalization): field mapping (cost→price), dedup, provider fallback (Gemini 403 → deterministic)
+  3. Tested Phase 13 (Proxy): round-robin rotation, weighted, geo-targeting
+  4. Tested Phase 14 (Session): create→active, 3 failures→degraded, health scoring
+  5. Tested Phase 18 (Fallback): lane fallback_lanes=[browser, hard_target] from router
+- **Files touched:** docs/qa_strategy.md, docs/qa_execution_log.md (updated)
+- **Validation evidence:** 77 pass, 30 skip, 5 fixed
+- **Pass/Fail:** PASS
+- **Final Status:** COMPLETE
+
+---
+
+## QA-004: Chunked QA Session 3 (Phases 9, 12, 13, 14, 15, 16, 17, 18)
+
+- **Task ID:** QA-004
+- **Task Title:** Chunked QA — 9 independent chunks across 8 phases
+- **Start Time:** 2026-03-23
+- **End Time:** 2026-03-23
+- **Exact steps performed:**
+  1. Chunk 1: Extraction fallback (Phase 18.1) — JSON-LD → CSS → regex → AI fallback verified
+  2. Chunk 2: Webhook callbacks (Phase 12.3) — HMAC signing, httpbin delivery, retry with backoff
+  3. Chunk 3: Proxy health scoring (Phase 13.2-13.3) — weighted selection: 64%/29%/7%
+  4. Chunk 4: Session reuse (Phase 14.2-14.3) — same-domain reuse, cookies, tenant isolation
+  5. Chunk 5: Quota management (Phase 15.2-15.3) — 50/day limit enforced, billing plans API
+  6. Chunk 6: Structured logging (Phase 16.1) — JSONFormatter, correlation_id, tenant_id
+  7. Chunk 7: Static catalog (Phase 17.6) — books.toscrape.com 20 products
+  8. Chunk 8: JSON endpoint (Phase 9.2-9.3) — httpbin.org/json, 429 handling
+  9. Updated all system files and pushed
+- **Files touched:** docs/qa_strategy.md, docs/qa_execution_log.md, system/todo.md, system/execution_trace.md, system/lessons.md
+- **Validation evidence:** 103 pass, 33 skip, 5 fixed. Test suite: 706 passed, 0 failed
+- **Pass/Fail:** PASS
+- **Final Status:** COMPLETE
+
+---
+
+## QA-005: Chromium Browser QA Session 4 (Phases 7, 8, 17)
+
+- **Task ID:** QA-005
+- **Task Title:** Chromium browser QA — Browser Lane, Hard-Target, E-Commerce
+- **Start Time:** 2026-03-23
+- **End Time:** 2026-03-23
+- **Exact steps performed:**
+  1. Discovered pre-installed Chromium v141 in ~/.cache/ms-playwright/chromium-1194/
+  2. Added `executable_path` parameter to PlaywrightBrowserWorker and HardTargetWorker
+  3. Started local HTTP test server (Python http.server in daemon thread)
+  4. Phase 7 — Browser Lane:
+     - UC-7.1.1: SPA rendering via setTimeout → 3 products extracted
+     - UC-7.1.2: "Loading..." replaced by JS content
+     - UC-7.3.1: "Load More" button click → 3 → 7 items
+     - UC-7.5.1: Lazy images data-src → src set by JS
+     - UC-7.6.1: Screenshot 13KB PNG
+     - UC-7.6.2: Screenshot saved as artifact file
+     - UC-7.7.1: Timeout caught in 3.0s
+  5. Phase 8 — Hard-Target Lane:
+     - UC-8.1.1-8.1.2: Fingerprint randomization (UAs, viewports, timezones)
+     - UC-8.1.3: Stealth patches (webdriver=undefined, plugins=5, chrome stub)
+     - UC-8.3.1: CAPTCHA detection (g-recaptcha element found)
+     - UC-8.3.3: No solver → graceful failure
+     - UC-8.4.1-8.4.3: Escalation chain http→browser→hard_target, depth=3
+  6. Phase 17 — E-Commerce:
+     - UC-17.1.1: 25 JS-rendered products (name, price, image, URL)
+     - UC-17.1.2: 25 items > 20 requirement
+     - UC-17.2.1: PDP via JSON-LD (name, price, SKU, description)
+     - UC-17.4.1: Shopify-like JSON-LD extracted
+  7. BrowserLaneWorker full integration: SPA → CSS extraction → 3 products
+  8. Verified 706 tests still passing, committed and pushed
+- **Files touched:** packages/connectors/browser_worker.py, packages/connectors/hard_target_worker.py, docs/qa_strategy.md, docs/qa_execution_log.md, system/todo.md, system/execution_trace.md, system/lessons.md
+- **Commands run:** Local HTTP server on 127.0.0.1:9876-9881, Playwright launch with executable_path
+- **Validation evidence:** 124 pass, 52 skip, 5 fixed. Test suite: 706 passed, 0 failed
+- **Pass/Fail:** PASS
+- **Final Status:** COMPLETE
+

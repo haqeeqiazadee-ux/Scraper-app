@@ -113,6 +113,14 @@ After completing any task:
 - Web UI wired to real API (full client, hooks, auth context, login page)
 - 648 tests passing, 6 skipped, 0 failed
 
+**Phase 5 — Use-Case QA Testing (COMPLETE)**
+- 4 QA sessions covering all 18 phases of qa_strategy.md
+- 124 use cases passed, 52 skipped (external services), 5 bugs fixed
+- Browser lane verified with Chromium v141 (SPA rendering, screenshots, stealth)
+- Hard-target lane verified (fingerprint randomization, CAPTCHA detection, escalation chain)
+- E-commerce scenarios verified (25-item PLP, PDP JSON-LD, Shopify detection)
+- 706 tests passing, 0 failed
+
 ## Coding Conventions
 
 - Use Pydantic v2 for all data models
@@ -132,10 +140,12 @@ After completing any task:
 |------|---------|
 | `docs/final_specs.md` | Full platform specification (1233 lines, 24 sections) |
 | `docs/tasks_breakdown.md` | 69 tasks across 24 epics with dependency graph |
+| `docs/qa_strategy.md` | Use-case-based QA plan (18 phases, 170+ use cases) |
+| `docs/qa_execution_log.md` | Chronological record of every QA test run |
 | `system/todo.md` | Current task queue |
 | `system/execution_trace.md` | Decision audit trail |
 | `system/development_log.md` | Engineering log |
-| `system/lessons.md` | What we've learned |
+| `system/lessons.md` | What we've learned (63 lessons) |
 | `system/final_step_logs.md` | Per-task execution evidence |
 
 ## Legacy Code (scraper_pro/)
