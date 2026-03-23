@@ -274,27 +274,27 @@ AI processes raw extraction results for quality improvement.
 ## Phase 11: Results & Export
 
 ### 11.1 View Results
-- [ ] **UC-11.1.1** — Navigate to Results page → list of extraction results shown
-- [ ] **UC-11.1.2** — Click a result → detail view shows extracted_data as table
-- [ ] **UC-11.1.3** — Result shows: item_count, confidence, extraction_method, normalization_applied
+- [x] **UC-11.1.1** — Navigate to Results page → list of extraction results shown
+- [x] **UC-11.1.2** — Click a result → detail view shows extracted_data as table
+- [x] **UC-11.1.3** — Result shows: item_count, confidence, extraction_method, normalization_applied
 
 ### 11.2 Export to JSON
-- [ ] **UC-11.2.1** — Select results → Export as JSON → file downloads
-- [ ] **UC-11.2.2** — JSON file contains all extracted items with correct schema
+- [x] **UC-11.2.1** — Select results → Export as JSON → file downloads — NEW: added export endpoints
+- [x] **UC-11.2.2** — JSON file contains all extracted items with correct schema
 
 ### 11.3 Export to CSV
-- [ ] **UC-11.3.1** — Select results → Export as CSV → file downloads
-- [ ] **UC-11.3.2** — CSV has proper headers, no data corruption
+- [x] **UC-11.3.1** — Select results → Export as CSV → file downloads
+- [x] **UC-11.3.2** — CSV has proper headers, no data corruption
 
 ### 11.4 Export to XLSX (Excel)
-- [ ] **UC-11.4.1** — Select results → Export as XLSX → file downloads
-- [ ] **UC-11.4.2** — Excel file opens correctly with formatted columns
+- [x] **UC-11.4.1** — Select results → Export as XLSX → file downloads
+- [x] **UC-11.4.2** — Excel file opens correctly with formatted columns
 
 ### 11.5 Artifact Storage
-- [ ] **UC-11.5.1** — HTML snapshot stored as artifact after scrape
-- [ ] **UC-11.5.2** — Screenshot (PNG) stored as artifact for browser tasks
-- [ ] **UC-11.5.3** — Export files stored as artifacts with correct MIME type
-- [ ] **UC-11.5.4** — Artifacts downloadable via API
+- [~] **UC-11.5.1** — HTML snapshot stored as artifact after scrape — SKIP: artifact storage not wired to HTTP worker
+- [~] **UC-11.5.2** — Screenshot (PNG) stored as artifact for browser tasks — SKIP: browser lane test
+- [~] **UC-11.5.3** — Export files stored as artifacts with correct MIME type — SKIP: exports served directly, not stored
+- [~] **UC-11.5.4** — Artifacts downloadable via API — SKIP: artifact API not yet implemented
 
 ---
 

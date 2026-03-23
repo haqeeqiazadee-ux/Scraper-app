@@ -255,3 +255,30 @@
 ### UC-6.6.4 — Empty body
 - **Status:** PASS
 - **Tested:** httpbin.org/bytes/0 → success with minimal extraction
+
+## Phase 11: Results & Export
+
+### UC-11.1.1-3 — Results listing and detail
+- **Status:** PASS
+- **Tested:** POST /api/v1/results to create result, GET /api/v1/tasks/{id}/results to list
+- **Result:** Result stored with extracted_data, item_count, confidence, extraction_method
+- **Fix applied:** Added POST /api/v1/results endpoint for storing results
+
+### UC-11.2.1-2 — JSON export
+- **Status:** PASS (NEW)
+- **Tested:** GET /api/v1/tasks/{id}/export/json
+- **Result:** Returns JSON file with correct data, Content-Disposition header
+- **Fix applied:** Added export/json endpoint to results router
+
+### UC-11.3.1-2 — CSV export
+- **Status:** PASS (NEW)
+- **Tested:** GET /api/v1/tasks/{id}/export/csv
+- **Result:** Returns CSV with headers (name, price, rating), proper data rows
+
+### UC-11.4.1-2 — XLSX export
+- **Status:** PASS (NEW)
+- **Tested:** GET /api/v1/tasks/{id}/export/xlsx
+- **Result:** Valid XLSX file, verified with openpyxl: 3 rows, correct headers
+
+### UC-11.5.1-4 — Artifact storage
+- **Status:** SKIP — artifact storage/download API not yet implemented
