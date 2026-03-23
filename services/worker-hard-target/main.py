@@ -56,7 +56,33 @@ class HardTargetWorkerRunner:
         """Lazily create the worker to avoid import-time Playwright init."""
         if self._worker is None:
             from services.worker_hard_target.worker import HardTargetLaneWorker
-            self._worker = HardTargetLaneWorker()
+            from packages.connectors.captcha_adapter import CaptchaAdapter
+            from packages.connectors.proxy_adapter import ProxyAdapter, IPRoyalProxyProvider
+
+            # Build CAPTCHA adapter from env
+            captcha = CaptchaAdapter.from_config(
+                capsolver_key=os.environ.get("CAPSOLVER_API_KEY"),
+                two_captcha_key=os.environ.get("TWO_CAPTCHA_API_KEY"),
+                anti_captcha_key=os.environ.get("ANTI_CAPTCHA_API_KEY"),
+                capmonster_key=os.environ.get("CAPMONSTER_API_KEY"),
+            )
+
+            # Build proxy adapter from env (IPRoyal if key present)
+            proxy = ProxyAdapter()
+            iproyal_key = os.environ.get("IPROYAL_API_KEY")
+            if iproyal_key:
+                provider = IPRoyalProxyProvider(
+                    api_key=iproyal_key,
+                    country=os.environ.get("IPROYAL_COUNTRY", ""),
+                    num_sessions=int(os.environ.get("IPROYAL_SESSIONS", "10")),
+                )
+                proxy.set_provider(provider)
+                await proxy.refresh()
+
+            self._worker = HardTargetLaneWorker(
+                proxy_adapter=proxy,
+                captcha_adapter=captcha,
+            )
         return self._worker
 
     async def start(self) -> None:

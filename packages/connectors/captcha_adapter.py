@@ -219,6 +219,100 @@ class AntiCaptchaSolver:
         )
 
 
+class CapSolverSolver:
+    """CapSolver.com CAPTCHA solving service — fast and cost-effective."""
+
+    API_BASE = "https://api.capsolver.com"
+    COST_PER_SOLVE = 0.001  # ~$0.50-$1.50 per 1000
+
+    def __init__(self, api_key: str) -> None:
+        self._api_key = api_key
+
+    def get_name(self) -> str:
+        return "capsolver"
+
+    async def solve(
+        self,
+        captcha_type: CaptchaType,
+        site_key: str,
+        page_url: str,
+    ) -> CaptchaSolution:
+        start = time.time()
+        try:
+            import httpx
+        except ImportError:
+            return CaptchaSolution(success=False, solver_name=self.get_name(), error="httpx not installed")
+
+        task_type_map = {
+            CaptchaType.RECAPTCHA_V2: "ReCaptchaV2TaskProxyLess",
+            CaptchaType.RECAPTCHA_V3: "ReCaptchaV3TaskProxyLess",
+            CaptchaType.HCAPTCHA: "HCaptchaTaskProxyLess",
+        }
+        task_type = task_type_map.get(captcha_type)
+        if not task_type:
+            return CaptchaSolution(success=False, solver_name=self.get_name(), error=f"Unsupported type: {captcha_type}")
+
+        async with httpx.AsyncClient(timeout=30) as client:
+            # Create task
+            payload = {
+                "clientKey": self._api_key,
+                "task": {
+                    "type": task_type,
+                    "websiteURL": page_url,
+                    "websiteKey": site_key,
+                },
+            }
+            if captcha_type == CaptchaType.RECAPTCHA_V3:
+                payload["task"]["pageAction"] = "verify"
+                payload["task"]["minScore"] = 0.7
+
+            resp = await client.post(f"{self.API_BASE}/createTask", json=payload)
+            result = resp.json()
+
+            if result.get("errorId", 1) != 0:
+                return CaptchaSolution(
+                    success=False, solver_name=self.get_name(),
+                    error=result.get("errorDescription", "submit failed"),
+                    elapsed_ms=int((time.time() - start) * 1000),
+                )
+
+            task_id = result.get("taskId")
+
+            # Poll for result (max 60 × 3s = 180s)
+            for _ in range(60):
+                await asyncio.sleep(3)
+                resp = await client.post(
+                    f"{self.API_BASE}/getTaskResult",
+                    json={"clientKey": self._api_key, "taskId": task_id},
+                )
+                result = resp.json()
+                if result.get("status") == "ready":
+                    solution_obj = result.get("solution", {})
+                    token = (
+                        solution_obj.get("gRecaptchaResponse")
+                        or solution_obj.get("token")
+                        or ""
+                    )
+                    return CaptchaSolution(
+                        success=True,
+                        solution=token,
+                        solver_name=self.get_name(),
+                        cost_usd=self.COST_PER_SOLVE,
+                        elapsed_ms=int((time.time() - start) * 1000),
+                    )
+                if result.get("errorId", 0) != 0:
+                    return CaptchaSolution(
+                        success=False, solver_name=self.get_name(),
+                        error=result.get("errorDescription", "unknown error"),
+                        elapsed_ms=int((time.time() - start) * 1000),
+                    )
+
+        return CaptchaSolution(
+            success=False, solver_name=self.get_name(), error="timeout",
+            elapsed_ms=int((time.time() - start) * 1000),
+        )
+
+
 class CapMonsterSolver:
     """CapMonster.cloud CAPTCHA solving service (API-compatible with Anti-Captcha)."""
 
@@ -302,12 +396,18 @@ class CaptchaAdapter:
     @classmethod
     def from_config(
         cls,
+        capsolver_key: Optional[str] = None,
         two_captcha_key: Optional[str] = None,
         anti_captcha_key: Optional[str] = None,
         capmonster_key: Optional[str] = None,
     ) -> CaptchaAdapter:
-        """Create adapter with solvers based on available API keys."""
+        """Create adapter with solvers based on available API keys.
+
+        CapSolver is preferred (cheapest + fastest) and tried first.
+        """
         adapter = cls()
+        if capsolver_key:
+            adapter.add_solver(CapSolverSolver(capsolver_key))
         if two_captcha_key:
             adapter.add_solver(TwoCaptchaSolver(two_captcha_key))
         if anti_captcha_key:
