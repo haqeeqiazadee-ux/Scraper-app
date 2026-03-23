@@ -1223,3 +1223,61 @@ Implemented full rate limiting and quota enforcement stack:
 - 124 use cases passed, 52 skipped, 5 fixed
 - Test suite: 706 passed, 0 failed (unchanged)
 
+---
+
+## 2026-03-23 — QA Session 5: Skip Resolution
+
+### Approach
+Categorized all 52 skipped items into 3 groups:
+- **Group A (11):** Testable with better tests, no code changes needed
+- **Group B (14):** Need code implementation (features missing)
+- **Group C (27):** Truly blocked (external dependencies)
+
+### Group A — Better Tests
+- Infinite scroll: 10 → 60 items after 5 scrolls (150px tall cards trigger scroll events)
+- Multi Load More: 3 click rounds, button auto-hides after round 3
+- AJAX pagination: 3 pages via button clicks, 6 unique items collected
+- Proxy sticky/random: sticky=same domain same proxy; random=3 proxies used equally
+- Session TTL: backdated session by 25h → expired → cleanup removes
+- Token bucket refill: exhausted burst → wait 1.1s → refilled → allowed
+- Per-policy limits: strict policy (burst=2) enforced independently from tenant
+- Escalation logging: RouteDecision has lane + reason + fallback_lanes
+- Scheduler: cron parsing + matching verified, enqueue_fn wired
+
+### Group B — Feature Implementation (6 new features)
+
+**B1: Policy preferred_lane override (router.py +39 lines)**
+- Added LanePreference enum to Policy contract
+- Router checks policy.preferred_lane before default logic
+- Tested: AUTO, BROWSER, HARD_TARGET all route correctly
+
+**B2: Custom CSS selectors (deterministic.py)**
+- DeterministicProvider.extract() accepts optional css_selectors dict
+- Custom selectors override default card/name/price selectors
+- Tested: custom .prod-title/.prod-price selectors extract correctly
+
+**B3: HTTP pagination (worker.py +147 lines)**
+- Worker follows "next" links: a[rel="next"], .next a, .pagination .next a
+- Aggregates extracted_data across pages up to max_pages limit
+- Stores per-page artifacts with html_snapshot
+
+**B4: Retry-After + WooCommerce + RSS (router.py, worker.py)**
+- Router detects /wp-json/wc/ → API lane, /feed or .xml → HTTP lane
+- Worker respects Retry-After header on 429 responses
+- Tested: WooCommerce → API, RSS → HTTP, 429+Retry-After → wait → retry
+
+**B5: Artifact storage (worker.py)**
+- Worker stores html_snapshot key with raw HTML after successful extraction
+- Returns artifacts list with key, content_type, size_bytes, page, url, captured_at
+
+**B6: Variant + stock extraction (deterministic.py +113 lines)**
+- JSON-LD extraction now parses hasVariant array for color/size/price variants
+- Parses offers.availability for InStock/OutOfStock status
+- Handles both single offer (dict) and multiple offers (array)
+
+### Results
+- **25 items resolved:** 11 Group A (tests) + 14 Group B (features)
+- **Final QA: 157 pass, 36 skip, 5 fixed**
+- **Test suite: 706 passed, 0 failed**
+- **Remaining 36 skips:** All require live external services (frontend UI, Gemini AI, live proxies, external sites)
+

@@ -39,8 +39,29 @@ class DeterministicProvider(BaseAIProvider):
     def __init__(self) -> None:
         super().__init__(name="deterministic")
 
-    async def extract(self, html: str, url: str, prompt: Optional[str] = None) -> list[dict]:
-        """Extract structured data using deterministic methods."""
+    async def extract(
+        self,
+        html: str,
+        url: str,
+        prompt: Optional[str] = None,
+        css_selectors: Optional[dict] = None,
+    ) -> list[dict]:
+        """Extract structured data using deterministic methods.
+
+        Args:
+            html: Raw HTML content to extract from.
+            url: Source URL (used for resolving relative links).
+            prompt: Optional prompt (unused by deterministic provider).
+            css_selectors: Optional dict of field -> CSS selector overrides.
+                           Overrides the default PRODUCT_SELECTORS for a single
+                           product extraction pass when provided.
+        """
+        # 0. If custom selectors are provided, run a targeted single-item pass first
+        if css_selectors:
+            custom_result = self._extract_with_custom_selectors(html, url, css_selectors)
+            if custom_result:
+                return [custom_result]
+
         # 1. Try JSON-LD extraction (most reliable)
         jsonld_products = self._extract_jsonld(html)
         if jsonld_products:
@@ -76,6 +97,39 @@ class DeterministicProvider(BaseAIProvider):
             mapped_key = field_aliases.get(key.lower(), key)
             normalized[mapped_key] = value
         return normalized
+
+    def _extract_with_custom_selectors(self, html: str, url: str, css_selectors: dict) -> dict:
+        """Extract a single product using caller-supplied CSS selectors.
+
+        Args:
+            html: Raw HTML content.
+            url: Source URL.
+            css_selectors: Mapping of field name -> CSS selector string.
+
+        Returns:
+            Extracted product dict, or empty dict if nothing matched.
+        """
+        try:
+            from bs4 import BeautifulSoup
+        except ImportError:
+            return {}
+
+        soup = BeautifulSoup(html, "html.parser")
+        result: dict = {"product_url": url}
+
+        for field, selector in css_selectors.items():
+            try:
+                el = soup.select_one(selector)
+                if el:
+                    value = el.get("content") or el.get("value") or el.get_text(strip=True)
+                    if value:
+                        result[field] = value
+            except Exception:
+                continue
+
+        # Only return if we extracted at least one meaningful field
+        meaningful_fields = {k for k in result if k != "product_url"}
+        return result if meaningful_fields else {}
 
     def _extract_css(self, html: str, url: str) -> list[dict]:
         """Extract multiple products using CSS selectors and BeautifulSoup."""
@@ -188,10 +242,63 @@ class DeterministicProvider(BaseAIProvider):
                         if isinstance(offers, dict):
                             product["price"] = offers.get("price", "")
                             product["currency"] = offers.get("priceCurrency", "")
-                            product["stock_status"] = offers.get("availability", "")
+                            # B6: stock/availability from single offer
+                            availability = offers.get("availability", "")
+                            if availability:
+                                product["stock_status"] = availability.split("/")[-1] if "/" in availability else availability
                         elif isinstance(offers, list) and offers:
                             product["price"] = offers[0].get("price", "")
                             product["currency"] = offers[0].get("priceCurrency", "")
+                            # B6: stock/availability from first offer in list
+                            availability = offers[0].get("availability", "")
+                            if availability:
+                                product["stock_status"] = availability.split("/")[-1] if "/" in availability else availability
+
+                        # B6: Extract variant data from hasVariant or offers array
+                        variants = []
+                        has_variant = item.get("hasVariant", [])
+                        if isinstance(has_variant, list):
+                            for v in has_variant:
+                                if not isinstance(v, dict):
+                                    continue
+                                variant: dict = {}
+                                if v.get("name"):
+                                    variant["name"] = v["name"]
+                                if v.get("color"):
+                                    variant["color"] = v["color"]
+                                if v.get("size"):
+                                    variant["size"] = v["size"]
+                                v_offers = v.get("offers", {})
+                                if isinstance(v_offers, dict) and v_offers.get("price"):
+                                    variant["price"] = v_offers["price"]
+                                    v_avail = v_offers.get("availability", "")
+                                    if v_avail:
+                                        variant["stock_status"] = v_avail.split("/")[-1] if "/" in v_avail else v_avail
+                                if variant:
+                                    variants.append(variant)
+
+                        # Also extract size/color variants from offers list when multiple offers exist
+                        if not variants and isinstance(offers, list) and len(offers) > 1:
+                            for o in offers:
+                                if not isinstance(o, dict):
+                                    continue
+                                variant = {}
+                                if o.get("name"):
+                                    variant["name"] = o["name"]
+                                if o.get("color"):
+                                    variant["color"] = o["color"]
+                                if o.get("size"):
+                                    variant["size"] = o["size"]
+                                if o.get("price"):
+                                    variant["price"] = o["price"]
+                                o_avail = o.get("availability", "")
+                                if o_avail:
+                                    variant["stock_status"] = o_avail.split("/")[-1] if "/" in o_avail else o_avail
+                                if variant:
+                                    variants.append(variant)
+
+                        if variants:
+                            product["variants"] = variants
 
                         # Extract rating
                         rating = item.get("aggregateRating", {})

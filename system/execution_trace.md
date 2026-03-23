@@ -749,3 +749,35 @@
   - **Test suite:** 706 passed, 0 failed
 - **Blockers found:** Env proxy blocks outbound browser requests to external sites
 - **Next action:** Live external site testing when proxy restrictions lifted
+
+## Work Cycle — QA Session 5: Skip Resolution 2026-03-23
+
+- **Timestamp:** 2026-03-23
+- **Active Task IDs:** QA-027, QA-028
+- **What was read before action:** All 52 skipped items categorized into 3 groups (testable/implementable/blocked)
+- **Action taken:** Resolved 25 skipped items — 11 via better tests (Group A), 14 via feature implementation (Group B)
+- **Why:** Maximize QA coverage by fixing all skips that don't require external services
+- **Group A tests (no code changes needed):**
+  - UC-7.2.1-2: Infinite scroll (10→60 items, max_scrolls configurable)
+  - UC-7.3.2: Multi Load More (3 rounds, button auto-hides)
+  - UC-7.4.1: AJAX pagination (3 pages, 6 items)
+  - UC-13.1.4-5: Sticky/random proxy selection verified
+  - UC-14.1.4: Session TTL expiry (25h → expired → cleanup)
+  - UC-15.1.2-3: Token bucket refill + per-policy limits
+  - UC-8.4.4, 12.1.3, 18.2.2: Escalation history + scheduler + reason logging
+- **Group B implementations (6 features):**
+  - B1: Policy preferred_lane override in router (LanePreference enum)
+  - B2: Custom CSS selectors from policy in DeterministicProvider
+  - B3: HTTP pagination (follows next links, aggregates results, max_pages)
+  - B4: Retry-After header + WooCommerce/RSS detection in router
+  - B5: Artifact storage (html_snapshot + artifacts metadata list)
+  - B6: Variant extraction (color/size) + stock status from JSON-LD
+- **Code changes:**
+  - `packages/core/router.py`: +39 lines (preferred_lane, WooCommerce, RSS)
+  - `packages/core/ai_providers/deterministic.py`: +113 lines (custom selectors, variants, stock)
+  - `services/worker-http/worker.py`: +147 lines (pagination, Retry-After, artifacts)
+- **Outputs produced:**
+  - **QA totals:** 157 pass (up from 124), 36 skip (down from 52), 5 fixed
+  - **Test suite:** 706 passed, 0 failed
+- **Blockers found:** 36 remaining skips all need live external services
+- **Next action:** None within current env — all fixable items resolved
