@@ -18,7 +18,7 @@ from typing import AsyncGenerator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from services.control_plane.routers import health, tasks, policies, results, execution, metrics, schedules  # noqa: E402 — uses symlink
+from services.control_plane.routers import health, tasks, policies, results, execution, metrics, schedules, billing  # noqa: E402 — uses symlink
 from services.control_plane.middleware.metrics import MetricsMiddleware
 from services.control_plane.middleware.rate_limit import RateLimitMiddleware
 from services.control_plane.middleware.quota import QuotaMiddleware
@@ -126,6 +126,7 @@ def create_app() -> FastAPI:
     app.include_router(results.router, prefix="/api/v1", tags=["Results"])
     app.include_router(execution.router, prefix="/api/v1", tags=["Execution"])
     app.include_router(schedules.router, prefix="/api/v1", tags=["Schedules"])
+    app.include_router(billing.router, prefix="/api/v1", tags=["Billing"])
     if _auth_available:
         app.include_router(auth_router.router, prefix="/api/v1", tags=["Auth"])
 
