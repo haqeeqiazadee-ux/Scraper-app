@@ -121,3 +121,99 @@ These verify the deployed services are alive and connected.
 ### 5.2 Routing with Policy
 - [ ] **UC-5.2.1** — Task with policy.preferred_lane set → routed to that lane
 - [ ] **UC-5.2.2** — Task without policy → default routing logic applies (HTTP first)
+
+---
+
+## Phase 6: HTTP Lane — Static Site Scraping
+
+Real scraping tests against actual websites (lightweight, no JS needed).
+
+### 6.1 Simple Static HTML
+- [ ] **UC-6.1.1** — Scrape `https://httpbin.org/html` → returns extracted text content
+- [ ] **UC-6.1.2** — Scrape `https://books.toscrape.com/` → extracts book titles + prices
+- [ ] **UC-6.1.3** — Scrape `https://quotes.toscrape.com/` → extracts quotes + authors
+
+### 6.2 JSON-LD / Structured Data (Schema.org)
+- [ ] **UC-6.2.1** — Scrape a page with JSON-LD product schema → extraction uses `extruct` path
+- [ ] **UC-6.2.2** — Extracted fields match schema.org Product (name, price, image, description)
+- [ ] **UC-6.2.3** — Confidence score is high (>0.8) for structured data extraction
+
+### 6.3 CSS Selector Extraction
+- [ ] **UC-6.3.1** — Create policy with custom CSS selectors → extraction uses those selectors
+- [ ] **UC-6.3.2** — Fallback: JSON-LD fails → CSS selector extraction runs
+- [ ] **UC-6.3.3** — Multiple items extracted from list/grid pages
+
+### 6.4 Pagination (Static)
+- [ ] **UC-6.4.1** — Scrape `https://books.toscrape.com/catalogue/page-1.html` → gets page 1 results
+- [ ] **UC-6.4.2** — Multi-page scrape → follows next-page links → aggregates results
+
+### 6.5 HTTP Stealth Headers
+- [ ] **UC-6.5.1** — Request includes realistic User-Agent header
+- [ ] **UC-6.5.2** — Request includes Accept, Accept-Language, Accept-Encoding headers
+- [ ] **UC-6.5.3** — Headers rotate between requests (not same UA every time)
+
+### 6.6 Error Handling (HTTP Lane)
+- [ ] **UC-6.6.1** — Target returns 404 → task status = `failed`, error recorded
+- [ ] **UC-6.6.2** — Target returns 500 → retry logic kicks in (up to retry_policy max)
+- [ ] **UC-6.6.3** — Target unreachable (DNS fail) → task fails with clear error message
+- [ ] **UC-6.6.4** — Target returns empty body → extraction reports 0 items, low confidence
+
+---
+
+## Phase 7: Browser Lane — JavaScript-Rendered Sites
+
+Sites that require a real browser (Playwright) to render content.
+
+### 7.1 JS-Rendered Content
+- [ ] **UC-7.1.1** — Scrape a SPA (Single Page App) → browser renders JS → content extracted
+- [ ] **UC-7.1.2** — Content not in initial HTML but appears after JS execution → extracted correctly
+
+### 7.2 Infinite Scroll
+- [ ] **UC-7.2.1** — Page with infinite scroll → browser scrolls down → loads more items → all extracted
+- [ ] **UC-7.2.2** — Scroll stops after configurable max items or max scroll attempts
+
+### 7.3 Click-to-Load / "Load More" Buttons
+- [ ] **UC-7.3.1** — Page with "Load More" button → browser clicks it → additional items extracted
+- [ ] **UC-7.3.2** — Multiple rounds of "Load More" → accumulates all items
+
+### 7.4 AJAX Pagination
+- [ ] **UC-7.4.1** — Page with AJAX-powered pagination → browser clicks page 2, 3... → items from all pages
+- [ ] **UC-7.4.2** — Tab switching / dynamic content loading handled
+
+### 7.5 Lazy-Loaded Images
+- [ ] **UC-7.5.1** — Images with `loading="lazy"` → browser scrolls to trigger load → image URLs captured
+
+### 7.6 Browser Screenshots
+- [ ] **UC-7.6.1** — Browser task with screenshot option → PNG artifact stored
+- [ ] **UC-7.6.2** — Screenshot downloadable via artifact API
+
+### 7.7 Error Handling (Browser Lane)
+- [ ] **UC-7.7.1** — Page hangs (timeout) → browser task fails with timeout error
+- [ ] **UC-7.7.2** — Page crashes browser tab → graceful recovery, task marked failed
+
+---
+
+## Phase 8: Hard-Target Lane — Anti-Bot Protected Sites
+
+Sites with aggressive bot protection (Cloudflare, DataDome, etc.).
+
+### 8.1 Stealth Browser with Fingerprint Rotation
+- [ ] **UC-8.1.1** — Hard-target task uses randomized browser fingerprints
+- [ ] **UC-8.1.2** — Each request has different viewport, fonts, WebGL hash
+- [ ] **UC-8.1.3** — Navigator properties don't leak automation signals
+
+### 8.2 Residential Proxy Escalation
+- [ ] **UC-8.2.1** — Browser blocked by anti-bot → escalates to residential proxy
+- [ ] **UC-8.2.2** — Proxy rotation happens between requests
+
+### 8.3 CAPTCHA Detection & Solving
+- [ ] **UC-8.3.1** — CAPTCHA detected in response HTML → CAPTCHA adapter invoked
+- [ ] **UC-8.3.2** — reCAPTCHA v2 challenge → solved via configured solver → page retried
+- [ ] **UC-8.3.3** — CAPTCHA solve fails → tries next solver → tries different proxy → abandons
+- [ ] **UC-8.3.4** — CAPTCHA cost tracked per solve event
+
+### 8.4 Lane Escalation Chain
+- [ ] **UC-8.4.1** — HTTP lane fails (403) → auto-escalates to browser lane
+- [ ] **UC-8.4.2** — Browser lane fails (anti-bot) → auto-escalates to hard-target lane
+- [ ] **UC-8.4.3** — Escalation depth respects max (default 3)
+- [ ] **UC-8.4.4** — Escalation history visible in run records
