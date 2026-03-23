@@ -31,8 +31,11 @@ class TaskModel(Base):
 
     id = Column(String(36), primary_key=True, default=gen_uuid)
     tenant_id = Column(String(255), nullable=False, index=True)
+    name = Column(String(255), nullable=False, default="")
     url = Column(Text, nullable=False)
     task_type = Column(String(50), nullable=False, default="scrape")
+    extraction_type = Column(String(50), nullable=False, default="auto")
+    selectors = Column(JSON, nullable=False, default=list)
     policy_id = Column(String(36), nullable=True)
     priority = Column(Integer, nullable=False, default=5)
     schedule = Column(String(255), nullable=True)

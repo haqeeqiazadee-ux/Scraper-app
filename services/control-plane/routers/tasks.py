@@ -26,8 +26,11 @@ async def create_task(
     task = await repo.create(
         tenant_id=tenant_id,
         id=task_id,
+        name=task_input.name,
         url=str(task_input.url),
         task_type=task_input.task_type.value,
+        extraction_type=task_input.extraction_type.value if task_input.extraction_type else "auto",
+        selectors=task_input.selectors or [],
         policy_id=str(task_input.policy_id) if task_input.policy_id else None,
         priority=task_input.priority,
         schedule=task_input.schedule,
@@ -35,15 +38,7 @@ async def create_task(
         metadata_json=task_input.metadata,
         status=TaskStatus.PENDING.value,
     )
-    return {
-        "id": task.id,
-        "tenant_id": task.tenant_id,
-        "url": task.url,
-        "task_type": task.task_type,
-        "priority": task.priority,
-        "status": task.status,
-        "created_at": task.created_at.isoformat() if task.created_at else None,
-    }
+    return _task_dict(task)
 
 
 @router.get("/tasks/{task_id}")
@@ -57,20 +52,7 @@ async def get_task(
     task = await repo.get(task_id, tenant_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
-    return {
-        "id": task.id,
-        "tenant_id": task.tenant_id,
-        "url": task.url,
-        "task_type": task.task_type,
-        "policy_id": task.policy_id,
-        "priority": task.priority,
-        "schedule": task.schedule,
-        "callback_url": task.callback_url,
-        "metadata": task.metadata_json,
-        "status": task.status,
-        "created_at": task.created_at.isoformat() if task.created_at else None,
-        "updated_at": task.updated_at.isoformat() if task.updated_at else None,
-    }
+    return _task_dict(task)
 
 
 @router.get("/tasks")
@@ -85,17 +67,7 @@ async def list_tasks(
     repo = TaskRepository(session)
     tasks, total = await repo.list(tenant_id, status=status, limit=limit, offset=offset)
     return {
-        "items": [
-            {
-                "id": t.id,
-                "url": t.url,
-                "task_type": t.task_type,
-                "priority": t.priority,
-                "status": t.status,
-                "created_at": t.created_at.isoformat() if t.created_at else None,
-            }
-            for t in tasks
-        ],
+        "items": [_task_list_dict(t) for t in tasks],
         "total": total,
         "limit": limit,
         "offset": offset,
@@ -115,17 +87,28 @@ async def update_task(
     # Convert enums to strings for DB
     if "status" in update_data and update_data["status"]:
         update_data["status"] = update_data["status"].value
+    if "extraction_type" in update_data and update_data["extraction_type"]:
+        update_data["extraction_type"] = update_data["extraction_type"].value
+    if "url" in update_data and update_data["url"]:
+        update_data["url"] = str(update_data["url"])
 
     task = await repo.update(task_id, tenant_id, **update_data)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
-    return {
-        "id": task.id,
-        "url": task.url,
-        "status": task.status,
-        "priority": task.priority,
-        "updated_at": task.updated_at.isoformat() if task.updated_at else None,
-    }
+    return _task_dict(task)
+
+
+@router.delete("/tasks/{task_id}", status_code=204)
+async def delete_task(
+    task_id: str,
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
+) -> None:
+    """Delete a task."""
+    repo = TaskRepository(session)
+    deleted = await repo.delete(task_id, tenant_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Task not found")
 
 
 @router.post("/tasks/{task_id}/cancel")
@@ -145,3 +128,42 @@ async def cancel_task(
 
     task = await repo.update(task_id, tenant_id, status="cancelled")
     return {"id": task.id, "status": task.status}
+
+
+def _task_dict(task) -> dict:
+    """Full task representation."""
+    return {
+        "id": task.id,
+        "tenant_id": task.tenant_id,
+        "name": task.name or "",
+        "url": task.url,
+        "task_type": task.task_type,
+        "extraction_type": task.extraction_type or "auto",
+        "selectors": task.selectors or [],
+        "policy_id": task.policy_id,
+        "priority": task.priority,
+        "schedule": task.schedule,
+        "callback_url": task.callback_url,
+        "metadata": task.metadata_json,
+        "status": task.status,
+        "last_run": None,
+        "next_run": None,
+        "created_at": task.created_at.isoformat() if task.created_at else None,
+        "updated_at": task.updated_at.isoformat() if task.updated_at else None,
+    }
+
+
+def _task_list_dict(task) -> dict:
+    """Summary task for list view."""
+    return {
+        "id": task.id,
+        "name": task.name or "",
+        "url": task.url,
+        "task_type": task.task_type,
+        "extraction_type": task.extraction_type or "auto",
+        "priority": task.priority,
+        "status": task.status,
+        "last_run": None,
+        "next_run": None,
+        "created_at": task.created_at.isoformat() if task.created_at else None,
+    }
