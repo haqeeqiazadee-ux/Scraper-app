@@ -141,6 +141,7 @@ class HardTargetWorker:
         backoff_base: float = 2.0,
         backoff_max: float = 60.0,
         human_delay_range: tuple[float, float] = (0.5, 2.5),
+        executable_path: Optional[str] = None,
     ) -> None:
         self._proxy_adapter = proxy_adapter
         self._captcha_adapter = captcha_adapter
@@ -149,6 +150,7 @@ class HardTargetWorker:
         self._backoff_base = backoff_base
         self._backoff_max = backoff_max
         self._human_delay_range = human_delay_range
+        self._executable_path = executable_path
         self._metrics = ConnectorMetrics()
 
         # Lazy-initialised Playwright resources
@@ -166,13 +168,16 @@ class HardTargetWorker:
             from playwright.async_api import async_playwright
 
             self._playwright = await async_playwright().start()
-            self._browser = await self._playwright.chromium.launch(
-                headless=self._headless,
-                args=[
+            launch_args: dict[str, Any] = {
+                "headless": self._headless,
+                "args": [
                     "--disable-blink-features=AutomationControlled",
                     "--no-sandbox",
                 ],
-            )
+            }
+            if self._executable_path:
+                launch_args["executable_path"] = self._executable_path
+            self._browser = await self._playwright.chromium.launch(**launch_args)
 
     async def close(self) -> None:
         """Release browser and Playwright resources."""

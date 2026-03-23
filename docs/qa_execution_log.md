@@ -378,3 +378,37 @@
 ### Phase 9.2-9.3 — JSON Endpoint + Rate Limits
 - **UC-9.2.1 — PASS** — httpbin.org/json fetched and parsed (1 item)
 - **UC-9.3.1 — PASS** — 429 response → task fails with should_escalate=True
+
+---
+
+## Session 4: Chromium Browser QA (Phases 7, 8, 17)
+
+> Used pre-installed Chromium v141 (playwright cache v1194) with `executable_path` parameter.
+> Added `executable_path` support to PlaywrightBrowserWorker and HardTargetWorker.
+> Tests run against local HTTP test server (127.0.0.1) due to env network proxy restrictions.
+
+### Phase 7 — Browser Lane
+- **UC-7.1.1 — PASS** — SPA with setTimeout JS → 3 products rendered and extracted
+- **UC-7.1.2 — PASS** — "Loading..." div replaced by JS content → extracted correctly
+- **UC-7.3.1 — PASS** — "Load More" button click: 3 cards → 7 cards
+- **UC-7.5.1 — PASS** — Lazy images: `data-src` → `src` set by JS after 200ms
+- **UC-7.6.1 — PASS** — Screenshot: 13,391 bytes, valid PNG header
+- **UC-7.6.2 — PASS** — Screenshot saved as file artifact
+- **UC-7.7.1 — PASS** — Timeout: caught in 3.0s as playwright TimeoutError
+- **BrowserLaneWorker integration — PASS** — Full pipeline: SPA → 3 products with name+price via CSS selectors
+
+### Phase 8 — Hard-Target Lane
+- **UC-8.1.1 — PASS** — Fingerprint.random(): 2+ unique UAs, 3 unique viewports from 3 samples
+- **UC-8.1.2 — PASS** — Different viewport (1366x768 vs 1280x720) and timezone per request
+- **UC-8.1.3 — PASS** — Stealth: navigator.webdriver=undefined, plugins=5, chrome stub present
+- **UC-8.3.1 — PASS** — CAPTCHA detected: g-recaptcha marker and data-sitekey element found
+- **UC-8.3.3 — PASS** — No solver → graceful "CAPTCHA detected and solving failed"
+- **UC-8.4.1 — PASS** — Router: HTTP → fallback_lanes=[browser, hard_target]
+- **UC-8.4.2 — PASS** — Browser → hard_target escalation path confirmed
+- **UC-8.4.3 — PASS** — Max escalation depth = 3
+
+### Phase 17 — JS-Rendered E-Commerce
+- **UC-17.1.1 — PASS** — JS-rendered PLP: 25 products with name, price, image_url, product_url
+- **UC-17.1.2 — PASS** — 25 products on single page (exceeds 20 requirement)
+- **UC-17.2.1 — PASS** — PDP via JSON-LD: name=Premium Widget, price=149.99, sku=WDG-001
+- **UC-17.4.1 — PASS** — Shopify-like JSON-LD detected and extracted

@@ -729,3 +729,23 @@
   - **Test suite:** 706 passed, 0 failed (unchanged)
 - **Blockers found:** Chromium download fails in this env → Phase 7, 8, 17.1-17.5 blocked
 - **Next action:** Phase 7/8 when Chromium is available
+
+## Work Cycle — QA Session 4: Chromium Browser Testing 2026-03-23
+
+- **Timestamp:** 2026-03-23
+- **Active Task IDs:** QA-020, QA-021, QA-022
+- **What was read before action:** system/todo.md, system/lessons.md, browser_worker.py, hard_target_worker.py, qa_strategy.md
+- **Action taken:** Chromium-dependent QA — Phases 7, 8, 17 with pre-installed Chromium v1194
+- **Why:** Previously blocked by Chromium download; discovered v1194 in Playwright cache
+- **Code changes:**
+  - `packages/connectors/browser_worker.py`: Added `executable_path` parameter to PlaywrightBrowserWorker
+  - `packages/connectors/hard_target_worker.py`: Added `executable_path` parameter to HardTargetWorker
+- **Outputs produced:**
+  - **Phase 7 (Browser Lane):** 7 pass, 5 skip — SPA rendering, Load More, lazy images, screenshots, timeout handling
+  - **Phase 8 (Hard-Target):** 8 pass, 5 skip — stealth JS patches, fingerprint randomization, CAPTCHA detection, escalation chain
+  - **Phase 17 (E-Commerce):** 6 pass, 9 skip — 25-item PLP, PDP with JSON-LD, Shopify detection
+  - Tests run against local HTTP server (env proxy blocks external sites)
+  - **QA totals:** 124 pass, 52 skip, 5 fixed
+  - **Test suite:** 706 passed, 0 failed
+- **Blockers found:** Env proxy blocks outbound browser requests to external sites
+- **Next action:** Live external site testing when proxy restrictions lifted
