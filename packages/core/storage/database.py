@@ -16,11 +16,19 @@ class Database:
 
     def __init__(self, url: str = "sqlite+aiosqlite:///./scraper.db") -> None:
         self._url = url
-        self._engine = create_async_engine(
-            url,
-            echo=False,
-            pool_pre_ping=True,
-        )
+
+        # Build engine kwargs
+        engine_kwargs: dict = {
+            "echo": False,
+            "pool_pre_ping": True,
+        }
+
+        # Supabase pooler (port 6543) uses pgbouncer in transaction mode.
+        # asyncpg prepared statements are incompatible — disable the cache.
+        if "asyncpg" in url and ":6543" in url:
+            engine_kwargs["connect_args"] = {"prepared_statement_cache_size": 0}
+
+        self._engine = create_async_engine(url, **engine_kwargs)
         self._session_factory = async_sessionmaker(
             self._engine,
             class_=AsyncSession,
