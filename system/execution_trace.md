@@ -685,3 +685,26 @@
 - **Blockers found:** None
 - **Next action:** All work complete
 
+## Work Cycle — QA Session 2026-03-23
+
+- **Timestamp:** 2026-03-23
+- **Active Task IDs:** QA-001 through QA-010
+- **What was read before action:** CLAUDE.md, qa_strategy.md, todo.md, lessons.md, execution_trace.md
+- **Action taken:** Use-case-based QA testing — Phases 1-6, 11-12, 15-16
+- **Why:** Validate platform against real user scenarios before production deployment
+- **Outputs produced:**
+  - **5 code fixes:**
+    1. `/ready` endpoint: treat "not_configured" as acceptable (health.py)
+    2. Auth token: reject empty username/password (auth.py)
+    3. CSS selector extraction: BeautifulSoup-based multi-item extraction (deterministic.py)
+    4. Brotli decompression: added brotli dependency (requirements.txt)
+    5. HTTP worker escalation: 404 no longer triggers escalation (worker.py)
+  - **3 new features:**
+    1. POST /api/v1/results — store extraction results
+    2. GET /api/v1/tasks/{id}/export/json|csv|xlsx — export endpoints
+    3. ResultCreateRequest schema for result ingestion
+  - **1 test fix:** test_task.py policy_id UUID → str
+  - **QA results:** 62 use cases passed, 25 skipped (frontend/external deps), 5 fixed
+  - **Test suite:** 706 passed, 0 failed (up from 686)
+- **Blockers found:** Frontend tests require browser environment; Phase 7-10 require external services
+- **Next action:** Phase 7+ QA when Playwright/proxy/AI services are available
