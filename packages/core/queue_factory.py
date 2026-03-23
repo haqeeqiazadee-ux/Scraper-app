@@ -43,8 +43,17 @@ def create_queue(
     backend = backend or os.environ.get("QUEUE_BACKEND", "memory")
 
     if backend == "redis":
-        logger.info("Using Redis queue backend")
-        return RedisQueue(redis_url=redis_url, max_retries=max_retries)
+        # Resolve the actual Redis URL
+        effective_url = redis_url or os.environ.get("REDIS_URL", "")
+        # Fall back to in-memory if URL is empty or an unresolved template variable
+        if not effective_url or effective_url.startswith("${{"):
+            logger.warning(
+                "Redis backend requested but REDIS_URL is empty or unresolved — "
+                "falling back to in-memory queue"
+            )
+        else:
+            logger.info("Using Redis queue backend")
+            return RedisQueue(redis_url=redis_url, max_retries=max_retries)
 
     logger.info("Using in-memory queue backend")
     return InMemoryQueue()
@@ -70,8 +79,15 @@ def create_cache(
     backend = backend or os.environ.get("QUEUE_BACKEND", "memory")
 
     if backend == "redis":
-        logger.info("Using Redis cache backend")
-        return RedisCache(redis_url=redis_url, key_prefix=key_prefix)
+        effective_url = redis_url or os.environ.get("REDIS_URL", "")
+        if not effective_url or effective_url.startswith("${{"):
+            logger.warning(
+                "Redis backend requested but REDIS_URL is empty or unresolved — "
+                "falling back to in-memory cache"
+            )
+        else:
+            logger.info("Using Redis cache backend")
+            return RedisCache(redis_url=redis_url, key_prefix=key_prefix)
 
     logger.info("Using in-memory cache backend")
     return InMemoryCache()
