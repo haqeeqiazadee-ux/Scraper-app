@@ -1,0 +1,23 @@
+# =============================================================================
+# Railway Configuration — AI Scraping Platform Backend
+# =============================================================================
+# Deploys the FastAPI control plane + workers on Railway
+#
+# Railway Setup:
+#   1. Create a new project on Railway
+#   2. Add a Redis plugin (provides REDIS_URL automatically)
+#   3. Connect this GitHub repo
+#   4. Set DATABASE_URL to your Supabase connection string
+#   5. Railway auto-detects this config and deploys
+# =============================================================================
+
+[build]
+builder = "dockerfile"
+dockerfilePath = "infrastructure/docker/Dockerfile.railway"
+
+[deploy]
+startCommand = "uvicorn services.control_plane.app:app --host 0.0.0.0 --port $PORT"
+healthcheckPath = "/health"
+healthcheckTimeout = 30
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
