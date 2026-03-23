@@ -81,7 +81,16 @@
 - [x] **GAP-007:** Full test suite — 648 passed, 6 skipped, 0 failed
 - [x] **GAP-008:** Final commit and push
 
-## Final Test Status: 648 passed, 6 skipped, 0 failed
+## Completed — Production Readiness Improvements
+- [x] **PROD-001:** Alembic migrations setup — async env.py, initial migration for all 6 tables, app lifespan updated to use migrations for PostgreSQL
+
+## Final Test Status: 686 passed, 6 skipped, 0 failed
+
+## Remaining Production Gaps
+- [ ] **PROD-002:** Live AI provider integration (Gemini API end-to-end)
+- [ ] **PROD-003:** Load testing (locust/k6 scripts)
+- [ ] **PROD-004:** Fix 3 in-code TODOs (latency tracking, health check DB probe, CORS lockdown)
+- [ ] **PROD-005:** Grafana dashboards for Prometheus metrics
 
 ## Blocked
 (none)
@@ -89,5 +98,6 @@
 ## Summary
 - **Total original tasks:** 69/69 complete
 - **Gap closure tasks:** 8/8 complete
-- **Total tests:** 648 passed
-- **Platform completeness:** ~95% production-ready
+- **Production readiness tasks:** 1/5 complete
+- **Total tests:** 686 passed
+- **Platform completeness:** ~96% production-ready
