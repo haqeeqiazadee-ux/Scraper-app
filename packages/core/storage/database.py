@@ -6,9 +6,14 @@ Supports both PostgreSQL (asyncpg) and SQLite (aiosqlite).
 
 from __future__ import annotations
 
+import logging
+import ssl
+
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from packages.core.storage.models import Base
+
+logger = logging.getLogger(__name__)
 
 
 class Database:
@@ -23,10 +28,34 @@ class Database:
             "pool_pre_ping": True,
         }
 
-        # Supabase pooler (port 6543) uses pgbouncer in transaction mode.
-        # asyncpg prepared statements are incompatible — disable the cache.
-        if "asyncpg" in url and ":6543" in url:
-            engine_kwargs["connect_args"] = {"prepared_statement_cache_size": 0}
+        connect_args: dict = {}
+
+        if "asyncpg" in url:
+            # Supabase pooler (port 6543) uses pgbouncer in transaction mode.
+            # asyncpg prepared statements are incompatible — disable the cache.
+            if ":6543" in url:
+                connect_args["prepared_statement_cache_size"] = 0
+
+            # Supabase requires SSL for direct connections on port 5432.
+            # Create a permissive SSL context (Supabase uses self-signed certs
+            # behind their proxy, so we must not verify the certificate).
+            ssl_ctx = ssl.create_default_context()
+            ssl_ctx.check_hostname = False
+            ssl_ctx.verify_mode = ssl.CERT_NONE
+            connect_args["ssl"] = ssl_ctx
+
+            # Connection timeout — helps fail faster than the OS default
+            connect_args["timeout"] = 30
+
+            engine_kwargs["connect_args"] = connect_args
+
+            # Pool settings for cloud deployments
+            engine_kwargs["pool_size"] = 5
+            engine_kwargs["max_overflow"] = 10
+            engine_kwargs["pool_timeout"] = 30
+            engine_kwargs["pool_recycle"] = 300  # recycle connections every 5 min
+
+            logger.info("PostgreSQL engine configured with SSL and connection pooling")
 
         self._engine = create_async_engine(url, **engine_kwargs)
         self._session_factory = async_sessionmaker(
