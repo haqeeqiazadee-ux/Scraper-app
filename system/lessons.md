@@ -127,3 +127,9 @@
 55. **Python __pycache__ causes stale code** — When modifying Python files during testing, always clear `__pycache__` directories to ensure fresh imports. Otherwise, old bytecode can mask fixes.
 
 56. **Test against real sites early** — Unit tests with mocked responses don't catch real-world issues like Brotli encoding, HTML structure variations, or DNS resolution failures. Testing against books.toscrape.com and httpbin.org caught 3 bugs that unit tests missed.
+
+57. **Chunk complex QA into small, independent tests** — Breaking QA into 9 small chunks (extraction fallback, webhooks, proxy health, sessions, quotas, logging, e-commerce, JSON endpoints) prevents context overload and makes each failure easy to diagnose. Read system memory files first to avoid repeating work.
+
+58. **Weighted proxy selection > strict round-robin** — Using proxy health scores for weighted random selection naturally deprioritizes bad proxies without hard-removing them. A proxy with 10% success rate still gets 7% of traffic (not zero), allowing recovery detection.
+
+59. **Gemini API keys may be geo-restricted** — The Gemini API key returned 403 from this environment. AI provider fallback chains must always include a deterministic provider as the final option. Never depend on a single AI provider in production.

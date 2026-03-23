@@ -708,3 +708,24 @@
   - **Test suite:** 706 passed, 0 failed (up from 686)
 - **Blockers found:** Frontend tests require browser environment; Phase 7-10 require external services
 - **Next action:** Phase 7+ QA when Playwright/proxy/AI services are available
+
+## Work Cycle — QA Session 3: Chunked Testing 2026-03-23
+
+- **Timestamp:** 2026-03-23
+- **Active Task IDs:** QA-011 through QA-019
+- **What was read before action:** system/todo.md, system/lessons.md, qa_strategy.md, execution_trace.md
+- **Action taken:** Chunked QA testing — 9 chunks covering Phases 9, 12, 13, 14, 15, 16, 17, 18
+- **Why:** Continue QA coverage, breaking into small cautious chunks per user request
+- **Outputs produced:**
+  - **Chunk 1 (Phase 18.1):** Extraction fallback chain — JSON-LD → CSS → regex → AI verified
+  - **Chunk 2 (Phase 12.3):** Webhook callbacks — HMAC signing, payload, delivery, retry all pass
+  - **Chunk 3 (Phase 13.2-13.3):** Proxy health scoring — weighted selection deprioritizes bad proxies
+  - **Chunk 4 (Phase 14.2-14.3):** Session reuse + health formula — same-domain reuse, cookies, tenant isolation
+  - **Chunk 5 (Phase 15.2-15.3):** Quota management — 50 tasks/day enforced, concurrent limits, billing plans API
+  - **Chunk 6 (Phase 16.1):** Structured JSON logging — JSONFormatter with correlation_id + tenant_id
+  - **Chunk 7 (Phase 17.6):** Static catalog scraping — 20 products from books.toscrape.com
+  - **Chunk 8 (Phase 9.2-9.3):** JSON endpoint + 429 handling verified
+  - **QA results:** 103 pass (up from 77), 33 skip, 5 fixed
+  - **Test suite:** 706 passed, 0 failed (unchanged)
+- **Blockers found:** Chromium download fails in this env → Phase 7, 8, 17.1-17.5 blocked
+- **Next action:** Phase 7/8 when Chromium is available

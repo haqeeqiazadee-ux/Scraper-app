@@ -328,3 +328,53 @@
 ### UC-14.1.3 — Health scoring
 - **Status:** PASS
 - **Tested:** Health score drops with each failure: 1.0 → 0.7 → 0.6 → 0.55...
+
+---
+
+## Session 3: Chunked QA (Phases 9, 12, 13, 14, 15, 16, 17, 18)
+
+### Phase 18.1 — Extraction Fallback Chain
+- **UC-18.1.1 — PASS** — JSON-LD used first when present (Widget, $29.99)
+- **UC-18.1.2 — PASS** — CSS selectors used when no JSON-LD (2 book items)
+- **UC-18.1.3 — PASS** — Regex/basic extraction when no CSS cards (title tag)
+- **UC-18.1.4 — PASS** — Deterministic always returns something; AI is next in chain
+
+### Phase 12.3 — Webhook Callbacks
+- **UC-12.3.1 — PASS** — Webhook delivered to httpbin.org/post → 200
+- **UC-12.3.2 — PASS** — Payload has task_id, status, url, completed_at, result.item_count/confidence
+- **UC-12.3.3 — PASS** — HMAC-SHA256 signature verified (sha256=... in X-Webhook-Signature)
+- **UC-12.3.4 — PASS** — 500 response → 3 retries with exponential backoff (0.8s total)
+
+### Phase 13.2-13.3 — Proxy Health Scoring
+- **UC-13.2.1 — PASS** — 10/10 success → score=0.986 → 64% of traffic
+- **UC-13.2.2 — PASS** — 5/10 success → score=0.530 → 29% of traffic
+- **UC-13.2.3 — PASS** — 1/10 success → score=0.115 → 7% of traffic (deprioritized)
+- **UC-13.3.1 — PASS** — Cooldown mechanism: datacenter on cooldown → residential fallback
+
+### Phase 14.2-14.3 — Session Reuse + Health
+- **UC-14.2.1 — PASS** — Same domain returns same session (ID match)
+- **UC-14.2.2 — PASS** — Cookies persisted across reuse
+- **UC-14.3.1 — PASS** — Health formula: 1.0 → 0.55 after 3 failures
+- **UC-14.3.2 — PASS** — Stats via get_stats(): {total: 1, by_status: {degraded: 1}}
+- **Bonus: Tenant isolation confirmed** — different tenant cannot see session
+
+### Phase 15.2-15.3 — Quota Management
+- **UC-15.2.1 — PASS** — Free plan: 50 tasks/day, 51st → QuotaExceededError
+- **UC-15.2.2 — PASS** — Concurrent limits: free=2, starter=5, pro=20
+- **UC-15.2.3 — PASS** — AI token tracking: 500 tokens recorded
+- **UC-15.2.4 — PASS** — Storage quota: 50MB tracked
+- **UC-15.2.5 — PASS** — check_quota() returns status, usage, exceeded/warning lists
+- **UC-15.3.1 — PASS** — /api/v1/billing/plans returns 4 tiers with pricing
+
+### Phase 16.1 — Structured Logging
+- **UC-16.1.1 — PASS** — JSONFormatter outputs: timestamp, level, service, logger, message
+- **UC-16.1.2 — PASS** — correlation_id in log records
+- **UC-16.1.3 — PASS** — tenant_id + task_id in log records
+
+### Phase 17.6 — Static Catalog E-Commerce
+- **UC-17.6.1 — PASS** — books.toscrape.com → 20 products with name+price via HTTP lane
+- **UC-17.6.2 — PASS** — Product detail page extracted (deterministic method)
+
+### Phase 9.2-9.3 — JSON Endpoint + Rate Limits
+- **UC-9.2.1 — PASS** — httpbin.org/json fetched and parsed (1 item)
+- **UC-9.3.1 — PASS** — 429 response → task fails with should_escalate=True

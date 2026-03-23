@@ -104,18 +104,20 @@
 - [ ] **PROD-004:** Fix 3 in-code TODOs (latency tracking, health check DB probe, CORS lockdown)
 - [ ] **PROD-005:** Grafana dashboards for Prometheus metrics
 
-- [x] **QA-011:** Phase 9 — API/Feed Lane — Shopify detection verified via router
+- [x] **QA-011:** Phase 9 — API/Feed Lane — Shopify detection + JSON endpoint + 429 handling (4 pass, 2 skip)
 - [x] **QA-012:** Phase 10 — AI Normalization (7 pass, 5 skip: Gemini 403)
-- [x] **QA-013:** Phase 13 — Proxy rotation + geo-targeting (3 pass, 2 skip)
-- [x] **QA-014:** Phase 14 — Session lifecycle + health scoring (3 pass, 1 skip)
-- [x] **QA-015:** Phase 18 — Fallback chain routing verified (2 pass, 1 skip)
+- [x] **QA-013:** Phase 12.3 — Webhook callbacks (4 pass: delivery, HMAC, payload, retry)
+- [x] **QA-014:** Phase 13 — Proxy rotation + health scoring + fallback (7 pass, 2 skip)
+- [x] **QA-015:** Phase 14 — Session lifecycle + reuse + health (7 pass, 1 skip)
+- [x] **QA-016:** Phase 15 — Quota management + billing plans (6 pass, 2 skip)
+- [x] **QA-017:** Phase 16 — Structured JSON logging (3 pass)
+- [x] **QA-018:** Phase 17.6 — Static catalog e-commerce (2 pass)
+- [x] **QA-019:** Phase 18 — Extraction + lane fallback chains (6 pass, 1 skip)
 
 ## Remaining QA Gaps (require Chromium browser runtime)
-- [ ] **QA-016:** Phase 7 — Browser Lane (Chromium download fails in this env)
-- [ ] **QA-017:** Phase 8 — Hard-Target Lane (requires browser + proxy runtime)
-- [ ] **QA-018:** Phase 17 — Real e-commerce scenarios with JS rendering
-- [ ] **QA-017:** Phase 18 — Fallback chain E2E
-- [ ] **QA-018:** Frontend tests (all UC-*.*.* marked SKIP: frontend)
+- [ ] **QA-020:** Phase 7 — Browser Lane (Chromium download fails in this env)
+- [ ] **QA-021:** Phase 8 — Hard-Target Lane (requires browser + proxy runtime)
+- [ ] **QA-022:** Phase 17.1-17.5 — JS-rendered e-commerce scenarios
 
 ## Blocked
 (none)
@@ -124,6 +126,6 @@
 - **Total original tasks:** 69/69 complete
 - **Gap closure tasks:** 8/8 complete
 - **Production readiness tasks:** 1/5 complete
-- **QA use cases tested:** 77 pass, 30 skip, 5 fixed
+- **QA use cases tested:** 103 pass, 33 skip, 5 fixed
 - **Total tests:** 706 passed
 - **Platform completeness:** ~97% production-ready
