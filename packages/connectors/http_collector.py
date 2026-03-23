@@ -42,6 +42,7 @@ class HttpCollector:
     def __init__(self, proxy: Optional[str] = None) -> None:
         self._proxy = proxy
         self._metrics = ConnectorMetrics()
+        self._latency_samples: list[int] = []
         self._client = None
 
     async def _get_client(self):  # type: ignore[no-untyped-def]
@@ -77,6 +78,8 @@ class HttpCollector:
             )
 
             self._metrics.successful_requests += 1
+            elapsed_ms = int(response.elapsed.total_seconds() * 1000) if response.elapsed else 0
+            self._latency_samples.append(elapsed_ms)
             text = response.text
             return FetchResponse(
                 url=str(response.url),
@@ -86,7 +89,7 @@ class HttpCollector:
                 body=response.content,
                 text=text,
                 html=text,
-                elapsed_ms=int(response.elapsed.total_seconds() * 1000) if response.elapsed else 0,
+                elapsed_ms=elapsed_ms,
             )
         except Exception as e:
             self._metrics.failed_requests += 1
@@ -110,7 +113,7 @@ class HttpCollector:
     def get_metrics(self) -> ConnectorMetrics:
         """Return current metrics."""
         if self._metrics.total_requests > 0:
-            self._metrics.avg_latency_ms = 0  # TODO: track actual latency
+            self._metrics.avg_latency_ms = sum(self._latency_samples) / len(self._latency_samples) if self._latency_samples else 0
         return self._metrics
 
     async def close(self) -> None:

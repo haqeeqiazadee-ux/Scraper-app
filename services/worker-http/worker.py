@@ -171,6 +171,15 @@ class HttpWorker:
         # B3: Pagination — follow next-page links when requested
         paginate = task.get("paginate", False)
         max_pages = task.get("max_pages", 1)
+
+        # Auto-detect pagination when not explicitly set (UC-6.4.1-2)
+        if "paginate" not in task:
+            auto_next = _find_next_page_url(html, url)
+            if auto_next:
+                paginate = True
+                max_pages = task.get("max_pages", 10)  # default to 10 pages
+                logger.info("Pagination auto-detected", extra={"task_id": task_id, "next_url": auto_next})
+
         if paginate and max_pages > 1:
             current_url = url
             current_html = html

@@ -12,7 +12,7 @@ from fastapi import Depends, Header, HTTPException
 
 from packages.core.storage.database import Database
 from packages.core.storage.repositories import (
-    TaskRepository, PolicyRepository, RunRepository, ResultRepository,
+    TaskRepository, PolicyRepository, RunRepository, ResultRepository, ArtifactRepository,
 )
 
 # Global database instance — initialized during app startup
