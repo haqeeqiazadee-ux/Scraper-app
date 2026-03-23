@@ -217,3 +217,81 @@ Sites with aggressive bot protection (Cloudflare, DataDome, etc.).
 - [ ] **UC-8.4.2** — Browser lane fails (anti-bot) → auto-escalates to hard-target lane
 - [ ] **UC-8.4.3** — Escalation depth respects max (default 3)
 - [ ] **UC-8.4.4** — Escalation history visible in run records
+
+---
+
+## Phase 9: API / Feed Lane — Structured API Scraping
+
+Direct API calls for platforms with known APIs.
+
+### 9.1 Known Platform APIs
+- [ ] **UC-9.1.1** — Shopify store URL → API lane detects Shopify → uses products.json API
+- [ ] **UC-9.1.2** — WooCommerce store URL → API lane uses WC REST API
+- [ ] **UC-9.1.3** — RSS feed URL → API lane parses feed → returns structured items
+
+### 9.2 JSON Endpoint Scraping
+- [ ] **UC-9.2.1** — Direct JSON API endpoint → fetches and parses JSON response
+- [ ] **UC-9.2.2** — API with pagination → follows next page tokens → aggregates all items
+
+### 9.3 API Rate Limit Awareness
+- [ ] **UC-9.3.1** — API returns `429 Too Many Requests` → backs off and retries
+- [ ] **UC-9.3.2** — Respects `Retry-After` header if present
+
+---
+
+## Phase 10: AI Normalization & Repair
+
+AI processes raw extraction results for quality improvement.
+
+### 10.1 Schema Normalization
+- [ ] **UC-10.1.1** — Raw data with "cost" field → AI normalizes to "price"
+- [ ] **UC-10.1.2** — Raw data with "product_name" → normalized to "name"
+- [ ] **UC-10.1.3** — Mixed currency formats ("$19.99", "19,99 EUR") → normalized to consistent format
+
+### 10.2 Data Repair
+- [ ] **UC-10.2.1** — Truncated product title → AI infers/repairs full title
+- [ ] **UC-10.2.2** — Missing currency → AI infers from domain/locale
+- [ ] **UC-10.2.3** — HTML artifacts in text fields → cleaned by AI
+
+### 10.3 Deduplication
+- [ ] **UC-10.3.1** — Same product from two runs → detected as duplicate
+- [ ] **UC-10.3.2** — Exact SKU match → merged into single record
+- [ ] **UC-10.3.3** — Fuzzy name match (similar titles) → flagged with similarity score
+
+### 10.4 AI Provider Fallback
+- [ ] **UC-10.4.1** — Primary AI provider (Gemini) fails → falls back to secondary (OpenAI)
+- [ ] **UC-10.4.2** — All AI providers fail → deterministic fallback (no AI) still produces result
+- [ ] **UC-10.4.3** — AI token usage tracked per request
+
+### 10.5 Confidence Scoring
+- [ ] **UC-10.5.1** — JSON-LD extraction → confidence > 0.8
+- [ ] **UC-10.5.2** — CSS selector extraction → confidence 0.5-0.8
+- [ ] **UC-10.5.3** — AI-only extraction → confidence varies, recorded accurately
+- [ ] **UC-10.5.4** — Low confidence (< threshold) → triggers AI normalization pass
+
+---
+
+## Phase 11: Results & Export
+
+### 11.1 View Results
+- [ ] **UC-11.1.1** — Navigate to Results page → list of extraction results shown
+- [ ] **UC-11.1.2** — Click a result → detail view shows extracted_data as table
+- [ ] **UC-11.1.3** — Result shows: item_count, confidence, extraction_method, normalization_applied
+
+### 11.2 Export to JSON
+- [ ] **UC-11.2.1** — Select results → Export as JSON → file downloads
+- [ ] **UC-11.2.2** — JSON file contains all extracted items with correct schema
+
+### 11.3 Export to CSV
+- [ ] **UC-11.3.1** — Select results → Export as CSV → file downloads
+- [ ] **UC-11.3.2** — CSV has proper headers, no data corruption
+
+### 11.4 Export to XLSX (Excel)
+- [ ] **UC-11.4.1** — Select results → Export as XLSX → file downloads
+- [ ] **UC-11.4.2** — Excel file opens correctly with formatted columns
+
+### 11.5 Artifact Storage
+- [ ] **UC-11.5.1** — HTML snapshot stored as artifact after scrape
+- [ ] **UC-11.5.2** — Screenshot (PNG) stored as artifact for browser tasks
+- [ ] **UC-11.5.3** — Export files stored as artifacts with correct MIME type
+- [ ] **UC-11.5.4** — Artifacts downloadable via API
