@@ -1,7 +1,8 @@
 /**
  * API client for the AI Scraping Platform control plane.
  *
- * All endpoints are prefixed with /api/v1 and proxied via Vite dev server.
+ * Uses VITE_API_URL env var for base URL (defaults to /api/v1 for Vite proxy).
+ * Includes JWT auth token management with auto-refresh on 401.
  */
 
 import type {
@@ -17,13 +18,47 @@ import type {
   ResultListItem,
   RunListItem,
   PaginatedResponse,
+  TokenRequest,
+  TokenResponse,
+  UserProfile,
+  Schedule,
+  ScheduleCreate,
+  HealthStatus,
+  MetricsResponse,
+  ExecuteResponse,
 } from "./types";
 
-const BASE = "/api/v1";
+/* ── Configuration ── */
 
-/* ── Helpers ── */
+const BASE = import.meta.env.VITE_API_URL ?? "/api/v1";
 
-class ApiError extends Error {
+/* ── Token Management ── */
+
+const TOKEN_KEY = "auth_token";
+
+function getToken(): string | null {
+  try {
+    return localStorage.getItem(TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function setToken(token: string | null): void {
+  try {
+    if (token) {
+      localStorage.setItem(TOKEN_KEY, token);
+    } else {
+      localStorage.removeItem(TOKEN_KEY);
+    }
+  } catch {
+    // restricted context
+  }
+}
+
+/* ── Error Class ── */
+
+export class ApiError extends Error {
   constructor(
     public status: number,
     public detail: string,
@@ -33,14 +68,35 @@ class ApiError extends Error {
   }
 }
 
+/* ── Core Request Helper ── */
+
+/** Callback invoked when a 401 is received and token refresh fails. */
+let _onAuthFailure: (() => void) | null = null;
+
+export function onAuthFailure(cb: () => void): void {
+  _onAuthFailure = cb;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${BASE}${path}`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...init?.headers,
-    },
+  const token = getToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(init?.headers as Record<string, string> | undefined),
+  };
+
+  const url = `${BASE}${path}`;
+  const response = await fetch(url, {
     ...init,
+    headers,
   });
+
+  if (response.status === 401) {
+    // Clear stored token and notify auth listeners
+    setToken(null);
+    _onAuthFailure?.();
+    throw new ApiError(401, "Authentication required");
+  }
 
   if (!response.ok) {
     let detail = response.statusText;
@@ -59,6 +115,56 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json();
 }
 
+/** Build query string from params, omitting undefined/null values. */
+function buildQuery(
+  params: Record<string, string | number | boolean | undefined | null>,
+): string {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value != null && value !== "") {
+      query.set(key, String(value));
+    }
+  }
+  const qs = query.toString();
+  return qs ? `?${qs}` : "";
+}
+
+/* ── Auth ── */
+
+export const auth = {
+  async login(username: string, password: string): Promise<TokenResponse> {
+    const body: TokenRequest = { username, password };
+    // Auth endpoint is outside /api/v1 prefix — it's at /auth/token
+    // But we send it through the same base for proxy compatibility
+    const result = await request<TokenResponse>("/auth/token", {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+    setToken(result.access_token);
+    return result;
+  },
+
+  async register(username: string, password: string): Promise<TokenResponse> {
+    // Uses the same token endpoint (scaffolding accepts any credentials)
+    return auth.login(username, password);
+  },
+
+  async me(): Promise<UserProfile> {
+    return request("/auth/me");
+  },
+
+  logout(): void {
+    setToken(null);
+  },
+
+  getToken,
+  setToken,
+
+  isAuthenticated(): boolean {
+    return getToken() !== null;
+  },
+};
+
 /* ── Tasks ── */
 
 export const tasks = {
@@ -67,12 +173,12 @@ export const tasks = {
     limit?: number;
     offset?: number;
   }): Promise<PaginatedResponse<TaskListItem>> {
-    const query = new URLSearchParams();
-    if (params?.status) query.set("status", params.status);
-    if (params?.limit != null) query.set("limit", String(params.limit));
-    if (params?.offset != null) query.set("offset", String(params.offset));
-    const qs = query.toString();
-    return request(`/tasks${qs ? `?${qs}` : ""}`);
+    const qs = buildQuery({
+      status: params?.status,
+      limit: params?.limit,
+      offset: params?.offset,
+    });
+    return request(`/tasks${qs}`);
   },
 
   get(taskId: string): Promise<Task> {
@@ -93,6 +199,14 @@ export const tasks = {
     });
   },
 
+  delete(taskId: string): Promise<void> {
+    return request(`/tasks/${taskId}`, { method: "DELETE" });
+  },
+
+  execute(taskId: string): Promise<ExecuteResponse> {
+    return request(`/tasks/${taskId}/execute`, { method: "POST" });
+  },
+
   cancel(taskId: string): Promise<{ id: string; status: string }> {
     return request(`/tasks/${taskId}/cancel`, { method: "POST" });
   },
@@ -104,14 +218,6 @@ export const tasks = {
   runs(taskId: string): Promise<{ items: RunListItem[]; total: number }> {
     return request(`/tasks/${taskId}/runs`);
   },
-
-  delete(taskId: string): Promise<void> {
-    return request(`/tasks/${taskId}`, { method: "DELETE" });
-  },
-
-  execute(taskId: string): Promise<{ id: string; status: string }> {
-    return request(`/tasks/${taskId}/execute`, { method: "POST" });
-  },
 };
 
 /* ── Policies ── */
@@ -121,11 +227,11 @@ export const policies = {
     limit?: number;
     offset?: number;
   }): Promise<PaginatedResponse<PolicyListItem>> {
-    const query = new URLSearchParams();
-    if (params?.limit != null) query.set("limit", String(params.limit));
-    if (params?.offset != null) query.set("offset", String(params.offset));
-    const qs = query.toString();
-    return request(`/policies${qs ? `?${qs}` : ""}`);
+    const qs = buildQuery({
+      limit: params?.limit,
+      offset: params?.offset,
+    });
+    return request(`/policies${qs}`);
   },
 
   get(policyId: string): Promise<Policy> {
@@ -161,14 +267,14 @@ export const results = {
     sort_by?: string;
     sort_order?: "asc" | "desc";
   }): Promise<PaginatedResponse<ResultListItem>> {
-    const query = new URLSearchParams();
-    if (params?.limit != null) query.set("limit", String(params.limit));
-    if (params?.offset != null) query.set("offset", String(params.offset));
-    if (params?.min_confidence != null) query.set("min_confidence", String(params.min_confidence));
-    if (params?.sort_by) query.set("sort_by", params.sort_by);
-    if (params?.sort_order) query.set("sort_order", params.sort_order);
-    const qs = query.toString();
-    return request(`/results${qs ? `?${qs}` : ""}`);
+    const qs = buildQuery({
+      limit: params?.limit,
+      offset: params?.offset,
+      min_confidence: params?.min_confidence,
+      sort_by: params?.sort_by,
+      sort_order: params?.sort_order,
+    });
+    return request(`/results${qs}`);
   },
 
   get(resultId: string): Promise<Result> {
@@ -185,9 +291,14 @@ export const results = {
     s3_path?: string;
   }): Promise<Blob | { status: string; message: string }> {
     if (params.destination === "download") {
+      const token = getToken();
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      };
       return fetch(`${BASE}/results/export`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify(params),
       }).then((res) => {
         if (!res.ok) throw new ApiError(res.status, res.statusText);
@@ -205,21 +316,59 @@ export const results = {
     date_from?: string;
     date_to?: string;
   }): Promise<{ count: number }> {
-    const query = new URLSearchParams();
-    if (params.min_confidence != null) query.set("min_confidence", String(params.min_confidence));
-    if (params.date_from) query.set("date_from", params.date_from);
-    if (params.date_to) query.set("date_to", params.date_to);
-    const qs = query.toString();
-    return request(`/results/export/count${qs ? `?${qs}` : ""}`);
+    const qs = buildQuery({
+      min_confidence: params.min_confidence,
+      date_from: params.date_from,
+      date_to: params.date_to,
+    });
+    return request(`/results/export/count${qs}`);
   },
 };
 
-/* ── Health ── */
+/* ── Schedules ── */
+
+export const schedules = {
+  list(): Promise<{ items: Schedule[]; total: number }> {
+    return request("/schedules");
+  },
+
+  create(data: ScheduleCreate): Promise<Schedule> {
+    return request("/schedules", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
+  delete(scheduleId: string): Promise<void> {
+    return request(`/schedules/${scheduleId}`, { method: "DELETE" });
+  },
+};
+
+/* ── Health & Metrics ── */
 
 export const health = {
-  check(): Promise<{ status: string }> {
+  check(): Promise<HealthStatus> {
     return request("/health");
+  },
+
+  ready(): Promise<{ status: string; checks: Record<string, string>; timestamp: string }> {
+    return request("/ready");
   },
 };
 
-export { ApiError };
+export const metrics = {
+  get(): Promise<MetricsResponse> {
+    return request("/metrics");
+  },
+};
+
+/* ── Route (dry run) ── */
+
+export const routing = {
+  dryRun(url: string, policyId?: string): Promise<{ url: string; route: { lane: string; reason: string; fallback_lanes: string[]; confidence: number } }> {
+    return request("/route", {
+      method: "POST",
+      body: JSON.stringify({ url, policy_id: policyId }),
+    });
+  },
+};

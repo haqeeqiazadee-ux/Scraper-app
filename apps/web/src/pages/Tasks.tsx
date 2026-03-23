@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { tasks } from "../api/client";
 import { TaskTable } from "../components/TaskTable";
-import type { TaskStatus } from "../api/types";
+
 
 const STATUS_FILTERS: { label: string; value: string | undefined }[] = [
   { label: "All", value: undefined },

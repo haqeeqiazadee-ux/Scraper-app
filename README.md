@@ -1,141 +1,157 @@
-# 🤖 SCRAPLING PRO v3.0 - AI-Powered Web Scraper
+# AI Scraping Platform
 
-## 🚀 Quick Start (5 minutes)
+Production-grade, cloud-agnostic AI-powered web scraping platform. Supports cloud SaaS, self-hosted, Windows desktop, and browser extension deployments — all sharing one core engine.
 
-### Step 1: Install Dependencies
+## Architecture
+
+```
+apps/                    # Runtime shells
+  web/                   # React + Vite dashboard
+  desktop/               # Tauri v2 Windows EXE
+  extension/             # Chrome Manifest V3 extension
+  companion/             # Native messaging host
+packages/                # Shared libraries
+  contracts/             # 7 Pydantic v2 data schemas
+  core/                  # Engine (router, session, AI, storage, scheduling)
+  connectors/            # Adapters (HTTP, browser, proxy, CAPTCHA, hard-target)
+services/                # Backend services
+  control-plane/         # FastAPI API server
+  worker-http/           # HTTP extraction worker
+  worker-browser/        # Playwright browser worker
+  worker-ai/             # AI normalization worker
+  worker-hard-target/    # Stealth browser worker
+infrastructure/          # Deployment
+  docker/                # Docker Compose stack
+  terraform/             # AWS IaC modules
+  helm/                  # Kubernetes Helm chart
+```
+
+## Quick Start
+
+### Prerequisites
+
+- Python 3.11+
+- PostgreSQL 15+ (or SQLite for local dev)
+- Redis 7+ (or in-memory for local dev)
+
+### 1. Install Dependencies
+
 ```bash
-pip install -r requirements.txt
-pip install google-genai
-scrapling install
+pip install -e ".[all]"
+playwright install chromium
 ```
 
-### Step 2: Run E2E Tests
+### 2. Configure Environment
+
 ```bash
-python test_final.py
+cp .env.example .env
+# Edit .env with your settings (database URL, API keys, etc.)
 ```
-All tests should pass ✅
 
-### Step 3: Start Scraping!
+### 3. Run the Control Plane
 
-**Option A: Use the Dashboard (Recommended)**
 ```bash
-python web_dashboard.py
+uvicorn services.control_plane.app:app --host 0.0.0.0 --port 8000
 ```
-Open http://localhost:5000 and select "🤖 AI-Powered" template.
 
-**Option B: Use Command Line**
+### 4. Run Workers (in separate terminals)
+
 ```bash
-python ai_scraper_v3.py https://myshop.pk/laptops-desktops-computers/laptops
+python -m services.worker_http.main
+python -m services.worker_browser.main
+python -m services.worker_ai.main
 ```
 
-**Option C: Use in Code**
-```python
-from ai_scraper_v3 import AIScraperV3
+### 5. Open the Dashboard
 
-scraper = AIScraperV3()
-products = scraper.scrape("https://example.com/products")
-scraper.export("products.xlsx")
-```
-
----
-
-## 🤖 AI Features
-
-The scraper uses **Google Gemini AI (FREE!)** to:
-- Automatically detect page structure
-- Extract ALL product information
-- Work on ANY e-commerce website
-- No hardcoded selectors needed!
-
-### What Gets Extracted:
-| Field | Description |
-|-------|-------------|
-| name | Product name/title |
-| sku | Product SKU/ID |
-| price | Current price |
-| original_price | Price before discount |
-| discount | Discount percentage |
-| description | Product description |
-| brand | Brand name |
-| category | Product category |
-| rating | Customer rating |
-| reviews_count | Number of reviews |
-| stock_status | Availability |
-| image_url | Product image |
-| product_url | Link to product |
-| specifications | All product specs |
-| features | Product features |
-| delivery_info | Shipping info |
-| warranty | Warranty info |
-
----
-
-## 📁 File Structure
-
-```
-scraper_pro/
-├── ai_scraper_v3.py      # 🤖 AI-powered scraper (MAIN)
-├── web_dashboard.py       # 🌐 Web interface
-├── smart_exporter.py      # 📊 Excel export
-├── engine_v2.py           # ⚙️ Scraping engine
-├── test_final.py          # 🧪 E2E tests
-├── requirements.txt       # 📦 Dependencies
-└── README.md              # 📖 This file
-```
-
----
-
-## 🔧 Configuration
-
-### API Key (Already Set!)
-The Gemini API key is embedded in the code. You can also set your own:
 ```bash
-set GOOGLE_API_KEY=your_key_here
+cd apps/web && npm install && npm run dev
 ```
 
-### Timeout
-Default is 60 seconds. Change in code:
-```python
-scraper = AIScraperV3(timeout=120000)  # 120 seconds in ms
-```
+## Docker Compose (Recommended)
 
----
-
-## 📊 Output Formats
-
-### Excel (.xlsx)
-- Smart column ordering
-- Clickable URLs (actual links, not "View Link")
-- Summary sheet with statistics
-- Deal highlighting
-
-### JSON (.json)
-- Full product data
-- Easy to process programmatically
-
----
-
-## 🆘 Troubleshooting
-
-### "No module named 'scrapling'"
 ```bash
-pip install scrapling[all]
-scrapling install
+cd infrastructure/docker
+docker compose up -d
 ```
 
-### "AI extraction failed"
-- Check internet connection
-- Verify API key is valid
-- Try again (rate limits reset quickly)
+This starts PostgreSQL, Redis, the control plane, and all workers.
 
-### "Timeout error"
-Increase timeout in the scraper initialization.
+## API Usage
 
----
+```bash
+# Create a task
+curl -X POST http://localhost:8000/api/v1/tasks \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-ID: my-tenant" \
+  -d '{"url": "https://example.com/products", "task_type": "scrape"}'
 
-## 📞 Support
+# Execute the task
+curl -X POST http://localhost:8000/api/v1/tasks/{task_id}/execute \
+  -H "X-Tenant-ID: my-tenant"
 
-Created with ❤️ by Scrapling Pro Team
-Version: 3.0
-Last Updated: March 2026
-"# Scraper-app" 
+# Get results
+curl http://localhost:8000/api/v1/results?task_id={task_id} \
+  -H "X-Tenant-ID: my-tenant"
+```
+
+## Runtime Modes
+
+| Mode | Database | Queue | Storage | Browser |
+|------|----------|-------|---------|---------|
+| Cloud SaaS | PostgreSQL | Redis | S3 | Remote Playwright |
+| Self-Hosted | PostgreSQL | Redis | Filesystem | Local Playwright |
+| Desktop EXE | SQLite | In-memory | Filesystem | Embedded Playwright |
+| Extension | Cloud API | Cloud API | Cloud API | Tab injection |
+
+## Testing
+
+```bash
+# Run all tests
+python -m pytest tests/ -q
+
+# Run by category
+python -m pytest tests/unit -q
+python -m pytest tests/integration -q
+python -m pytest tests/e2e -q
+```
+
+**Current status:** 648 tests passing, 6 skipped, 0 failures.
+
+## Tech Stack
+
+- **Backend:** Python 3.11+, FastAPI, Pydantic v2
+- **Database:** PostgreSQL 15+ / SQLite
+- **Cache/Queue:** Redis 7+ / In-memory
+- **Browser:** Playwright
+- **Desktop:** Tauri v2 (Rust + WebView)
+- **Extension:** Chrome Manifest V3
+- **AI:** Google Gemini, OpenAI, Ollama (local)
+- **Infra:** Docker, Terraform (AWS), Helm (K8s)
+
+## Key Features
+
+- Multi-lane execution: API, HTTP, Browser, Hard-Target with automatic escalation
+- AI-augmented extraction with deterministic fallback
+- Rate limiting (token bucket) and quota enforcement per tenant
+- Webhook callbacks with HMAC-SHA256 signatures
+- Task scheduling (cron expressions, intervals)
+- 4 proxy provider integrations (BrightData, Smartproxy, Oxylabs, free)
+- CAPTCHA detection and solving (2Captcha, Anti-Captcha, CapMonster)
+- Session management with health scoring
+- Prometheus metrics + OpenTelemetry tracing
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [docs/final_specs.md](docs/final_specs.md) | Full platform specification |
+| [docs/tasks_breakdown.md](docs/tasks_breakdown.md) | 69 tasks across 24 epics |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Architecture overview |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Deployment guide |
+| [docs/api_reference.md](docs/api_reference.md) | API reference |
+| [docs/developer_setup.md](docs/developer_setup.md) | Developer setup guide |
+
+## License
+
+MIT

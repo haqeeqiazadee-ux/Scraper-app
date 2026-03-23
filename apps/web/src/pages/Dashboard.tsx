@@ -1,7 +1,12 @@
+/**
+ * Dashboard page — overview of tasks with status counts and health indicator.
+ * Polls task list every 10 seconds for real-time status updates.
+ */
+
 import { useQuery } from "@tanstack/react-query";
-import { tasks } from "../api/client";
+import { tasks, health } from "../api/client";
 import { TaskTable } from "../components/TaskTable";
-import type { TaskListItem, TaskStatus } from "../api/types";
+import type { TaskListItem } from "../api/types";
 
 /** Count items by status. */
 function countByStatus(items: TaskListItem[]): Record<string, number> {
@@ -16,6 +21,13 @@ export function Dashboard() {
   const { data, isLoading, error } = useQuery({
     queryKey: ["tasks", "dashboard"],
     queryFn: () => tasks.list({ limit: 20 }),
+    refetchInterval: 10_000, // Poll every 10 seconds for real-time updates
+  });
+
+  const { data: healthData } = useQuery({
+    queryKey: ["health"],
+    queryFn: () => health.check(),
+    refetchInterval: 30_000, // Check health every 30 seconds
   });
 
   const items = data?.items ?? [];
@@ -24,8 +36,16 @@ export function Dashboard() {
 
   const stats: { label: string; value: number | string; sub: string }[] = [
     { label: "Total Tasks", value: total, sub: "Across all statuses" },
-    { label: "Running", value: counts["running"] ?? 0, sub: "Currently executing" },
-    { label: "Completed", value: counts["completed"] ?? 0, sub: "Successfully finished" },
+    {
+      label: "Running",
+      value: counts["running"] ?? 0,
+      sub: "Currently executing",
+    },
+    {
+      label: "Completed",
+      value: counts["completed"] ?? 0,
+      sub: "Successfully finished",
+    },
     { label: "Failed", value: counts["failed"] ?? 0, sub: "Need attention" },
   ];
 
@@ -33,7 +53,24 @@ export function Dashboard() {
     <>
       <div className="page-header">
         <h2>Dashboard</h2>
-        <p>Overview of your scraping tasks and platform activity.</p>
+        <p>
+          Overview of your scraping tasks and platform activity.
+          {healthData && (
+            <span
+              style={{
+                marginLeft: 12,
+                fontSize: 12,
+                fontWeight: 600,
+                color:
+                  healthData.status === "healthy"
+                    ? "var(--color-success)"
+                    : "var(--color-warning)",
+              }}
+            >
+              API: {healthData.status}
+            </span>
+          )}
+        </p>
       </div>
       <div className="page-body">
         <div className="stats-grid">

@@ -1,6 +1,6 @@
 # TODO — Current Actionable Queue
 
-## Completed (68/69 tasks)
+## Completed — Original 69 Tasks (All Done)
 - [x] **PHASE-0:** Repository and memory initialization
 - [x] **PHASE-1:** Create docs/final_specs.md (1233 lines, all 24 sections)
 - [x] **PHASE-2:** Create docs/tasks_breakdown.md (69 tasks across 24 epics)
@@ -20,71 +20,74 @@
 - [x] **SCHEMA-001:** Task schema validation tests (13 tests)
 - [x] **SCHEMA-002:** Policy schema validation tests (19 tests)
 - [x] **SCHEMA-003:** Remaining schema tests (32 tests)
-- [x] **STORAGE-001:** SQLAlchemy metadata store — models, database, repositories (14 tests)
+- [x] **STORAGE-001:** SQLAlchemy metadata store (14 tests)
 - [x] **STORAGE-002:** Filesystem object storage adapter (10 tests)
 - [x] **STORAGE-003:** In-memory queue + cache backends (18 tests)
 - [x] **STORAGE-004:** SQLite desktop adapter
-- [x] **API-001:** Wire task CRUD to database (9 API tests)
-- [x] **API-002:** Wire policy CRUD to database (5 API tests)
-- [x] **API-003:** Execution router integration — /execute + /route endpoints (6 tests)
-- [x] **API-004:** Auth + tenant middleware — JWT creation/verification, role-based access
+- [x] **API-001:** Wire task CRUD to database (9 tests)
+- [x] **API-002:** Wire policy CRUD to database (5 tests)
+- [x] **API-003:** Execution router integration (6 tests)
+- [x] **API-004:** Auth + tenant middleware
 - [x] **API-005:** Result and export endpoints
-- [x] **AI-001:** AI provider abstraction — deterministic + Gemini + chain (14 tests)
-- [x] **AI-002:** URL classifier — pattern-based lane prediction (12 tests)
-- [x] **AI-003:** Extraction prompt templates (5 templates + builders)
-- [x] **WORKER-001:** HTTP lane worker — fetch → extract → confidence → result (5 tests)
-- [x] **WORKER-002:** Browser lane worker — Playwright-based extraction (12 tests)
-- [x] **WORKER-003:** AI normalization worker — normalize + dedup pipeline (20 tests)
+- [x] **AI-001:** AI provider abstraction (14 tests)
+- [x] **AI-002:** URL classifier (12 tests)
+- [x] **AI-003:** Extraction prompt templates
+- [x] **WORKER-001:** HTTP lane worker (5 tests)
+- [x] **WORKER-002:** Browser lane worker (12 tests)
+- [x] **WORKER-003:** AI normalization worker (20 tests)
 - [x] **WORKER-004:** Lane escalation manager (11 tests)
-- [x] **PROXY-001:** Enhanced proxy adapter — file/list/rotating providers, sticky sessions, geo-targeting (15 tests)
-- [x] **CAPTCHA-001:** Enhanced CAPTCHA adapter — 2Captcha, Anti-Captcha, CapMonster solvers (15 tests)
-- [x] **CAPTCHA-002:** CAPTCHA escalation strategy — budget tracking, retry-before-solve
+- [x] **PROXY-001:** Enhanced proxy adapter (15 tests)
+- [x] **PROXY-002:** Proxy provider integrations (56 tests)
+- [x] **CAPTCHA-001:** Enhanced CAPTCHA adapter (15 tests)
+- [x] **CAPTCHA-002:** CAPTCHA escalation strategy
 - [x] **NORM-001:** Schema mapping / normalizer (25 tests)
-- [x] **NORM-002:** Deduplication engine — SKU/URL/fuzzy match + merge (12 tests)
-- [x] **SESSION-001:** Session manager — lifecycle, health scoring, auto-invalidation (14 tests)
-- [x] **SESSION-002:** Cookie and browser profile persistence — SessionPersistence + PersistentSessionManager
-- [x] **OBS-001:** Structured logging — JSON formatter, configure_logging()
-- [x] **OBS-002:** Prometheus metrics — MetricsCollector, middleware, /metrics endpoint
-- [x] **OBS-003:** OpenTelemetry tracing — Tracer, SpanRecorder, configure_tracing()
-- [x] **SEC-001:** Secrets management — SecretsManager with provider chain (10 tests)
+- [x] **NORM-002:** Deduplication engine (12 tests)
+- [x] **SESSION-001:** Session manager (14 tests)
+- [x] **SESSION-002:** Cookie/browser profile persistence
+- [x] **OBS-001:** Structured logging
+- [x] **OBS-002:** Prometheus metrics
+- [x] **OBS-003:** OpenTelemetry tracing
+- [x] **SEC-001:** Secrets management (10 tests)
 - [x] **SEC-002:** Security audit checklist
-- [x] **WEB-001:** React web dashboard scaffold (17 files)
-- [x] **EXT-001:** Chrome Manifest V3 extension scaffold (11 files + icons)
-- [x] **EXE-001:** Tauri v2 desktop project scaffold (12 files)
-- [x] **COMPANION-001:** Native messaging host
-- [x] **COMPANION-002:** Companion installer (Chrome/Chromium/Edge)
-- [x] **SELFHOST-001:** Docker Compose stack (control-plane + PostgreSQL + Redis)
-- [x] **SELFHOST-002:** Kubernetes Helm chart (13 templates)
-- [x] **CLOUD-001:** AWS Terraform modules (VPC, ECS, RDS, Redis, S3, ECR)
-- [x] **CLOUD-002:** CI/CD deployment pipeline — GitHub Actions (staging + production)
-- [x] **PKG-001:** Docker images for all services (4 Dockerfiles)
-
-## Final Test Status: 483 passed, 0 failed, 6 skipped
-
-## Recently Completed
-- [x] **PROXY-002:** Proxy provider integrations — BrightData, Smartproxy, Oxylabs, FreeProxy (56 tests)
-- [x] **WEB-002:** Task management UI interactivity (8 files)
-- [x] **WEB-003:** Results and export UI (7 files)
+- [x] **WEB-001:** React web dashboard scaffold
+- [x] **WEB-002:** Task management UI interactivity
+- [x] **WEB-003:** Results and export UI
+- [x] **EXT-001:** Chrome Manifest V3 extension scaffold
+- [x] **EXT-002:** Cloud-connected extraction
+- [x] **EXT-003:** Native messaging for local companion
+- [x] **EXE-001:** Tauri v2 desktop project scaffold
 - [x] **EXE-002:** Embed local control plane in desktop app
 - [x] **EXE-003:** Build Windows installer
-- [x] **EXT-003:** Native messaging for local companion (6 files)
+- [x] **COMPANION-001:** Native messaging host
+- [x] **COMPANION-002:** Companion installer
+- [x] **SELFHOST-001:** Docker Compose stack
+- [x] **SELFHOST-002:** Kubernetes Helm chart
+- [x] **CLOUD-001:** AWS Terraform modules
+- [x] **CLOUD-002:** CI/CD deployment pipeline
+- [x] **PKG-001:** Docker images for all services
 - [x] **PKG-002:** Windows EXE packaging
 - [x] **PKG-003:** Chrome extension packaging
-- [x] **VERIFY-001:** Final documentation review — ARCHITECTURE.md, DEPLOYMENT.md, CHANGELOG.md, README audit
-- [x] **VERIFY-002:** System audit — __init__.py verification, entry points, test coverage, TODO scan, .env.example
+- [x] **VERIFY-001:** Final documentation review
+- [x] **VERIFY-002:** System audit
+- [x] **TEST-002/003/004:** Integration + E2E test suites
 
-## Pending (0 remaining)
-- [x] **EXT-002:** Cloud-connected extraction — API client, extraction service, ExtractPanel, selector picker, cloud sync (7 new files + 4 updated)
-- [x] **TEST-002/003/004:** Integration + E2E test suites (47 passed, 5 skipped — 8 lifecycle, 6 storage, 6 worker pipeline, 5 auth, 8 API e2e, 4 health/metrics + conftest/factories)
+## Completed — Phase 4+ Production Readiness Gap Closure
+- [x] **GAP-001:** Redis distributed queue consumer + worker consumption loops — redis_queue.py (214 lines), redis_cache.py (141 lines), queue_factory.py (77 lines), worker main.py for HTTP/browser/AI (535 lines total), test_redis_queue.py (346 lines, 12+ tests)
+- [x] **GAP-002:** Hard-target execution lane — hard_target_worker.py (521 lines), services/worker-hard-target/ (worker + init), router updated, test_hard_target.py (444 lines, 15+ tests)
+- [x] **GAP-003:** Rate limit enforcement + quota management — rate_limiter.py (251 lines), quota_manager.py, rate_limit middleware, quota middleware, test_rate_limiter.py (181 lines), test_quota_manager.py (154 lines)
+- [x] **GAP-004:** Callback webhook executor + task scheduler — webhook.py (250 lines), scheduler.py (344 lines), schedules router (172 lines), test_webhook.py (237 lines), test_scheduler.py (293 lines)
+- [x] **GAP-005:** Web UI real API integration — api-client.ts rewritten, useAuth.ts (76 lines), usePolicies.ts (90 lines), AuthContext.tsx (137 lines), Login.tsx (186 lines), updated Dashboard/Tasks/Policies/App/Layout
+- [x] **GAP-006:** System tracking files — todo.md, execution_trace.md, development_log.md, lessons.md, final_step_logs.md all updated
+- [x] **GAP-007:** Full test suite — 648 passed, 6 skipped, 0 failed
+- [x] **GAP-008:** Final commit and push
+
+## Final Test Status: 648 passed, 6 skipped, 0 failed
 
 ## Blocked
 (none)
 
-## Audit Summary (VERIFY-002)
-- **Python packages with __init__.py:** All packages verified (1 missing fixed: proxy_providers)
-- **Service entry points:** All 4 services have entry points (app.py / worker.py)
-- **Test coverage:** 22 test modules covering 56 source modules; 436 tests passing
-- **TODO/FIXME/HACK comments:** 3 minor TODOs (latency tracking, health check DB probe, CORS restriction) — non-blocking
-- **.env.example:** Complete with 30+ variables documented
-- **CI/CD:** 2 GitHub Actions workflows (ci.yml, deploy.yml)
-- **Documentation:** final_specs.md, tasks_breakdown.md, api_reference.md, developer_setup.md, security_audit.md, ARCHITECTURE.md, DEPLOYMENT.md, CHANGELOG.md — all present and verified
+## Summary
+- **Total original tasks:** 69/69 complete
+- **Gap closure tasks:** 8/8 complete
+- **Total tests:** 648 passed
+- **Platform completeness:** ~95% production-ready

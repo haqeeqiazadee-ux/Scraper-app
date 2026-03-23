@@ -12,8 +12,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from packages.contracts.policy import LanePreference, Policy
 from packages.contracts.task import Task, TaskStatus
+from packages.contracts.result import Result
 from packages.core.router import ExecutionRouter, RouteDecision, Lane
-from packages.core.storage.repositories import TaskRepository, PolicyRepository
+from packages.core.webhook import WebhookExecutor
+from packages.core.storage.repositories import TaskRepository, PolicyRepository, ResultRepository
 from services.control_plane.dependencies import get_session, get_tenant_id
 
 logger = logging.getLogger(__name__)
@@ -131,6 +133,74 @@ async def execute_task(
         "task_id": task_id,
         "status": "queued",
         "route": _route_decision_to_dict(decision),
+    }
+
+
+@router.post("/tasks/{task_id}/complete")
+async def complete_task(
+    task_id: str,
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
+) -> dict:
+    """Mark a task as completed and fire its webhook if configured.
+
+    This endpoint is called by workers when execution finishes. It updates
+    the task status and sends a webhook notification if callback_url is set.
+    """
+    task_repo = TaskRepository(session)
+    task_model = await task_repo.get(task_id, tenant_id)
+    if not task_model:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    # Update task status to completed
+    await task_repo.update(task_id, tenant_id, status=TaskStatus.COMPLETED.value)
+
+    task = _task_model_to_contract(task_model)
+    task.status = TaskStatus.COMPLETED
+
+    # Fetch the latest result for this task (if any)
+    result: Optional[Result] = None
+    result_repo = ResultRepository(session)
+    results = await result_repo.list_by_task(task_id, tenant_id)
+    if results:
+        # Use the most recent result
+        result = Result(
+            id=results[-1].id,
+            task_id=results[-1].task_id,
+            run_id=results[-1].run_id,
+            tenant_id=results[-1].tenant_id,
+            url=results[-1].url,
+            item_count=results[-1].item_count,
+            confidence=results[-1].confidence,
+            extraction_method=results[-1].extraction_method,
+            schema_version=getattr(results[-1], "schema_version", "1.0"),
+        )
+
+    # Fire webhook if callback_url is configured
+    webhook_status = None
+    if task.callback_url:
+        from services.control_plane.app import get_webhook_executor
+        executor = get_webhook_executor()
+        delivery = await executor.send(task, result)
+        webhook_status = {
+            "delivered": delivery.success,
+            "attempts": delivery.attempts,
+            "status_code": delivery.status_code,
+            "error": delivery.error,
+        }
+
+    logger.info(
+        "Task completed",
+        extra={
+            "task_id": task_id,
+            "webhook_fired": webhook_status is not None,
+        },
+    )
+
+    return {
+        "task_id": task_id,
+        "status": "completed",
+        "webhook": webhook_status,
     }
 
 

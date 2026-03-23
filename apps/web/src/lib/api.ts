@@ -1,88 +1,24 @@
 /**
- * API client helper with base URL config, auth header injection, and error handling.
+ * API client helper — DEPRECATED.
  *
- * This wraps the lower-level client from ../api/client.ts with additional
- * utilities for token management and request configuration.
+ * This module is kept for backward compatibility. New code should import
+ * directly from "../api/client" which handles auth token management,
+ * 401 auto-logout, and all API endpoints.
+ *
+ * Re-exports the key utilities from the canonical client.
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api/v1";
+export { ApiError } from "../api/client";
+import { auth } from "../api/client";
 
-/** Stored auth token (in-memory; persisted to sessionStorage). */
-let _authToken: string | null = null;
-
+/** @deprecated Use `auth.getToken()` from "../api/client" */
 export function getAuthToken(): string | null {
-  if (_authToken) return _authToken;
-  try {
-    _authToken = sessionStorage.getItem("auth_token");
-  } catch {
-    // SSR or restricted context
-  }
-  return _authToken;
+  return auth.getToken();
 }
 
+/** @deprecated Use `auth.setToken(token)` from "../api/client" */
 export function setAuthToken(token: string | null): void {
-  _authToken = token;
-  try {
-    if (token) {
-      sessionStorage.setItem("auth_token", token);
-    } else {
-      sessionStorage.removeItem("auth_token");
-    }
-  } catch {
-    // SSR or restricted context
-  }
-}
-
-export class ApiError extends Error {
-  constructor(
-    public status: number,
-    public detail: string,
-  ) {
-    super(`API ${status}: ${detail}`);
-    this.name = "ApiError";
-  }
-}
-
-/**
- * Core request helper. Handles:
- * - Base URL resolution
- * - Auth header injection
- * - JSON content-type
- * - Error parsing
- */
-export async function apiRequest<T>(
-  path: string,
-  init?: RequestInit,
-): Promise<T> {
-  const token = getAuthToken();
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...(init?.headers as Record<string, string> | undefined),
-  };
-
-  const url = `${API_BASE_URL}${path}`;
-  const response = await fetch(url, {
-    ...init,
-    headers,
-  });
-
-  if (!response.ok) {
-    let detail = response.statusText;
-    try {
-      const body = await response.json();
-      detail = body.detail ?? detail;
-    } catch {
-      // response may not be JSON
-    }
-    throw new ApiError(response.status, detail);
-  }
-
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
-  return response.json();
+  auth.setToken(token);
 }
 
 /** Build query string from params, omitting undefined/null values. */

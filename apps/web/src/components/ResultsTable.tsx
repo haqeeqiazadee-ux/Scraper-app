@@ -4,7 +4,6 @@
  * Supports pagination, sorting, and filtering by confidence threshold.
  */
 
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import type { ResultListItem } from "../api/types";
 

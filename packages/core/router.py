@@ -19,6 +19,8 @@ from typing import Optional
 
 from packages.contracts.policy import LanePreference, Policy
 from packages.contracts.task import Task
+from packages.core.rate_limiter import InMemoryRateLimiter
+from packages.core.quota_manager import QuotaManager, QuotaExceededError, UsageType
 
 logger = logging.getLogger(__name__)
 
@@ -52,13 +54,37 @@ API_AVAILABLE_DOMAINS: dict[str, str] = {
     "myshopify.com": "shopify_api",
 }
 
+# Domains known to require hard-target (aggressive anti-bot protection)
+HARD_TARGET_DOMAINS: set[str] = {
+    "linkedin.com",
+    "zillow.com",
+    "indeed.com",
+    "glassdoor.com",
+    "nike.com",
+    "ticketmaster.com",
+}
+
+
+class RateLimitExceededError(Exception):
+    """Raised when a tenant's rate limit is exceeded during routing."""
+
+    def __init__(self, tenant_id: str) -> None:
+        self.tenant_id = tenant_id
+        super().__init__(f"Rate limit exceeded for tenant '{tenant_id}'")
+
 
 class ExecutionRouter:
     """Routes tasks to the appropriate execution lane."""
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        rate_limiter: Optional[InMemoryRateLimiter] = None,
+        quota_manager: Optional[QuotaManager] = None,
+    ) -> None:
         self._site_profiles: dict[str, Lane] = {}
         self._success_history: dict[str, dict[str, float]] = {}
+        self._rate_limiter = rate_limiter
+        self._quota_manager = quota_manager
 
     def route(self, task: Task, policy: Optional[Policy] = None) -> RouteDecision:
         """Determine which execution lane should handle this task."""
@@ -92,7 +118,15 @@ class ExecutionRouter:
                 confidence=0.8,
             )
 
-        # 4. Check if domain requires browser (exact or suffix match)
+        # 4. Check if domain requires hard-target (exact or suffix match)
+        if self._match_domain(domain, {d: True for d in HARD_TARGET_DOMAINS}):
+            return RouteDecision(
+                lane=Lane.HARD_TARGET,
+                reason=f"{domain} requires hard-target stealth browser",
+                fallback_lanes=[],
+            )
+
+        # 5. Check if domain requires browser (exact or suffix match)
         if self._match_domain(domain, {d: True for d in BROWSER_REQUIRED_DOMAINS}):
             return RouteDecision(
                 lane=Lane.BROWSER,
@@ -100,13 +134,45 @@ class ExecutionRouter:
                 fallback_lanes=[Lane.HARD_TARGET],
             )
 
-        # 5. Default: try HTTP first
+        # 6. Default: try HTTP first
         return RouteDecision(
             lane=Lane.HTTP,
             reason="Default: try HTTP lane first",
             fallback_lanes=[Lane.BROWSER, Lane.HARD_TARGET],
             confidence=0.5,
         )
+
+    async def route_with_checks(
+        self, task: Task, policy: Optional[Policy] = None
+    ) -> RouteDecision:
+        """Route a task after enforcing rate limits and quota checks.
+
+        Raises RateLimitExceededError or QuotaExceededError if the tenant
+        is not allowed to proceed.
+        """
+        tenant_id = task.tenant_id
+        policy_id = str(policy.id) if policy else None
+
+        # 1. Rate limit check
+        if self._rate_limiter is not None:
+            allowed = await self._rate_limiter.acquire(tenant_id, policy_id)
+            if not allowed:
+                logger.warning(
+                    "Task rejected: rate limit exceeded",
+                    extra={"tenant_id": tenant_id, "task_id": str(task.id)},
+                )
+                raise RateLimitExceededError(tenant_id)
+
+        # 2. Quota check
+        if self._quota_manager is not None:
+            await self._quota_manager.check_quota_or_raise(tenant_id)
+            # Record task usage
+            await self._quota_manager.record_usage(
+                tenant_id, UsageType.TASKS, 1.0
+            )
+
+        # 3. Route normally
+        return self.route(task, policy)
 
     def record_outcome(self, domain: str, lane: Lane, success: bool) -> None:
         """Record the outcome of a lane execution for future routing decisions."""

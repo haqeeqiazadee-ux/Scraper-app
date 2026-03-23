@@ -97,3 +97,19 @@
 42. **Test count as project health metric** — Tracking test counts (436 passing) across milestones gives a concrete measure of project health. The ratio of test files (22) to source files (56) indicates areas where additional coverage would be valuable.
 
 43. **System tracking files provide audit trail** — The execution_trace.md, development_log.md, and final_step_logs.md together create a complete audit trail of every decision and implementation. This is invaluable for onboarding new contributors and understanding why things were built the way they are.
+
+## Phase 4+ Gap Closure Observations
+
+44. **Schema fields without enforcement are technical debt** — Having `rate_limit` on Policy, `callback_url` on Task, and `schedule` on Task without any code that uses them is worse than not having the fields at all. It creates false expectations for API consumers.
+
+45. **Workers without queue consumers are dead code** — A worker that can process tasks but has no consumption loop is useless in production. The consumption loop (dequeue → process → ack/nack) is the actual service; the worker is just a library.
+
+46. **Redis queue needs ack/nack with pending tracking** — Using BRPOP alone loses messages on worker crash. Must RPOPLPUSH to a pending list, then remove on ack. This mirrors the in-memory queue pattern already established.
+
+47. **Hard-target lane is the final escalation** — The escalation chain HTTP → Browser → Hard-target must be the last resort before marking a task as failed. Hard-target uses residential proxies + stealth browser + CAPTCHA solving, which is expensive.
+
+48. **Token bucket > sliding window for rate limiting** — Token bucket allows bursts while maintaining average rate, which is better UX for scraping workloads that tend to be bursty. Implementation is simpler too — just track tokens and refill rate.
+
+49. **Cron parsing should be minimal** — Don't pull in a heavy cron library; 5-field cron parsing (minute hour day month weekday) with basic wildcards and lists covers 95% of use cases. Keep it in a single module.
+
+50. **Parallel agents maximize throughput** — Running 5 independent implementation agents in parallel closes gaps 5x faster than sequential. Key is ensuring zero file overlap between agents.

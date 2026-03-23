@@ -4,6 +4,8 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from services.control_plane.dependencies import init_database
+from services.control_plane.middleware.rate_limit import set_rate_limiter
+from packages.core.rate_limiter import InMemoryRateLimiter, RateLimitConfig
 
 
 @pytest.fixture
@@ -11,6 +13,15 @@ async def client():
     """Create a test client with in-memory database."""
     db = init_database("sqlite+aiosqlite:///:memory:")
     await db.create_tables()
+
+    # Use a very permissive rate limiter for tests
+    set_rate_limiter(InMemoryRateLimiter(
+        default_config=RateLimitConfig(
+            requests_per_minute=10_000,
+            requests_per_hour=100_000,
+            burst_size=10_000,
+        )
+    ))
 
     from services.control_plane.app import create_app
     app = create_app()

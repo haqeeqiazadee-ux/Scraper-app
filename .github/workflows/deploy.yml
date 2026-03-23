@@ -38,6 +38,7 @@ jobs:
           - worker-http
           - worker-browser
           - worker-ai
+          - worker-hard-target
     steps:
       - uses: actions/checkout@v4
 
@@ -110,6 +111,7 @@ jobs:
             --set workerHttp.image.tag=${{ steps.tag.outputs.tag }} \
             --set workerBrowser.image.tag=${{ steps.tag.outputs.tag }} \
             --set workerAi.image.tag=${{ steps.tag.outputs.tag }} \
+            --set workerHardTarget.image.tag=${{ steps.tag.outputs.tag }} \
             --values infrastructure/helm/scraper-platform/values-staging.yaml \
             --wait --timeout 5m
 
@@ -162,6 +164,7 @@ jobs:
             --set workerHttp.image.tag=${{ steps.tag.outputs.tag }} \
             --set workerBrowser.image.tag=${{ steps.tag.outputs.tag }} \
             --set workerAi.image.tag=${{ steps.tag.outputs.tag }} \
+            --set workerHardTarget.image.tag=${{ steps.tag.outputs.tag }} \
             --values infrastructure/helm/scraper-platform/values-production.yaml \
             --wait --timeout 10m
 
