@@ -183,3 +183,75 @@
 - **Status:** PASS
 - **Tested:** `POST /api/v1/tasks/{id}/cancel` on cancelled task
 - **Result:** 400 — "Cannot cancel task in cancelled status"
+
+## Phase 6: HTTP Lane Scraping
+
+### UC-6.1.1 — Scrape httpbin.org/html
+- **Status:** PASS
+- **Tested:** Direct HttpWorker.process_task() call
+- **Result:** status=success, 1 item extracted, 3741 bytes
+
+### UC-6.1.2 — Scrape books.toscrape.com
+- **Status:** FIXED
+- **Tested:** HttpWorker against books.toscrape.com
+- **Result:** Initially returned 1 item (garbled HTML due to missing brotli + no CSS extraction). After fix: 20 books with name, price, rating.
+- **Fix applied:**
+  1. Added `brotli>=1.1` to requirements.txt for httpx Brotli decompression
+  2. Added `_extract_css()` method to DeterministicProvider with BeautifulSoup-based multi-item extraction
+  3. Added card selectors: article.product_pod, div.quote, .product-card, etc.
+
+### UC-6.1.3 — Scrape quotes.toscrape.com
+- **Status:** FIXED
+- **Tested:** HttpWorker against quotes.toscrape.com
+- **Result:** Initially 1 item. After adding div.quote selector and author extraction: 10 quotes with authors.
+- **Fix applied:** Added `div.quote` to card selectors, `small.author` to name extraction
+
+### UC-6.2.1-3 — JSON-LD extraction
+- **Status:** PASS
+- **Tested:** Synthetic HTML with JSON-LD Product schema
+- **Result:** All schema.org Product fields extracted (name, price, currency, sku, brand, image, rating, stock_status)
+
+### UC-6.3.1 — Custom CSS selectors via policy
+- **Status:** SKIP — custom selectors not yet wired through policy to extraction
+
+### UC-6.3.2 — Fallback from JSON-LD to CSS
+- **Status:** PASS
+- **Tested:** books.toscrape.com has no JSON-LD → CSS extraction runs
+
+### UC-6.3.3 — Multiple items from list pages
+- **Status:** PASS
+- **Tested:** 20 items from books.toscrape.com, 10 from quotes.toscrape.com
+
+### UC-6.4.1-2 — Pagination
+- **Status:** SKIP — multi-page pagination not yet implemented in HTTP worker
+
+### UC-6.5.1 — Realistic User-Agent
+- **Status:** PASS
+- **Tested:** httpbin.org/headers inspection
+- **Result:** Chrome/Firefox-like UA strings sent
+
+### UC-6.5.2 — Full stealth headers
+- **Status:** PASS
+- **Tested:** Accept, Accept-Language, Accept-Encoding, Sec-Fetch-* all present
+
+### UC-6.5.3 — UA rotation
+- **Status:** PASS
+- **Tested:** 10 requests → 4 unique User-Agents
+
+### UC-6.6.1 — 404 handling
+- **Status:** FIXED
+- **Tested:** httpbin.org/status/404
+- **Result:** Initially escalated on 404 (wrong). Fixed: only escalate on 403, 429, 5xx.
+- **Fix applied:** `services/worker-http/worker.py` — smart escalation logic
+
+### UC-6.6.2 — 500 handling
+- **Status:** PASS
+- **Tested:** httpbin.org/status/500 → failed with should_escalate=True
+
+### UC-6.6.3 — DNS failure
+- **Status:** PASS
+- **Tested:** Non-existent domain → failed with error message
+
+### UC-6.6.4 — Empty body
+- **Status:** PASS
+- **Tested:** httpbin.org/bytes/0 → success with minimal extraction

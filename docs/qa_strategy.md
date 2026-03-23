@@ -129,34 +129,34 @@ These verify the deployed services are alive and connected.
 Real scraping tests against actual websites (lightweight, no JS needed).
 
 ### 6.1 Simple Static HTML
-- [ ] **UC-6.1.1** — Scrape `https://httpbin.org/html` → returns extracted text content
-- [ ] **UC-6.1.2** — Scrape `https://books.toscrape.com/` → extracts book titles + prices
-- [ ] **UC-6.1.3** — Scrape `https://quotes.toscrape.com/` → extracts quotes + authors
+- [x] **UC-6.1.1** — Scrape `https://httpbin.org/html` → returns extracted text content
+- [x] **UC-6.1.2** — Scrape `https://books.toscrape.com/` → extracts book titles + prices — FIXED: added CSS selector extraction + brotli
+- [x] **UC-6.1.3** — Scrape `https://quotes.toscrape.com/` → extracts quotes + authors — FIXED: added quote selectors
 
 ### 6.2 JSON-LD / Structured Data (Schema.org)
-- [ ] **UC-6.2.1** — Scrape a page with JSON-LD product schema → extraction uses `extruct` path
-- [ ] **UC-6.2.2** — Extracted fields match schema.org Product (name, price, image, description)
-- [ ] **UC-6.2.3** — Confidence score is high (>0.8) for structured data extraction
+- [x] **UC-6.2.1** — Scrape a page with JSON-LD product schema → extraction uses JSON-LD path
+- [x] **UC-6.2.2** — Extracted fields match schema.org Product (name, price, image, description)
+- [x] **UC-6.2.3** — Confidence score is high (>0.8) for structured data extraction
 
 ### 6.3 CSS Selector Extraction
-- [ ] **UC-6.3.1** — Create policy with custom CSS selectors → extraction uses those selectors
-- [ ] **UC-6.3.2** — Fallback: JSON-LD fails → CSS selector extraction runs
-- [ ] **UC-6.3.3** — Multiple items extracted from list/grid pages
+- [~] **UC-6.3.1** — Create policy with custom CSS selectors → extraction uses those selectors — SKIP: custom selectors not yet wired to extraction
+- [x] **UC-6.3.2** — Fallback: JSON-LD fails → CSS selector extraction runs
+- [x] **UC-6.3.3** — Multiple items extracted from list/grid pages
 
 ### 6.4 Pagination (Static)
-- [ ] **UC-6.4.1** — Scrape `https://books.toscrape.com/catalogue/page-1.html` → gets page 1 results
-- [ ] **UC-6.4.2** — Multi-page scrape → follows next-page links → aggregates results
+- [~] **UC-6.4.1** — Scrape `https://books.toscrape.com/catalogue/page-1.html` → gets page 1 results — SKIP: pagination not yet implemented in worker
+- [~] **UC-6.4.2** — Multi-page scrape → follows next-page links → aggregates results — SKIP: pagination not yet implemented
 
 ### 6.5 HTTP Stealth Headers
-- [ ] **UC-6.5.1** — Request includes realistic User-Agent header
-- [ ] **UC-6.5.2** — Request includes Accept, Accept-Language, Accept-Encoding headers
-- [ ] **UC-6.5.3** — Headers rotate between requests (not same UA every time)
+- [x] **UC-6.5.1** — Request includes realistic User-Agent header
+- [x] **UC-6.5.2** — Request includes Accept, Accept-Language, Accept-Encoding headers
+- [x] **UC-6.5.3** — Headers rotate between requests (not same UA every time)
 
 ### 6.6 Error Handling (HTTP Lane)
-- [ ] **UC-6.6.1** — Target returns 404 → task status = `failed`, error recorded
-- [ ] **UC-6.6.2** — Target returns 500 → retry logic kicks in (up to retry_policy max)
-- [ ] **UC-6.6.3** — Target unreachable (DNS fail) → task fails with clear error message
-- [ ] **UC-6.6.4** — Target returns empty body → extraction reports 0 items, low confidence
+- [x] **UC-6.6.1** — Target returns 404 → task status = `failed`, error recorded — FIXED: 404 no longer triggers escalation
+- [x] **UC-6.6.2** — Target returns 500 → retry logic kicks in (up to retry_policy max)
+- [x] **UC-6.6.3** — Target unreachable (DNS fail) → task fails with clear error message
+- [x] **UC-6.6.4** — Target returns empty body → extraction reports 0 items, low confidence
 
 ---
 

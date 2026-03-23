@@ -62,6 +62,9 @@ class HttpWorker:
                 "task_id": task_id, "url": url,
                 "status_code": response.status_code, "error": response.error,
             })
+            # Escalate on server errors (5xx) and anti-bot blocks (403),
+            # but NOT on client errors like 404 (page doesn't exist)
+            should_escalate = response.status_code in (403, 429) or response.status_code >= 500 or response.status_code == 0
             return {
                 "task_id": task_id,
                 "run_id": run_id,
@@ -74,7 +77,7 @@ class HttpWorker:
                 "duration_ms": elapsed,
                 "extracted_data": [],
                 "item_count": 0,
-                "should_escalate": True,
+                "should_escalate": should_escalate,
             }
 
         # Step 2: Extract data from HTML
