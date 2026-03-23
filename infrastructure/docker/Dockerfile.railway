@@ -9,19 +9,22 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# System dependencies
+# System dependencies (gcc + libxml2/libxslt for lxml, curl for healthchecks)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
+    curl gcc g++ \
+    libxml2-dev libxslt1-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Python dependencies
-COPY requirements.txt requirements-dev.txt ./
-RUN pip install --no-cache-dir -r requirements-dev.txt
+# Python dependencies (production only)
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Application code
 COPY packages/ packages/
 COPY services/ services/
-COPY apps/web/dist/ apps/web/dist/
+
+# Ensure apps/web/dist exists (frontend served by Netlify, not this container)
+RUN mkdir -p apps/web/dist
 
 # Create symlinks for Python imports (hyphens → underscores)
 RUN cd services && \
