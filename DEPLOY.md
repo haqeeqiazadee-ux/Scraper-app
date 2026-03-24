@@ -25,7 +25,7 @@
 ## Step 2: Railway — Deploy Backend
 
 1. Go to https://railway.app → **New Project** → **Deploy from GitHub repo**
-2. Select `haqeeqiazadee-ux/Scraper-app`
+2. Select `fahad-scraper/Scraper-app`
 3. Add **Redis plugin**: click **+ New** → **Database** → **Redis**
 4. Set environment variables in Railway dashboard:
 
@@ -61,7 +61,7 @@ Each worker shares the same Redis (link the Redis plugin to each service).
 ## Step 3: Netlify — Deploy Frontend
 
 1. Go to https://app.netlify.com → **Add new site** → **Import from Git**
-2. Select `haqeeqiazadee-ux/Scraper-app`
+2. Select `fahad-scraper/Scraper-app`
 3. Netlify auto-detects `netlify.toml` settings:
    - Base: `apps/web`
    - Build: `npm install && npm run build`

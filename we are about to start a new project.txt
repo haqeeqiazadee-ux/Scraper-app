@@ -1,5 +1,5 @@
-we are about to start a new project. the details are in this document. https://github.com/haqeeqiazadee-ux/Scraper-app/blob/main/Claude%20Prompt%20for%20Scraper.txt
-The repo is https://github.com/haqeeqiazadee-ux/Scraper-app
+we are about to start a new project. the details are in this document. https://github.com/fahad-scraper/Scraper-app/blob/main/Claude%20Prompt%20for%20Scraper.txt
+The repo is https://github.com/fahad-scraper/Scraper-app
 First of all setup the repo with all the required folders and requirements like:
 
 execution_trace.md
@@ -69,7 +69,7 @@ C:\Users\HP\scraper_pro>git commit -m "first commit"
 1 file changed, 141 insertions(+)
 create mode 100644 README.md
 C:\Users\HP\scraper_pro>git branch -M main
-C:\Users\HP\scraper_pro>git remote add origin https://github.com/haqeeqiazadee-ux/Scraper-app.git
+C:\Users\HP\scraper_pro>git remote add origin https://github.com/fahad-scraper/Scraper-app.git
 C:\Users\HP\scraper_pro>git push -u origin main
 Enumerating objects: 3, done.
 Counting objects: 100% (3/3), done.
@@ -77,7 +77,7 @@ Delta compression using up to 8 threads
 Compressing objects: 100% (2/2), done.
 Writing objects: 100% (3/3), 1.72 KiB | 586.00 KiB/s, done.
 Total 3 (delta 0), reused 0 (delta 0), pack-reused 0 (from 0)
-To https://github.com/haqeeqiazadee-ux/Scraper-app.git
+To https://github.com/fahad-scraper/Scraper-app.git
 
 [new branch] main -> main
 branch 'main' set up to track 'origin/main'.
@@ -88,7 +88,7 @@ Show more
 Created 4 files
 Created 4 files
 
-I see — you've set up a fresh scraper_pro repo locally and pushed it to https://github.com/haqeeqiazadee-ux/Scraper-app.git. So I should be working directly in that repo, not in yousell-admin. Let me clone it and set up everything there instead.
+I see — you've set up a fresh scraper_pro repo locally and pushed it to https://github.com/fahad-scraper/Scraper-app.git. So I should be working directly in that repo, not in yousell-admin. Let me clone it and set up everything there instead.
 
 
 Created a file
@@ -229,7 +229,7 @@ apps/, packages/, services/, infrastructure/, tests/, scripts/ (with .gitkeep)
 Ready for Phase 1 (Final Specs) and Phase 2 (Tasks Breakdown) whenever you want to proceed.
 
 you are pushing to the wrong repo
-the correct repo to push to is: https://github.com/haqeeqiazadee-ux/Scraper-app
+the correct repo to push to is: https://github.com/fahad-scraper/Scraper-app
 
 
 
@@ -278,7 +278,7 @@ scraper-app/
     ├── lessons.md
     └── final_step_logs.md
 
-I cannot push directly to https://github.com/haqeeqiazadee-ux/Scraper-app because the environment proxy only authorizes the yousell-admin repository. You have two options:
+I cannot push directly to https://github.com/fahad-scraper/Scraper-app because the environment proxy only authorizes the yousell-admin repository. You have two options:
 
 Copy the files manually — clone the Scraper-app repo locally and copy the scraper-app/ contents into it
 Grant proxy access — if possible, authorize the Scraper-app repo in the proxy configuration so I can push directly
@@ -293,8 +293,8 @@ Unfortunately, I don't have the ability to configure the proxy access myself —
 Your best option: Copy the files from this branch to the Scraper-app repo yourself. Here's how:
 
 # 1. Clone both repos locally
-git clone https://github.com/haqeeqiazadee-ux/yousell-admin.git
-git clone https://github.com/haqeeqiazadee-ux/Scraper-app.git
+git clone https://github.com/fahad-scraper/yousell-admin.git
+git clone https://github.com/fahad-scraper/Scraper-app.git
 
 # 2. Checkout the branch with the scraper files
 cd yousell-admin
