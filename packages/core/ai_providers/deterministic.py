@@ -67,12 +67,17 @@ class DeterministicProvider(BaseAIProvider):
         if jsonld_products:
             return jsonld_products
 
-        # 2. Try CSS selector extraction (multi-item capable)
+        # 2. Try DOM auto-discovery (finds repeating groups without selectors)
+        dom_products = self._extract_dom_discovery(html, url)
+        if dom_products:
+            return dom_products
+
+        # 3. Try CSS selector extraction (multi-item capable)
         css_products = self._extract_css(html, url)
         if css_products:
             return css_products
 
-        # 3. Fall back to basic HTML pattern matching (single item)
+        # 4. Fall back to basic HTML pattern matching (single item)
         basic = self._extract_basic(html, url)
         return [basic] if basic else []
 
@@ -130,6 +135,25 @@ class DeterministicProvider(BaseAIProvider):
         # Only return if we extracted at least one meaningful field
         meaningful_fields = {k for k in result if k != "product_url"}
         return result if meaningful_fields else {}
+
+    def _extract_dom_discovery(self, html: str, url: str) -> list[dict]:
+        """Extract items via DOM auto-discovery of repeating groups.
+
+        This finds structurally similar sibling elements (e.g., product cards)
+        without any site-specific selectors. Zero cost, works on any site
+        that uses template-generated repeating structures.
+        """
+        try:
+            from packages.core.dom_discovery import discover_items
+            items = discover_items(html, url)
+            if items:
+                logger.debug(
+                    "DOM discovery extracted %d items from %s", len(items), url
+                )
+            return items
+        except Exception as exc:
+            logger.debug("DOM discovery failed: %s", exc)
+            return []
 
     def _extract_css(self, html: str, url: str) -> list[dict]:
         """Extract multiple products using CSS selectors and BeautifulSoup."""
