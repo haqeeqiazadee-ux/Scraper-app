@@ -1549,11 +1549,854 @@ EBAY_STORE = Template(
 )
 
 
+# ===========================================================================
+# VIDEO / SOCIAL MEDIA TEMPLATES (Apify VIDEOS category)
+# ===========================================================================
+
+
+# ---------------------------------------------------------------------------
+# 36. YouTube Video Scraper
+# ---------------------------------------------------------------------------
+YOUTUBE_VIDEO = Template(
+    id="youtube-video",
+    name="YouTube Video Scraper",
+    description=(
+        "Extract video data from YouTube — titles, view counts, likes, comments, "
+        "channel info, upload dates, descriptions, and tags. No API quota limits."
+    ),
+    category=TemplateCategory.VIDEOS,
+    tags=["youtube", "video", "views", "likes", "channel"],
+    icon="▶️",
+    platform="YouTube",
+    config=TemplateConfig(
+        target_domains=["youtube.com", "youtu.be"],
+        example_urls=[
+            "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            "https://www.youtube.com/results?search_query=python+tutorial",
+        ],
+        fields=[
+            _field("title", "Video title", required=True),
+            _field("video_id", "YouTube video ID", required=True),
+            _field("view_count", "Number of views", field_type="number"),
+            _field("like_count", "Number of likes", field_type="number"),
+            _field("comment_count", "Number of comments", field_type="number"),
+            _field("channel_name", "Channel name"),
+            _field("channel_id", "Channel ID"),
+            _field("subscriber_count", "Channel subscriber count", field_type="number"),
+            _field("upload_date", "Upload date"),
+            _field("duration", "Video duration"),
+            _field("description", "Video description"),
+            _field("tags", "Video tags", field_type="list"),
+            _field("thumbnail_url", "Thumbnail image URL", field_type="image"),
+            _field("video_url", "Video page URL", field_type="url"),
+            _field("category", "Video category"),
+        ],
+        preferred_lane="http",
+        browser_required=False,
+        rate_limit_rpm=30,
+        timeout_ms=30000,
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# 37. YouTube Channel Scraper
+# ---------------------------------------------------------------------------
+YOUTUBE_CHANNEL = Template(
+    id="youtube-channel",
+    name="YouTube Channel Scraper",
+    description=(
+        "Scrape full YouTube channel data — all videos, subscriber counts, "
+        "total views, social links, about info, and video history."
+    ),
+    category=TemplateCategory.VIDEOS,
+    tags=["youtube", "channel", "subscribers", "profile", "creator"],
+    icon="📺",
+    platform="YouTube",
+    config=TemplateConfig(
+        target_domains=["youtube.com"],
+        example_urls=[
+            "https://www.youtube.com/@MrBeast",
+            "https://www.youtube.com/c/ChannelName",
+        ],
+        fields=[
+            _field("channel_name", "Channel display name", required=True),
+            _field("channel_id", "YouTube channel ID", required=True),
+            _field("subscriber_count", "Number of subscribers", field_type="number"),
+            _field("total_views", "Total channel views", field_type="number"),
+            _field("video_count", "Number of videos", field_type="number"),
+            _field("created_date", "Channel creation date"),
+            _field("description", "Channel about/description"),
+            _field("country", "Channel country"),
+            _field("social_links", "External links (social, website)", field_type="json"),
+            _field("avatar_url", "Channel avatar image", field_type="image"),
+            _field("banner_url", "Channel banner image", field_type="image"),
+            _field("recent_videos", "Latest video IDs and titles", field_type="json"),
+        ],
+        preferred_lane="http",
+        browser_required=False,
+        rate_limit_rpm=20,
+        timeout_ms=30000,
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# 38. YouTube Comments Scraper
+# ---------------------------------------------------------------------------
+YOUTUBE_COMMENTS = Template(
+    id="youtube-comments",
+    name="YouTube Comments Scraper",
+    description=(
+        "Extract comments from YouTube videos — full text, author names, "
+        "likes, replies, timestamps. No API quotas or limits."
+    ),
+    category=TemplateCategory.VIDEOS,
+    tags=["youtube", "comments", "engagement", "sentiment"],
+    icon="💬",
+    platform="YouTube",
+    config=TemplateConfig(
+        target_domains=["youtube.com"],
+        example_urls=[
+            "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        ],
+        fields=[
+            _field("comment_text", "Full comment text", required=True),
+            _field("author_name", "Commenter display name", required=True),
+            _field("author_channel_id", "Commenter channel ID"),
+            _field("like_count", "Comment like count", field_type="number"),
+            _field("reply_count", "Number of replies", field_type="number"),
+            _field("published_at", "Comment timestamp"),
+            _field("is_reply", "Is this a reply to another comment"),
+            _field("parent_comment_id", "Parent comment ID (for replies)"),
+            _field("video_id", "Source video ID"),
+            _field("video_title", "Source video title"),
+        ],
+        preferred_lane="http",
+        browser_required=False,
+        rate_limit_rpm=20,
+        timeout_ms=30000,
+        pagination={"type": "token", "param": "pageToken"},
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# 39. YouTube Transcript Extractor
+# ---------------------------------------------------------------------------
+YOUTUBE_TRANSCRIPT = Template(
+    id="youtube-transcript",
+    name="YouTube Transcript Extractor",
+    description=(
+        "Extract full transcripts with timestamps from YouTube videos — "
+        "captions, subtitles, auto-generated text. Supports bulk extraction "
+        "across entire channels."
+    ),
+    category=TemplateCategory.VIDEOS,
+    tags=["youtube", "transcript", "captions", "subtitles", "text"],
+    icon="📝",
+    platform="YouTube",
+    config=TemplateConfig(
+        target_domains=["youtube.com", "youtu.be"],
+        example_urls=[
+            "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        ],
+        fields=[
+            _field("video_id", "YouTube video ID", required=True),
+            _field("video_title", "Video title", required=True),
+            _field("transcript_text", "Full transcript text"),
+            _field("segments", "Timestamped segments [{start, duration, text}]", field_type="json"),
+            _field("language", "Transcript language code"),
+            _field("is_auto_generated", "Auto-generated vs manual captions"),
+            _field("duration", "Video duration"),
+            _field("channel_name", "Channel name"),
+            _field("upload_date", "Upload date"),
+        ],
+        preferred_lane="http",
+        browser_required=False,
+        rate_limit_rpm=40,
+        timeout_ms=20000,
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# 40. YouTube Shorts Scraper
+# ---------------------------------------------------------------------------
+YOUTUBE_SHORTS = Template(
+    id="youtube-shorts",
+    name="YouTube Shorts Scraper",
+    description=(
+        "Extract YouTube Shorts data from channels — video URLs, captions, "
+        "likes, views, comments, and engagement metrics for short-form content."
+    ),
+    category=TemplateCategory.VIDEOS,
+    tags=["youtube", "shorts", "short-form", "vertical-video"],
+    icon="📱",
+    platform="YouTube",
+    config=TemplateConfig(
+        target_domains=["youtube.com"],
+        example_urls=[
+            "https://www.youtube.com/@MrBeast/shorts",
+        ],
+        fields=[
+            _field("title", "Short title/caption", required=True),
+            _field("video_id", "Video ID", required=True),
+            _field("view_count", "Number of views", field_type="number"),
+            _field("like_count", "Number of likes", field_type="number"),
+            _field("comment_count", "Number of comments", field_type="number"),
+            _field("channel_name", "Channel name"),
+            _field("upload_date", "Upload date"),
+            _field("thumbnail_url", "Thumbnail URL", field_type="image"),
+            _field("video_url", "Short URL", field_type="url"),
+            _field("duration", "Duration in seconds", field_type="number"),
+        ],
+        preferred_lane="http",
+        browser_required=False,
+        rate_limit_rpm=25,
+        timeout_ms=30000,
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# 41. YouTube Search Scraper
+# ---------------------------------------------------------------------------
+YOUTUBE_SEARCH = Template(
+    id="youtube-search",
+    name="YouTube Search Results Scraper",
+    description=(
+        "Extract structured YouTube search results — videos, channels, "
+        "playlists, and shorts with advanced filtering by type, date, and duration."
+    ),
+    category=TemplateCategory.VIDEOS,
+    tags=["youtube", "search", "serp", "keyword", "discovery"],
+    icon="🔎",
+    platform="YouTube",
+    config=TemplateConfig(
+        target_domains=["youtube.com"],
+        example_urls=[
+            "https://www.youtube.com/results?search_query=web+scraping+tutorial",
+        ],
+        fields=[
+            _field("title", "Result title", required=True),
+            _field("result_type", "Type (video, channel, playlist, short)", required=True),
+            _field("video_id", "Video/content ID"),
+            _field("channel_name", "Channel name"),
+            _field("view_count", "View count", field_type="number"),
+            _field("upload_date", "Upload/publish date"),
+            _field("duration", "Video duration"),
+            _field("description_snippet", "Description snippet"),
+            _field("thumbnail_url", "Thumbnail URL", field_type="image"),
+            _field("url", "Result URL", field_type="url"),
+            _field("position", "Search result position", field_type="number"),
+        ],
+        preferred_lane="http",
+        browser_required=False,
+        rate_limit_rpm=20,
+        timeout_ms=30000,
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# 42. YouTube Trending Scraper
+# ---------------------------------------------------------------------------
+YOUTUBE_TRENDING = Template(
+    id="youtube-trending",
+    name="YouTube Trending Scraper",
+    description=(
+        "Scrape YouTube trending videos — top trending content across "
+        "categories and countries with engagement metrics."
+    ),
+    category=TemplateCategory.VIDEOS,
+    tags=["youtube", "trending", "viral", "popular"],
+    icon="🔥",
+    platform="YouTube",
+    config=TemplateConfig(
+        target_domains=["youtube.com"],
+        example_urls=[
+            "https://www.youtube.com/feed/trending",
+        ],
+        fields=[
+            _field("title", "Video title", required=True),
+            _field("video_id", "Video ID", required=True),
+            _field("position", "Trending position", field_type="number"),
+            _field("view_count", "View count", field_type="number"),
+            _field("like_count", "Like count", field_type="number"),
+            _field("channel_name", "Channel name"),
+            _field("category", "Video category"),
+            _field("upload_date", "Upload date"),
+            _field("thumbnail_url", "Thumbnail URL", field_type="image"),
+            _field("country", "Trending in country"),
+        ],
+        preferred_lane="http",
+        browser_required=False,
+        rate_limit_rpm=20,
+        timeout_ms=30000,
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# 43. YouTube Video Downloader
+# ---------------------------------------------------------------------------
+YOUTUBE_DOWNLOADER = Template(
+    id="youtube-downloader",
+    name="YouTube Video Downloader",
+    description=(
+        "Download YouTube videos in multiple formats and qualities — "
+        "MP4, MP3, WebM. Extract direct download URLs."
+    ),
+    category=TemplateCategory.VIDEOS,
+    tags=["youtube", "download", "mp4", "mp3", "media"],
+    icon="⬇️",
+    platform="YouTube",
+    config=TemplateConfig(
+        target_domains=["youtube.com", "youtu.be"],
+        example_urls=[
+            "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        ],
+        fields=[
+            _field("video_id", "YouTube video ID", required=True),
+            _field("title", "Video title", required=True),
+            _field("download_url", "Direct download URL", field_type="url"),
+            _field("format", "Video format (mp4, webm, mp3)"),
+            _field("quality", "Video quality (1080p, 720p, 480p, etc.)"),
+            _field("file_size", "File size in bytes", field_type="number"),
+            _field("duration", "Video duration"),
+            _field("thumbnail_url", "Thumbnail URL", field_type="image"),
+        ],
+        preferred_lane="http",
+        browser_required=False,
+        rate_limit_rpm=15,
+        timeout_ms=60000,
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# 44. TikTok Video Scraper
+# ---------------------------------------------------------------------------
+TIKTOK_VIDEO = Template(
+    id="tiktok-video",
+    name="TikTok Video Scraper",
+    description=(
+        "Extract TikTok video data — views, likes, shares, comments, "
+        "creator info, music metadata, hashtags, and captions."
+    ),
+    category=TemplateCategory.VIDEOS,
+    tags=["tiktok", "video", "views", "engagement", "viral"],
+    icon="🎵",
+    platform="TikTok",
+    config=TemplateConfig(
+        target_domains=["tiktok.com"],
+        example_urls=[
+            "https://www.tiktok.com/@username/video/12345",
+        ],
+        fields=[
+            _field("video_id", "TikTok video ID", required=True),
+            _field("caption", "Video caption/description", required=True),
+            _field("view_count", "Number of views", field_type="number"),
+            _field("like_count", "Number of likes", field_type="number"),
+            _field("comment_count", "Number of comments", field_type="number"),
+            _field("share_count", "Number of shares", field_type="number"),
+            _field("creator_username", "Creator username"),
+            _field("creator_nickname", "Creator display name"),
+            _field("creator_followers", "Creator follower count", field_type="number"),
+            _field("music_title", "Sound/music title"),
+            _field("music_author", "Music/sound author"),
+            _field("hashtags", "Hashtags used", field_type="list"),
+            _field("create_time", "Video creation timestamp"),
+            _field("video_url", "Video page URL", field_type="url"),
+            _field("thumbnail_url", "Video thumbnail", field_type="image"),
+            _field("download_url", "Direct video download URL (no watermark)", field_type="url"),
+        ],
+        preferred_lane="browser",
+        browser_required=True,
+        stealth_required=True,
+        proxy_required=True,
+        proxy_type="residential",
+        rate_limit_rpm=15,
+        timeout_ms=45000,
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# 45. TikTok Profile Scraper
+# ---------------------------------------------------------------------------
+TIKTOK_PROFILE = Template(
+    id="tiktok-profile",
+    name="TikTok Profile Scraper",
+    description=(
+        "Extract TikTok user profile data — bio, follower/following counts, "
+        "verification status, total likes, and full video history."
+    ),
+    category=TemplateCategory.VIDEOS,
+    tags=["tiktok", "profile", "creator", "influencer", "followers"],
+    icon="👤",
+    platform="TikTok",
+    config=TemplateConfig(
+        target_domains=["tiktok.com"],
+        example_urls=[
+            "https://www.tiktok.com/@charlidamelio",
+        ],
+        fields=[
+            _field("username", "TikTok username", required=True),
+            _field("nickname", "Display name", required=True),
+            _field("bio", "Profile biography"),
+            _field("follower_count", "Number of followers", field_type="number"),
+            _field("following_count", "Number of following", field_type="number"),
+            _field("total_likes", "Total likes received", field_type="number"),
+            _field("video_count", "Number of videos", field_type="number"),
+            _field("verified", "Verified badge status"),
+            _field("avatar_url", "Profile picture URL", field_type="image"),
+            _field("profile_url", "Profile page URL", field_type="url"),
+            _field("recent_videos", "Recent video IDs and stats", field_type="json"),
+        ],
+        preferred_lane="browser",
+        browser_required=True,
+        stealth_required=True,
+        proxy_required=True,
+        proxy_type="residential",
+        rate_limit_rpm=15,
+        timeout_ms=45000,
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# 46. TikTok Comments Scraper
+# ---------------------------------------------------------------------------
+TIKTOK_COMMENTS = Template(
+    id="tiktok-comments",
+    name="TikTok Comments Scraper",
+    description=(
+        "Extract comments from TikTok videos — comment text, likes, "
+        "replies, user info. Supports high-speed extraction (100-200 comments/sec)."
+    ),
+    category=TemplateCategory.VIDEOS,
+    tags=["tiktok", "comments", "engagement", "sentiment"],
+    icon="💬",
+    platform="TikTok",
+    config=TemplateConfig(
+        target_domains=["tiktok.com"],
+        example_urls=[
+            "https://www.tiktok.com/@username/video/12345",
+        ],
+        fields=[
+            _field("comment_text", "Full comment text", required=True),
+            _field("author_username", "Commenter username", required=True),
+            _field("like_count", "Comment likes", field_type="number"),
+            _field("reply_count", "Number of replies", field_type="number"),
+            _field("create_time", "Comment timestamp"),
+            _field("is_reply", "Is a reply to another comment"),
+            _field("author_followers", "Commenter follower count", field_type="number"),
+            _field("video_id", "Source video ID"),
+        ],
+        preferred_lane="browser",
+        browser_required=True,
+        stealth_required=True,
+        proxy_required=True,
+        rate_limit_rpm=15,
+        timeout_ms=45000,
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# 47. TikTok Hashtag Scraper
+# ---------------------------------------------------------------------------
+TIKTOK_HASHTAG = Template(
+    id="tiktok-hashtag",
+    name="TikTok Hashtag Scraper",
+    description=(
+        "Scrape TikTok videos by hashtag — discover trending content, "
+        "track hashtag performance, and monitor campaign reach."
+    ),
+    category=TemplateCategory.VIDEOS,
+    tags=["tiktok", "hashtag", "trending", "campaign", "discovery"],
+    icon="#️⃣",
+    platform="TikTok",
+    config=TemplateConfig(
+        target_domains=["tiktok.com"],
+        example_urls=[
+            "https://www.tiktok.com/tag/fyp",
+        ],
+        fields=[
+            _field("hashtag", "Hashtag name", required=True),
+            _field("video_id", "Video ID", required=True),
+            _field("caption", "Video caption"),
+            _field("view_count", "Video views", field_type="number"),
+            _field("like_count", "Video likes", field_type="number"),
+            _field("share_count", "Video shares", field_type="number"),
+            _field("creator_username", "Creator username"),
+            _field("music_title", "Sound/music used"),
+            _field("create_time", "Video creation time"),
+            _field("country", "Creation country"),
+            _field("video_url", "Video page URL", field_type="url"),
+        ],
+        preferred_lane="browser",
+        browser_required=True,
+        stealth_required=True,
+        proxy_required=True,
+        proxy_type="residential",
+        rate_limit_rpm=15,
+        timeout_ms=45000,
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# 48. TikTok Trending Videos Scraper
+# ---------------------------------------------------------------------------
+TIKTOK_TRENDING = Template(
+    id="tiktok-trending",
+    name="TikTok Trending Scraper",
+    description=(
+        "Discover trending TikTok content — trending videos, hashtags, "
+        "sounds, and creators for market research and trend analysis."
+    ),
+    category=TemplateCategory.VIDEOS,
+    tags=["tiktok", "trending", "viral", "sounds", "creators"],
+    icon="📈",
+    platform="TikTok",
+    config=TemplateConfig(
+        target_domains=["tiktok.com"],
+        example_urls=[
+            "https://www.tiktok.com/trending",
+        ],
+        fields=[
+            _field("content_type", "Type (video, hashtag, sound, creator)", required=True),
+            _field("title", "Title/name", required=True),
+            _field("view_count", "Total views", field_type="number"),
+            _field("like_count", "Total likes", field_type="number"),
+            _field("video_count", "Number of videos using this trend", field_type="number"),
+            _field("creator_username", "Top creator username"),
+            _field("music_title", "Trending sound name"),
+            _field("music_author", "Sound author"),
+            _field("trending_rank", "Trending position", field_type="number"),
+            _field("url", "Content URL", field_type="url"),
+        ],
+        preferred_lane="browser",
+        browser_required=True,
+        stealth_required=True,
+        proxy_required=True,
+        proxy_type="residential",
+        rate_limit_rpm=10,
+        timeout_ms=45000,
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# 49. TikTok Sound Scraper
+# ---------------------------------------------------------------------------
+TIKTOK_SOUND = Template(
+    id="tiktok-sound",
+    name="TikTok Sound Scraper",
+    description=(
+        "Scrape TikTok videos using a specific sound/music — track audio "
+        "trends, viral sounds, and music-based content discovery."
+    ),
+    category=TemplateCategory.VIDEOS,
+    tags=["tiktok", "sound", "music", "audio", "trending"],
+    icon="🎶",
+    platform="TikTok",
+    config=TemplateConfig(
+        target_domains=["tiktok.com"],
+        example_urls=[
+            "https://www.tiktok.com/music/original-sound-12345",
+        ],
+        fields=[
+            _field("music_id", "Sound/music ID", required=True),
+            _field("music_title", "Sound title", required=True),
+            _field("music_author", "Sound author"),
+            _field("video_count", "Videos using this sound", field_type="number"),
+            _field("video_id", "Individual video ID"),
+            _field("creator_username", "Video creator"),
+            _field("view_count", "Video views", field_type="number"),
+            _field("like_count", "Video likes", field_type="number"),
+            _field("video_url", "Video URL", field_type="url"),
+        ],
+        preferred_lane="browser",
+        browser_required=True,
+        stealth_required=True,
+        proxy_required=True,
+        rate_limit_rpm=15,
+        timeout_ms=45000,
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# 50. Instagram Reel Scraper
+# ---------------------------------------------------------------------------
+INSTAGRAM_REEL = Template(
+    id="instagram-reel",
+    name="Instagram Reel Scraper",
+    description=(
+        "Extract Instagram Reels data — captions, hashtags, mentions, "
+        "engagement metrics (likes, comments, shares, views), and transcripts."
+    ),
+    category=TemplateCategory.VIDEOS,
+    tags=["instagram", "reels", "short-form", "engagement", "creators"],
+    icon="🎬",
+    platform="Instagram",
+    config=TemplateConfig(
+        target_domains=["instagram.com"],
+        example_urls=[
+            "https://www.instagram.com/reel/ABC123/",
+            "https://www.instagram.com/reels/",
+        ],
+        fields=[
+            _field("reel_id", "Reel shortcode/ID", required=True),
+            _field("caption", "Reel caption text", required=True),
+            _field("view_count", "Number of views", field_type="number"),
+            _field("like_count", "Number of likes", field_type="number"),
+            _field("comment_count", "Number of comments", field_type="number"),
+            _field("share_count", "Number of shares", field_type="number"),
+            _field("author_username", "Creator username"),
+            _field("author_followers", "Creator follower count", field_type="number"),
+            _field("hashtags", "Hashtags used", field_type="list"),
+            _field("mentions", "Accounts mentioned", field_type="list"),
+            _field("timestamp", "Post timestamp"),
+            _field("transcript", "Auto-generated transcript"),
+            _field("music_name", "Audio/music name"),
+            _field("thumbnail_url", "Reel thumbnail", field_type="image"),
+            _field("reel_url", "Reel page URL", field_type="url"),
+            _field("download_url", "Direct video download URL", field_type="url"),
+        ],
+        preferred_lane="hard_target",
+        browser_required=True,
+        stealth_required=True,
+        proxy_required=True,
+        proxy_type="residential",
+        rate_limit_rpm=10,
+        timeout_ms=60000,
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# 51. Instagram Stories Scraper
+# ---------------------------------------------------------------------------
+INSTAGRAM_STORIES = Template(
+    id="instagram-stories",
+    name="Instagram Stories Scraper",
+    description=(
+        "Extract and download public Instagram Stories — photos, videos, "
+        "story metadata. No login required."
+    ),
+    category=TemplateCategory.VIDEOS,
+    tags=["instagram", "stories", "ephemeral", "download"],
+    icon="📸",
+    platform="Instagram",
+    config=TemplateConfig(
+        target_domains=["instagram.com"],
+        example_urls=[
+            "https://www.instagram.com/stories/username/",
+        ],
+        fields=[
+            _field("story_id", "Story item ID", required=True),
+            _field("username", "Profile username", required=True),
+            _field("media_type", "Photo or video"),
+            _field("timestamp", "Story posted timestamp"),
+            _field("expiry_time", "Story expiration time"),
+            _field("download_url", "Direct media download URL", field_type="url"),
+            _field("thumbnail_url", "Story thumbnail", field_type="image"),
+            _field("mentions", "Tagged accounts", field_type="list"),
+            _field("hashtags", "Story hashtags", field_type="list"),
+            _field("location", "Story location tag"),
+        ],
+        preferred_lane="hard_target",
+        browser_required=True,
+        stealth_required=True,
+        proxy_required=True,
+        proxy_type="residential",
+        rate_limit_rpm=10,
+        timeout_ms=60000,
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# 52. Instagram Video Downloader
+# ---------------------------------------------------------------------------
+INSTAGRAM_VIDEO_DOWNLOADER = Template(
+    id="instagram-video-downloader",
+    name="Instagram Video Downloader",
+    description=(
+        "Download Instagram videos and Reels in bulk — extract direct "
+        "download URLs with metadata. No rate limits."
+    ),
+    category=TemplateCategory.VIDEOS,
+    tags=["instagram", "download", "video", "reels", "bulk"],
+    icon="⬇️",
+    platform="Instagram",
+    config=TemplateConfig(
+        target_domains=["instagram.com"],
+        example_urls=[
+            "https://www.instagram.com/reel/ABC123/",
+            "https://www.instagram.com/p/XYZ789/",
+        ],
+        fields=[
+            _field("post_id", "Post/Reel shortcode", required=True),
+            _field("download_url", "Direct download URL", field_type="url", required=True),
+            _field("caption", "Post caption"),
+            _field("like_count", "Number of likes", field_type="number"),
+            _field("comment_count", "Number of comments", field_type="number"),
+            _field("author_username", "Creator username"),
+            _field("media_type", "Video or carousel"),
+            _field("thumbnail_url", "Video thumbnail", field_type="image"),
+        ],
+        preferred_lane="hard_target",
+        browser_required=True,
+        stealth_required=True,
+        proxy_required=True,
+        proxy_type="residential",
+        rate_limit_rpm=10,
+        timeout_ms=60000,
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# 53. Facebook Reels Scraper
+# ---------------------------------------------------------------------------
+FACEBOOK_REELS = Template(
+    id="facebook-reels",
+    name="Facebook Reels Scraper",
+    description=(
+        "Extract data from Facebook Reels — engagement metrics, "
+        "play counts, captions, timestamps from pages and profiles."
+    ),
+    category=TemplateCategory.VIDEOS,
+    tags=["facebook", "reels", "short-form", "engagement"],
+    icon="📘",
+    platform="Facebook",
+    config=TemplateConfig(
+        target_domains=["facebook.com"],
+        example_urls=[
+            "https://www.facebook.com/reel/12345",
+        ],
+        fields=[
+            _field("reel_id", "Reel ID", required=True),
+            _field("caption", "Reel caption/text", required=True),
+            _field("play_count", "Number of plays", field_type="number"),
+            _field("like_count", "Reactions count", field_type="number"),
+            _field("comment_count", "Number of comments", field_type="number"),
+            _field("share_count", "Number of shares", field_type="number"),
+            _field("author_name", "Page/profile name"),
+            _field("timestamp", "Post timestamp"),
+            _field("reel_url", "Reel URL", field_type="url"),
+            _field("thumbnail_url", "Reel thumbnail", field_type="image"),
+        ],
+        preferred_lane="hard_target",
+        browser_required=True,
+        stealth_required=True,
+        proxy_required=True,
+        proxy_type="residential",
+        rate_limit_rpm=10,
+        timeout_ms=60000,
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# 54. Multi-Platform Video Transcriber
+# ---------------------------------------------------------------------------
+MULTI_PLATFORM_TRANSCRIBER = Template(
+    id="multi-platform-transcriber",
+    name="Multi-Platform Video Transcriber",
+    description=(
+        "Extract accurate transcripts from videos across platforms — "
+        "Instagram Reels, Facebook Reels, YouTube Shorts, and TikTok. "
+        "AI-powered speech-to-text with timestamps."
+    ),
+    category=TemplateCategory.VIDEOS,
+    tags=["transcript", "multi-platform", "speech-to-text", "ai", "captions"],
+    icon="🗣️",
+    platform="Multi-Platform",
+    config=TemplateConfig(
+        target_domains=["youtube.com", "tiktok.com", "instagram.com", "facebook.com"],
+        example_urls=[
+            "https://www.youtube.com/shorts/ABC123",
+            "https://www.tiktok.com/@user/video/12345",
+            "https://www.instagram.com/reel/XYZ789/",
+        ],
+        fields=[
+            _field("video_url", "Source video URL", field_type="url", required=True),
+            _field("platform", "Source platform", required=True),
+            _field("transcript_text", "Full transcript text"),
+            _field("segments", "Timestamped segments [{start, end, text}]", field_type="json"),
+            _field("language", "Detected language"),
+            _field("confidence", "Transcription confidence (0-1)", field_type="number"),
+            _field("duration", "Video duration"),
+            _field("title", "Video title/caption"),
+        ],
+        preferred_lane="auto",
+        extraction_type="ai",
+        browser_required=False,
+        rate_limit_rpm=20,
+        timeout_ms=60000,
+        extraction_rules={
+            "strategy": "ai_transcription",
+            "engine": "whisper",
+            "supported_platforms": ["youtube", "tiktok", "instagram", "facebook"],
+        },
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# 55. Multi-Platform Video Downloader
+# ---------------------------------------------------------------------------
+MULTI_PLATFORM_DOWNLOADER = Template(
+    id="multi-platform-downloader",
+    name="All-in-One Video Downloader",
+    description=(
+        "Download videos from multiple platforms — TikTok, Instagram, YouTube, "
+        "Facebook, Twitter/X, Reddit. Extract direct download URLs."
+    ),
+    category=TemplateCategory.VIDEOS,
+    tags=["download", "multi-platform", "video", "media", "bulk"],
+    icon="📥",
+    platform="Multi-Platform",
+    config=TemplateConfig(
+        target_domains=["youtube.com", "tiktok.com", "instagram.com",
+                        "facebook.com", "twitter.com", "x.com", "reddit.com"],
+        example_urls=[
+            "https://www.tiktok.com/@user/video/12345",
+            "https://www.instagram.com/reel/XYZ789/",
+            "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        ],
+        fields=[
+            _field("source_url", "Original video URL", field_type="url", required=True),
+            _field("platform", "Source platform", required=True),
+            _field("download_url", "Direct download URL", field_type="url"),
+            _field("title", "Video title/caption"),
+            _field("format", "Video format"),
+            _field("quality", "Video quality"),
+            _field("file_size", "File size in bytes", field_type="number"),
+            _field("duration", "Video duration"),
+            _field("thumbnail_url", "Thumbnail URL", field_type="image"),
+        ],
+        preferred_lane="auto",
+        browser_required=False,
+        rate_limit_rpm=20,
+        timeout_ms=60000,
+    ),
+)
+
+
 # ---------------------------------------------------------------------------
 # Registry
 # ---------------------------------------------------------------------------
 
 BUILT_IN_TEMPLATES: list[Template] = [
+    # ===== E-COMMERCE (35 templates) =====
     # Amazon ecosystem
     AMAZON_PRODUCT,
     AMAZON_REVIEWS,
@@ -1600,6 +2443,32 @@ BUILT_IN_TEMPLATES: list[Template] = [
     UNIVERSAL_ECOMMERCE,
     AI_PRODUCT_MATCHER,
     PRICE_MONITOR,
+    # ===== VIDEOS (20 templates) =====
+    # YouTube ecosystem
+    YOUTUBE_VIDEO,
+    YOUTUBE_CHANNEL,
+    YOUTUBE_COMMENTS,
+    YOUTUBE_TRANSCRIPT,
+    YOUTUBE_SHORTS,
+    YOUTUBE_SEARCH,
+    YOUTUBE_TRENDING,
+    YOUTUBE_DOWNLOADER,
+    # TikTok ecosystem
+    TIKTOK_VIDEO,
+    TIKTOK_PROFILE,
+    TIKTOK_COMMENTS,
+    TIKTOK_HASHTAG,
+    TIKTOK_TRENDING,
+    TIKTOK_SOUND,
+    # Instagram ecosystem
+    INSTAGRAM_REEL,
+    INSTAGRAM_STORIES,
+    INSTAGRAM_VIDEO_DOWNLOADER,
+    # Facebook
+    FACEBOOK_REELS,
+    # Multi-platform
+    MULTI_PLATFORM_TRANSCRIBER,
+    MULTI_PLATFORM_DOWNLOADER,
 ]
 
 _TEMPLATE_INDEX: dict[str, Template] = {t.id: t for t in BUILT_IN_TEMPLATES}

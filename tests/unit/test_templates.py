@@ -69,7 +69,7 @@ class TestTemplateRegistry:
     """Test the built-in template registry."""
 
     def test_builtin_templates_not_empty(self):
-        assert len(BUILT_IN_TEMPLATES) >= 35
+        assert len(BUILT_IN_TEMPLATES) >= 55
 
     def test_all_templates_have_unique_ids(self):
         ids = [t.id for t in BUILT_IN_TEMPLATES]
@@ -301,3 +301,155 @@ class TestSpecificTemplates:
         assert "specifications" in field_names
         assert "variants" in field_names
         assert "frequently_bought_together" in field_names
+
+
+class TestVideoTemplates:
+    """Validate video/social media templates."""
+
+    def test_video_category_count(self):
+        videos = list_templates(category="videos")
+        assert len(videos) >= 20
+
+    def test_youtube_video_template(self):
+        t = get_template("youtube-video")
+        assert t is not None
+        assert t.platform == "YouTube"
+        assert t.category == TemplateCategory.VIDEOS
+        field_names = [f.name for f in t.config.fields]
+        assert "view_count" in field_names
+        assert "like_count" in field_names
+
+    def test_youtube_channel_template(self):
+        t = get_template("youtube-channel")
+        assert t is not None
+        field_names = [f.name for f in t.config.fields]
+        assert "subscriber_count" in field_names
+        assert "social_links" in field_names
+
+    def test_youtube_comments_template(self):
+        t = get_template("youtube-comments")
+        assert t is not None
+        field_names = [f.name for f in t.config.fields]
+        assert "comment_text" in field_names
+        assert "reply_count" in field_names
+
+    def test_youtube_transcript_template(self):
+        t = get_template("youtube-transcript")
+        assert t is not None
+        field_names = [f.name for f in t.config.fields]
+        assert "transcript_text" in field_names
+        assert "segments" in field_names
+
+    def test_youtube_shorts_template(self):
+        t = get_template("youtube-shorts")
+        assert t is not None
+        assert t.platform == "YouTube"
+
+    def test_youtube_search_template(self):
+        t = get_template("youtube-search")
+        assert t is not None
+        field_names = [f.name for f in t.config.fields]
+        assert "result_type" in field_names
+
+    def test_youtube_trending_template(self):
+        t = get_template("youtube-trending")
+        assert t is not None
+        field_names = [f.name for f in t.config.fields]
+        assert "position" in field_names
+
+    def test_youtube_downloader_template(self):
+        t = get_template("youtube-downloader")
+        assert t is not None
+        field_names = [f.name for f in t.config.fields]
+        assert "download_url" in field_names
+        assert "quality" in field_names
+
+    def test_tiktok_video_template(self):
+        t = get_template("tiktok-video")
+        assert t is not None
+        assert t.config.stealth_required is True
+        field_names = [f.name for f in t.config.fields]
+        assert "share_count" in field_names
+        assert "music_title" in field_names
+        assert "download_url" in field_names
+
+    def test_tiktok_profile_template(self):
+        t = get_template("tiktok-profile")
+        assert t is not None
+        field_names = [f.name for f in t.config.fields]
+        assert "follower_count" in field_names
+        assert "verified" in field_names
+
+    def test_tiktok_comments_template(self):
+        t = get_template("tiktok-comments")
+        assert t is not None
+        field_names = [f.name for f in t.config.fields]
+        assert "comment_text" in field_names
+
+    def test_tiktok_hashtag_template(self):
+        t = get_template("tiktok-hashtag")
+        assert t is not None
+        field_names = [f.name for f in t.config.fields]
+        assert "hashtag" in field_names
+
+    def test_tiktok_trending_template(self):
+        t = get_template("tiktok-trending")
+        assert t is not None
+        field_names = [f.name for f in t.config.fields]
+        assert "trending_rank" in field_names
+
+    def test_tiktok_sound_template(self):
+        t = get_template("tiktok-sound")
+        assert t is not None
+        field_names = [f.name for f in t.config.fields]
+        assert "music_id" in field_names
+
+    def test_instagram_reel_template(self):
+        t = get_template("instagram-reel")
+        assert t is not None
+        assert t.config.preferred_lane == "hard_target"
+        field_names = [f.name for f in t.config.fields]
+        assert "transcript" in field_names
+        assert "download_url" in field_names
+
+    def test_instagram_stories_template(self):
+        t = get_template("instagram-stories")
+        assert t is not None
+        field_names = [f.name for f in t.config.fields]
+        assert "expiry_time" in field_names
+
+    def test_instagram_video_downloader_template(self):
+        t = get_template("instagram-video-downloader")
+        assert t is not None
+        field_names = [f.name for f in t.config.fields]
+        assert "download_url" in field_names
+
+    def test_facebook_reels_template(self):
+        t = get_template("facebook-reels")
+        assert t is not None
+        assert t.config.preferred_lane == "hard_target"
+        field_names = [f.name for f in t.config.fields]
+        assert "play_count" in field_names
+
+    def test_multi_platform_transcriber_template(self):
+        t = get_template("multi-platform-transcriber")
+        assert t is not None
+        assert t.config.extraction_type == "ai"
+        assert "strategy" in t.config.extraction_rules
+
+    def test_multi_platform_downloader_template(self):
+        t = get_template("multi-platform-downloader")
+        assert t is not None
+        assert len(t.config.target_domains) >= 5
+
+    def test_search_youtube_templates(self):
+        results = search_templates("youtube")
+        assert len(results) >= 8
+
+    def test_search_tiktok_templates(self):
+        results = search_templates("tiktok")
+        assert len(results) >= 6
+
+    def test_search_instagram_templates(self):
+        results = search_templates("instagram")
+        assert len(results) >= 3

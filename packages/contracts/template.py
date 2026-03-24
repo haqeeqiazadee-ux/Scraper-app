@@ -12,6 +12,7 @@ class TemplateCategory(StrEnum):
     ECOMMERCE = "ecommerce"
     MARKETPLACE = "marketplace"
     SOCIAL_MEDIA = "social_media"
+    VIDEOS = "videos"
     NEWS = "news"
     JOBS = "jobs"
     REAL_ESTATE = "real_estate"
