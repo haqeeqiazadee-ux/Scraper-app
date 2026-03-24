@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
+from datetime import datetime, timezone
 from typing import Optional
-from uuid import UUID
+from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel, HttpUrl
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,8 +17,8 @@ from packages.contracts.task import Task, TaskStatus
 from packages.contracts.result import Result
 from packages.core.router import ExecutionRouter, RouteDecision, Lane
 from packages.core.webhook import WebhookExecutor
-from packages.core.storage.repositories import TaskRepository, PolicyRepository, ResultRepository
-from services.control_plane.dependencies import get_session, get_tenant_id
+from packages.core.storage.repositories import TaskRepository, PolicyRepository, ResultRepository, RunRepository
+from services.control_plane.dependencies import get_session, get_database, get_tenant_id
 
 logger = logging.getLogger(__name__)
 
@@ -81,23 +83,118 @@ class DryRunRequest(BaseModel):
     policy_id: Optional[UUID] = None
 
 
+async def _run_task_inline(task_id: str, tenant_id: str, url: str, lane: str, extraction_config: dict) -> None:
+    """Execute a scraping task inline as a background task.
+
+    This runs the HTTP worker directly in the control plane process,
+    stores the result, and updates the task status — no separate worker needed.
+    """
+    from services.worker_http.worker import HttpWorker
+
+    db = get_database()
+    run_id = str(uuid4())
+
+    try:
+        # Mark task as running and create a run record
+        async with db.session() as session:
+            task_repo = TaskRepository(session)
+            run_repo = RunRepository(session)
+            await task_repo.update(task_id, tenant_id, status=TaskStatus.RUNNING.value)
+            await run_repo.create(
+                tenant_id=tenant_id,
+                id=run_id,
+                task_id=task_id,
+                lane=lane,
+                connector="http_collector",
+                status="running",
+            )
+            await session.commit()
+
+        # Execute the actual scrape
+        worker = HttpWorker()
+        try:
+            worker_result = await worker.process_task({
+                "task_id": task_id,
+                "tenant_id": tenant_id,
+                "url": url,
+                "css_selectors": extraction_config.get("css_selectors"),
+                "paginate": extraction_config.get("paginate", False),
+                "max_pages": extraction_config.get("max_pages", 1),
+            })
+        finally:
+            await worker.close()
+
+        # Store result and update task + run status
+        async with db.session() as session:
+            task_repo = TaskRepository(session)
+            run_repo = RunRepository(session)
+            result_repo = ResultRepository(session)
+
+            succeeded = worker_result.get("status") == "success"
+            final_status = TaskStatus.COMPLETED.value if succeeded else TaskStatus.FAILED.value
+
+            await task_repo.update(task_id, tenant_id, status=final_status)
+            await run_repo.update(
+                run_id, tenant_id,
+                status="completed" if succeeded else "failed",
+                status_code=worker_result.get("status_code"),
+                error=worker_result.get("error"),
+                duration_ms=worker_result.get("duration_ms", 0),
+                bytes_downloaded=worker_result.get("bytes_downloaded", 0),
+                completed_at=datetime.now(timezone.utc),
+            )
+
+            if succeeded:
+                await result_repo.create(
+                    tenant_id=tenant_id,
+                    task_id=task_id,
+                    run_id=run_id,
+                    url=url,
+                    extracted_data=worker_result.get("extracted_data", []),
+                    item_count=worker_result.get("item_count", 0),
+                    confidence=worker_result.get("confidence", 0.0),
+                    extraction_method=worker_result.get("extraction_method", "deterministic"),
+                    artifacts_json=worker_result.get("artifacts", []),
+                )
+
+            await session.commit()
+
+        logger.info(
+            "Inline task execution finished",
+            extra={"task_id": task_id, "status": final_status, "items": worker_result.get("item_count", 0)},
+        )
+
+    except Exception:
+        logger.exception("Inline task execution failed", extra={"task_id": task_id})
+        # Mark task as failed
+        try:
+            async with db.session() as session:
+                task_repo = TaskRepository(session)
+                await task_repo.update(task_id, tenant_id, status=TaskStatus.FAILED.value)
+                await session.commit()
+        except Exception:
+            logger.exception("Failed to update task status after error", extra={"task_id": task_id})
+
+
 @router.post("/tasks/{task_id}/execute")
 async def execute_task(
     task_id: str,
+    background_tasks: BackgroundTasks,
     session: AsyncSession = Depends(get_session),
     tenant_id: str = Depends(get_tenant_id),
 ) -> dict:
     """Trigger execution of a pending task.
 
     Fetches the task from the database, optionally loads its policy,
-    routes through the ExecutionRouter, and returns the route decision.
+    routes through the ExecutionRouter, and kicks off inline execution
+    as a background task.
     """
     task_repo = TaskRepository(session)
     task_model = await task_repo.get(task_id, tenant_id)
     if not task_model:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    if task_model.status != TaskStatus.PENDING.value:
+    if task_model.status not in (TaskStatus.PENDING.value, TaskStatus.QUEUED.value):
         raise HTTPException(
             status_code=400,
             detail=f"Task is not pending (current status: {task_model.status})",
@@ -135,6 +232,16 @@ async def execute_task(
         "paginate": (policy.extraction_rules or {}).get("paginate", False) if policy else False,
         "max_pages": (policy.extraction_rules or {}).get("max_pages", 1) if policy else 1,
     }
+
+    # Kick off inline execution as a background task
+    background_tasks.add_task(
+        _run_task_inline,
+        task_id=task_id,
+        tenant_id=tenant_id,
+        url=str(task.url),
+        lane=decision.lane.value,
+        extraction_config=extraction_config,
+    )
 
     return {
         "task_id": task_id,

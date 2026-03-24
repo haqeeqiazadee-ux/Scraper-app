@@ -145,6 +145,16 @@ class RunRepository:
         result = await self._session.execute(stmt)
         return result.scalar_one_or_none()
 
+    async def update(self, run_id: str, tenant_id: str, **kwargs) -> Optional[RunModel]:
+        run = await self.get(run_id, tenant_id)
+        if not run:
+            return None
+        for key, value in kwargs.items():
+            if hasattr(run, key):
+                setattr(run, key, value)
+        await self._session.flush()
+        return run
+
     async def list_by_task(self, task_id: str, tenant_id: str) -> list[RunModel]:
         stmt = (
             select(RunModel)
