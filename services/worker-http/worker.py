@@ -15,6 +15,8 @@ from uuid import uuid4
 
 from packages.connectors.http_collector import HttpCollector
 from packages.core.ai_providers.deterministic import DeterministicProvider
+from packages.core.dedup import DedupEngine
+from packages.core.normalizer import Normalizer
 from packages.core.interfaces import FetchRequest, AIProvider
 
 logger = logging.getLogger(__name__)
@@ -65,6 +67,8 @@ class HttpWorker:
     ) -> None:
         self._collector = HttpCollector(proxy=proxy)
         self._ai = ai_provider or DeterministicProvider()
+        self._normalizer = Normalizer()
+        self._dedup = DedupEngine()
 
     async def _fetch_with_retry_after(self, request: FetchRequest, max_retries: int = 3) -> object:
         """Fetch a URL, honouring Retry-After headers on 429 responses (B4)."""
@@ -227,7 +231,20 @@ class HttpWorker:
                 current_url = next_url
                 current_html = next_html
 
-        # Step 3: Calculate confidence
+        # Step 3: Normalize extracted fields
+        normalization_applied = False
+        if extracted_data:
+            extracted_data = self._normalizer.normalize_batch(extracted_data)
+            normalization_applied = True
+
+        # Step 4: Deduplicate records
+        dedup_applied = False
+        original_count = len(extracted_data)
+        if extracted_data:
+            extracted_data = self._dedup.deduplicate(extracted_data)
+            dedup_applied = len(extracted_data) < original_count
+
+        # Step 5: Calculate confidence
         confidence = 0.0
         if extracted_data:
             # Score based on how many fields were extracted
@@ -264,6 +281,8 @@ class HttpWorker:
             "item_count": len(extracted_data),
             "confidence": round(confidence, 4),
             "extraction_method": extraction_method,
+            "normalization_applied": normalization_applied,
+            "dedup_applied": dedup_applied,
             "should_escalate": len(extracted_data) == 0,
             # B5: artifact storage metadata
             "html_snapshot": html_snapshot,

@@ -211,7 +211,9 @@ class DeterministicProvider(BaseAIProvider):
                         product["rating"] = rating_map[cls]
                         break
 
-            if product.get("name") or product.get("price"):
+            # Only include items that have a name — price-only items are noise
+            # (e.g. stray price tags outside of actual product cards)
+            if product.get("name"):
                 products.append(product)
 
         return products

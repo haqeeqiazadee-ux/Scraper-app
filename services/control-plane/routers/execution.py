@@ -167,6 +167,8 @@ async def _run_task_inline(task_id: str, tenant_id: str, url: str, lane: str, ex
                     confidence=worker_result.get("confidence", 0.0),
                     extraction_method=worker_result.get("extraction_method", "deterministic"),
                     artifacts_json=worker_result.get("artifacts", []),
+                    normalization_applied=worker_result.get("normalization_applied", False),
+                    dedup_applied=worker_result.get("dedup_applied", False),
                 )
 
             await session.commit()
@@ -313,6 +315,8 @@ async def execute_task(
                 confidence=worker_result.get("confidence", 0.0),
                 extraction_method=worker_result.get("extraction_method", "deterministic"),
                 artifacts_json=worker_result.get("artifacts", []),
+                normalization_applied=worker_result.get("normalization_applied", False),
+                dedup_applied=worker_result.get("dedup_applied", False),
             )
 
         elapsed = int((time.time() - start_time) * 1000)

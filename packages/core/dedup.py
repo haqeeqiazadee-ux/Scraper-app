@@ -60,11 +60,15 @@ class DedupEngine:
         if sku_a and sku_b and sku_a == sku_b:
             return True
 
-        # Exact match on product_url
+        # Exact match on product_url (skip base domain URLs — they're not real product links)
         url_a = str(a.get("product_url", "")).strip().rstrip("/")
         url_b = str(b.get("product_url", "")).strip().rstrip("/")
         if url_a and url_b and url_a == url_b:
-            return True
+            # Reject matches on bare domain URLs (e.g. "https://example.com")
+            from urllib.parse import urlparse
+            parsed = urlparse(url_a)
+            if parsed.path and parsed.path not in ("", "/"):
+                return True
 
         # Fuzzy match on name
         name_a = str(a.get("name", "")).strip().lower()
