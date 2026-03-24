@@ -86,6 +86,17 @@ export function TaskDetail({ task, results, resultsTotal }: TaskDetailProps) {
             <StatusBadge status={task.status} />
           </span>
         </div>
+        {task.status === "failed" && task.metadata && "last_error" in task.metadata && (
+          <div className="detail-row">
+            <span className="detail-label">Error</span>
+            <span
+              className="detail-value"
+              style={{ color: "var(--color-danger, #dc3545)", fontFamily: "var(--font-mono)", fontSize: 12, wordBreak: "break-all" }}
+            >
+              {String(task.metadata.last_error)}
+            </span>
+          </div>
+        )}
         <div className="detail-row">
           <span className="detail-label">Type</span>
           <span className="detail-value">{task.task_type}</span>

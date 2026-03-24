@@ -22,7 +22,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
-from services.control_plane.routers import health, tasks, policies, results, execution, metrics, schedules, billing, artifacts  # noqa: E402 — uses symlink
+from services.control_plane.routers import health, tasks, policies, results, execution, metrics, schedules, billing, artifacts, sessions, webhooks  # noqa: E402 — uses symlink
 from services.control_plane.middleware.metrics import MetricsMiddleware
 from services.control_plane.middleware.rate_limit import RateLimitMiddleware
 from services.control_plane.middleware.quota import QuotaMiddleware
@@ -193,9 +193,11 @@ def create_app() -> FastAPI:
             content={"detail": f"{type(exc).__name__}: {exc}", "path": str(request.url.path)},
         )
 
-    # Register routers
+    # Register routers — health/metrics at both root and /api/v1 for frontend compat
     app.include_router(health.router, tags=["Health"])
+    app.include_router(health.router, prefix="/api/v1", tags=["Health"])
     app.include_router(metrics.router, tags=["Metrics"])
+    app.include_router(metrics.router, prefix="/api/v1", tags=["Metrics"])
     app.include_router(tasks.router, prefix="/api/v1", tags=["Tasks"])
     app.include_router(policies.router, prefix="/api/v1", tags=["Policies"])
     app.include_router(results.router, prefix="/api/v1", tags=["Results"])
@@ -203,6 +205,8 @@ def create_app() -> FastAPI:
     app.include_router(schedules.router, prefix="/api/v1", tags=["Schedules"])
     app.include_router(billing.router, prefix="/api/v1", tags=["Billing"])
     app.include_router(artifacts.router, prefix="/api/v1", tags=["Artifacts"])
+    app.include_router(sessions.router, prefix="/api/v1", tags=["Sessions"])
+    app.include_router(webhooks.router, prefix="/api/v1", tags=["Webhooks"])
     if _auth_available:
         app.include_router(auth_router.router, prefix="/api/v1", tags=["Auth"])
 

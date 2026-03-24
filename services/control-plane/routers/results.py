@@ -59,6 +59,62 @@ async def create_result(
     }
 
 
+@router.get("/results")
+async def list_results(
+    limit: int = 50,
+    offset: int = 0,
+    min_confidence: Optional[float] = None,
+    sort_by: str = "created_at",
+    sort_order: str = "desc",
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
+) -> dict:
+    """List all results with pagination and filtering."""
+    repo = ResultRepository(session)
+    results, total = await repo.list(
+        tenant_id, limit=limit, offset=offset,
+        min_confidence=min_confidence, sort_by=sort_by, sort_order=sort_order,
+    )
+    return {
+        "items": [
+            {
+                "id": r.id,
+                "task_id": r.task_id,
+                "run_id": r.run_id,
+                "url": r.url,
+                "item_count": r.item_count,
+                "confidence": r.confidence,
+                "extraction_method": r.extraction_method,
+                "created_at": r.created_at.isoformat() if r.created_at else None,
+            }
+            for r in results
+        ],
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+    }
+
+
+@router.post("/results/export")
+async def export_results(
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
+) -> dict:
+    """Export results (stub — returns status message)."""
+    return {"status": "ok", "message": "Use /tasks/{task_id}/export/{format} for per-task exports"}
+
+
+@router.get("/results/export/count")
+async def export_count(
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
+) -> dict:
+    """Count exportable results."""
+    repo = ResultRepository(session)
+    results, total = await repo.list(tenant_id, limit=1, offset=0)
+    return {"count": total}
+
+
 @router.get("/results/{result_id}")
 async def get_result(
     result_id: str,
