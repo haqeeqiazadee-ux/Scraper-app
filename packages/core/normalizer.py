@@ -154,3 +154,15 @@ def clean_url(value: str) -> str:
     if not value.startswith(("http://", "https://", "data:")):
         return ""
     return value
+
+
+class Normalizer:
+    """Stateless normalizer — convenience wrapper around module-level functions."""
+
+    def normalize_batch(self, items: list[dict]) -> list[dict]:
+        """Normalize a list of extracted items to canonical schema."""
+        return normalize_items(items)
+
+    def normalize_one(self, item: dict) -> dict:
+        """Normalize a single extracted item."""
+        return normalize_item(item)
