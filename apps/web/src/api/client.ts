@@ -108,7 +108,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     let detail = response.statusText;
     try {
       const body = await response.json();
-      detail = body.detail ?? detail;
+      // FastAPI validation errors return detail as an array of objects
+      if (Array.isArray(body.detail)) {
+        detail = body.detail
+          .map((e: { loc?: string[]; msg?: string }) => {
+            const field = e.loc?.slice(-1)[0] ?? "field";
+            return `${field}: ${e.msg ?? "invalid"}`;
+          })
+          .join("; ");
+      } else {
+        detail = body.detail ?? detail;
+      }
     } catch {
       /* response may not be JSON */
     }
