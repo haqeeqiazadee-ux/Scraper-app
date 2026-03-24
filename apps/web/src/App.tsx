@@ -14,6 +14,7 @@ import { SessionsPage } from "./pages/SessionsPage";
 import { ProxyPage } from "./pages/ProxyPage";
 import { RouteTesterPage } from "./pages/RouteTesterPage";
 import { WebhookHistoryPage } from "./pages/WebhookHistoryPage";
+import ScrapeTestPage from "./pages/ScrapeTestPage";
 
 /** Wrapper that redirects unauthenticated users to /login. */
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -97,6 +98,7 @@ export function App() {
         <Route path="/results/:id" element={<ResultDetailPage />} />
         <Route path="/schedules" element={<SchedulesPage />} />
         <Route path="/route-tester" element={<RouteTesterPage />} />
+        <Route path="/scrape-test" element={<ScrapeTestPage />} />
         <Route path="/sessions" element={<SessionsPage />} />
         <Route path="/proxies" element={<ProxyPage />} />
         <Route path="/webhooks" element={<WebhookHistoryPage />} />

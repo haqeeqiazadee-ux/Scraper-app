@@ -177,16 +177,22 @@ async def _run_task_inline(task_id: str, tenant_id: str, url: str, lane: str, ex
     except Exception:
         error_tb = traceback.format_exc()
         logger.error("Inline task execution FAILED for %s: %s", task_id, error_tb)
-        # Mark task as failed so it doesn't stay stuck at queued/running
+        # Mark task AND run as failed
         try:
             async with db.session() as session:
                 task_repo = TaskRepository(session)
-                # Store the short error message in metadata for UI
+                run_repo = RunRepository(session)
                 short_error = error_tb.strip().split("\n")[-1][:500]
                 await task_repo.update(
                     task_id, tenant_id,
                     status=TaskStatus.FAILED.value,
                     metadata_json={"last_error": short_error},
+                )
+                await run_repo.update(
+                    run_id, tenant_id,
+                    status="failed",
+                    error=short_error,
+                    completed_at=datetime.now(timezone.utc),
                 )
                 await session.commit()
             logger.info("Task %s marked as failed after error", task_id)
@@ -269,6 +275,76 @@ async def execute_task(
         "route": _route_decision_to_dict(decision),
         "extraction_config": extraction_config,
     }
+
+
+class TestScrapeRequest(BaseModel):
+    """Request body for real-time scrape test."""
+    url: HttpUrl
+    timeout_ms: int = 15000
+
+
+@router.post("/test-scrape")
+async def test_scrape(
+    request: TestScrapeRequest,
+    tenant_id: str = Depends(get_tenant_id),
+) -> dict:
+    """Real-time scrape test — runs inline and returns results immediately.
+
+    Useful for debugging and testing URLs without creating a task.
+    """
+    import traceback
+    import time
+
+    url = str(request.url)
+    start = time.time()
+
+    try:
+        from services.worker_http.worker import HttpWorker
+
+        worker = HttpWorker()
+        try:
+            result = await worker.process_task({
+                "task_id": "test",
+                "tenant_id": tenant_id,
+                "url": url,
+                "timeout_ms": request.timeout_ms,
+                "paginate": False,
+                "max_pages": 1,
+            })
+        finally:
+            await worker.close()
+
+        elapsed = int((time.time() - start) * 1000)
+        return {
+            "url": url,
+            "status": result.get("status"),
+            "status_code": result.get("status_code"),
+            "item_count": result.get("item_count", 0),
+            "confidence": result.get("confidence", 0),
+            "extraction_method": result.get("extraction_method"),
+            "duration_ms": elapsed,
+            "error": result.get("error"),
+            "extracted_data": result.get("extracted_data", [])[:10],  # Limit to 10 items
+            "should_escalate": result.get("should_escalate", False),
+        }
+
+    except Exception:
+        elapsed = int((time.time() - start) * 1000)
+        error = traceback.format_exc()
+        logger.error("Test scrape failed for %s: %s", url, error)
+        short_error = error.strip().split("\n")[-1][:500]
+        return {
+            "url": url,
+            "status": "error",
+            "status_code": None,
+            "item_count": 0,
+            "confidence": 0,
+            "extraction_method": None,
+            "duration_ms": elapsed,
+            "error": short_error,
+            "extracted_data": [],
+            "should_escalate": False,
+        }
 
 
 @router.post("/tasks/{task_id}/complete")
