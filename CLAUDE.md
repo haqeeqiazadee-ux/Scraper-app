@@ -2,6 +2,11 @@
 
 > This file is the authoritative context document for Claude Code sessions working on this project.
 
+## Repository
+
+**Canonical Remote:** `https://github.com/fahad-scraper/Scraper-app`
+Always use this repo for all git operations (fetch, pull, push). Do not use any other remote.
+
 ## Project Overview
 
 **Name:** AI Scraping Platform (formerly Scrapling Pro v3.0)
