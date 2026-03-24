@@ -154,7 +154,7 @@ async def _run_task_inline(task_id: str, tenant_id: str, url: str, lane: str, ex
                 error=worker_result.get("error"),
                 duration_ms=worker_result.get("duration_ms", 0),
                 bytes_downloaded=worker_result.get("bytes_downloaded", 0),
-                completed_at=datetime.now(timezone.utc),
+                completed_at=datetime.utcnow(),
             )
 
             if succeeded:
@@ -192,7 +192,7 @@ async def _run_task_inline(task_id: str, tenant_id: str, url: str, lane: str, ex
                     run_id, tenant_id,
                     status="failed",
                     error=short_error,
-                    completed_at=datetime.now(timezone.utc),
+                    completed_at=datetime.utcnow(),
                 )
                 await session.commit()
             logger.info("Task %s marked as failed after error", task_id)
@@ -301,7 +301,7 @@ async def execute_task(
             error=worker_result.get("error"),
             duration_ms=worker_result.get("duration_ms", 0),
             bytes_downloaded=worker_result.get("bytes_downloaded", 0),
-            completed_at=datetime.now(timezone.utc),
+            completed_at=datetime.utcnow(),
         )
 
         # Store result if successful
@@ -345,7 +345,7 @@ async def execute_task(
             run_id, tenant_id,
             status="failed",
             error=short_error,
-            completed_at=datetime.now(timezone.utc),
+            completed_at=datetime.utcnow(),
         )
 
         return {
