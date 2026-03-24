@@ -154,8 +154,7 @@ async def _run_task_inline(task_id: str, tenant_id: str, url: str, lane: str, ex
                 error=worker_result.get("error"),
                 duration_ms=worker_result.get("duration_ms", 0),
                 bytes_downloaded=worker_result.get("bytes_downloaded", 0),
-                completed_at=datetime.utcnow(),
-            )
+                )
 
             if succeeded:
                 await result_repo.create(
@@ -192,8 +191,7 @@ async def _run_task_inline(task_id: str, tenant_id: str, url: str, lane: str, ex
                     run_id, tenant_id,
                     status="failed",
                     error=short_error,
-                    completed_at=datetime.utcnow(),
-                )
+                        )
                 await session.commit()
             logger.info("Task %s marked as failed after error", task_id)
         except Exception:
@@ -301,7 +299,6 @@ async def execute_task(
             error=worker_result.get("error"),
             duration_ms=worker_result.get("duration_ms", 0),
             bytes_downloaded=worker_result.get("bytes_downloaded", 0),
-            completed_at=datetime.utcnow(),
         )
 
         # Store result if successful
@@ -347,8 +344,7 @@ async def execute_task(
                 run_id, tenant_id,
                 status="failed",
                 error=short_error,
-                completed_at=datetime.utcnow(),
-            )
+                )
         except Exception:
             logger.error("Failed to mark task %s as failed: %s", task_id, traceback.format_exc())
 
