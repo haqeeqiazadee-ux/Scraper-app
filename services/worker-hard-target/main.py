@@ -65,6 +65,7 @@ class HardTargetWorkerRunner:
                 two_captcha_key=os.environ.get("TWO_CAPTCHA_API_KEY"),
                 anti_captcha_key=os.environ.get("ANTI_CAPTCHA_API_KEY"),
                 capmonster_key=os.environ.get("CAPMONSTER_API_KEY"),
+                nopecha_key=os.environ.get("NOPECHA_API_KEY"),
             )
 
             # Build proxy adapter from env (IPRoyal if key present)

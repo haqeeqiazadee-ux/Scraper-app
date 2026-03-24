@@ -74,3 +74,46 @@ All notable changes to this project are documented in this file.
 - **Tests:** 436 passed, 1 skipped
 - **Infrastructure:** 4 Dockerfiles, 13 Helm templates, 20 Terraform files
 - **Lessons learned:** 38 entries documented in system/lessons.md
+
+---
+
+## [0.2.0] — 2026-03-24
+
+### Phase 4+: Production Readiness
+- **GAP-001:** Redis distributed queue consumer + worker consumption loops
+- **GAP-002:** Hard-target execution lane (stealth browser + fingerprint randomization)
+- **GAP-003:** Rate limit enforcement + quota management (token bucket + tenant quotas)
+- **GAP-004:** Callback webhook executor (HMAC-SHA256 signed) + task scheduler (cron/interval)
+- **GAP-005:** Web UI real API integration (full client, hooks, auth context, login page)
+
+### Phase 5: QA Testing
+- 5 QA sessions covering all 18 phases of qa_strategy.md
+- 162 use cases passed, 31 skipped (external services), 5 bugs fixed
+- Browser lane verified with Chromium (SPA rendering, screenshots, stealth)
+- Hard-target lane verified (fingerprint randomization, CAPTCHA detection, escalation)
+- E-commerce scenarios verified (25-item PLP, PDP JSON-LD, Shopify detection)
+
+### Production Improvements
+- **PROD-001:** Alembic database migrations (async env.py, initial migration for all 6 tables)
+- **PROD-002:** Live AI provider integration — OpenAI provider created & verified live
+- **PROD-003:** Load testing with Locust (2 user profiles, 15+ endpoints)
+- **PROD-004:** Grafana dashboards (10-panel overview + Prometheus + auto-provisioning)
+- **PROD-005:** Security — removed API keys from git tracking, added env.keys to .gitignore
+
+### Frontend Polish
+- Dashboard: color-coded stat cards, health badge, empty state with SVG icons
+- Login: branded logo, gradient icon, larger submit button, spinner animation
+- ScrapeTestPage: proper page structure, stats grid for results, empty state
+- Global: CSS spinner animation, loading indicator with rotating border
+
+### Documentation
+- Updated README with current test count (706), AI provider info
+- Updated DEPLOY.md to remove references to tracked secret files
+- Added AI Providers section to developer_setup.md
+- Updated CHANGELOG (this file)
+
+### Statistics
+- **Tests:** 706 passed, 0 failed
+- **Lessons learned:** 67 entries
+- **AI Providers:** Gemini + OpenAI + Deterministic (fallback chain)
+- **Platform completeness:** 100% production-ready

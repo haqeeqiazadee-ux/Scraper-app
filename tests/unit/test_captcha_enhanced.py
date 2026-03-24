@@ -13,6 +13,7 @@ from packages.connectors.captcha_adapter import (
     TwoCaptchaSolver,
     AntiCaptchaSolver,
     CapMonsterSolver,
+    NopeCHASolver,
 )
 
 
@@ -143,6 +144,119 @@ class TestCapMonsterSolver:
 
 
 # ---------------------------------------------------------------------------
+# NopeCHASolver
+# ---------------------------------------------------------------------------
+
+class TestNopeCHASolver:
+    def test_get_name(self):
+        solver = NopeCHASolver(api_key="test-key")
+        assert solver.get_name() == "nopecha"
+
+    @pytest.mark.asyncio
+    async def test_solve_recaptcha_v2_success(self):
+        solver = NopeCHASolver(api_key="test-key")
+
+        submit_response = MagicMock()
+        submit_response.json.return_value = {"data": "job-id-123"}
+
+        result_response = MagicMock()
+        result_response.json.return_value = {"data": "solved-token-nopecha"}
+
+        mock_client = AsyncMock()
+        mock_client.post.return_value = submit_response
+        mock_client.get.return_value = result_response
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+
+        with patch("httpx.AsyncClient", return_value=mock_client):
+            solution = await solver.solve(CaptchaType.RECAPTCHA_V2, "site-key", "https://example.com")
+
+        assert solution.success is True
+        assert solution.solution == "solved-token-nopecha"
+        assert solution.solver_name == "nopecha"
+        assert solution.cost_usd > 0
+
+    @pytest.mark.asyncio
+    async def test_solve_turnstile_success(self):
+        solver = NopeCHASolver(api_key="test-key")
+
+        submit_response = MagicMock()
+        submit_response.json.return_value = {"data": "job-id-456"}
+
+        result_response = MagicMock()
+        result_response.json.return_value = {"data": "turnstile-token-abc"}
+
+        mock_client = AsyncMock()
+        mock_client.post.return_value = submit_response
+        mock_client.get.return_value = result_response
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+
+        with patch("httpx.AsyncClient", return_value=mock_client):
+            solution = await solver.solve(CaptchaType.TURNSTILE, "site-key", "https://example.com")
+
+        assert solution.success is True
+        assert solution.solution == "turnstile-token-abc"
+        assert solution.solver_name == "nopecha"
+
+        # Verify correct type was sent
+        call_args = mock_client.post.call_args
+        assert call_args[1]["json"]["type"] == "turnstile"
+
+    @pytest.mark.asyncio
+    async def test_solve_submit_error(self):
+        solver = NopeCHASolver(api_key="bad-key")
+
+        submit_response = MagicMock()
+        submit_response.json.return_value = {"error": 2, "message": "Invalid API key"}
+
+        mock_client = AsyncMock()
+        mock_client.post.return_value = submit_response
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+
+        with patch("httpx.AsyncClient", return_value=mock_client):
+            solution = await solver.solve(CaptchaType.RECAPTCHA_V2, "site-key", "https://example.com")
+
+        assert solution.success is False
+        assert "Invalid API key" in solution.error
+
+    @pytest.mark.asyncio
+    async def test_unsupported_type(self):
+        solver = NopeCHASolver(api_key="test-key")
+        solution = await solver.solve(CaptchaType.IMAGE, "site-key", "https://example.com")
+        assert solution.success is False
+        assert "Unsupported" in solution.error
+
+    @pytest.mark.asyncio
+    async def test_solve_poll_incomplete_then_success(self):
+        """Test that polling retries on error 14 (incomplete) and succeeds."""
+        solver = NopeCHASolver(api_key="test-key")
+
+        submit_response = MagicMock()
+        submit_response.json.return_value = {"data": "job-id-789"}
+
+        incomplete_response = MagicMock()
+        incomplete_response.json.return_value = {"error": 14, "message": "Incomplete job"}
+
+        ready_response = MagicMock()
+        ready_response.json.return_value = {"data": "final-token"}
+
+        mock_client = AsyncMock()
+        mock_client.post.return_value = submit_response
+        mock_client.get.side_effect = [incomplete_response, incomplete_response, ready_response]
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+
+        with patch("httpx.AsyncClient", return_value=mock_client):
+            solution = await solver.solve(CaptchaType.HCAPTCHA, "site-key", "https://example.com")
+
+        assert solution.success is True
+        assert solution.solution == "final-token"
+        assert mock_client.get.call_count == 3
+
+
+# ---------------------------------------------------------------------------
 # CaptchaAdapter
 # ---------------------------------------------------------------------------
 
@@ -152,8 +266,9 @@ class TestCaptchaAdapter:
             two_captcha_key="key1",
             anti_captcha_key="key2",
             capmonster_key="key3",
+            nopecha_key="key4",
         )
-        assert adapter.solver_count == 3
+        assert adapter.solver_count == 4
 
     def test_from_config_no_keys(self):
         adapter = CaptchaAdapter.from_config()

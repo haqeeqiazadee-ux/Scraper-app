@@ -65,19 +65,28 @@ export function Login() {
         style={{
           width: "100%",
           maxWidth: 400,
-          boxShadow: "var(--shadow-md)",
+          boxShadow: "var(--shadow-lg)",
         }}
       >
-        <div style={{ textAlign: "center", marginBottom: 24 }}>
+        {/* Branded header */}
+        <div style={{ textAlign: "center", marginBottom: 28 }}>
+          <div style={{
+            width: 48, height: 48, borderRadius: 12,
+            background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
+            fontSize: 22, color: "#fff", fontWeight: 700,
+            marginBottom: 16, boxShadow: "0 4px 12px rgba(99, 102, 241, 0.3)",
+          }}>S</div>
           <h1
             style={{
-              fontSize: 20,
+              fontSize: 22,
               fontWeight: 700,
               color: "var(--color-text)",
               marginBottom: 4,
+              letterSpacing: "-0.025em",
             }}
           >
-            Scraping Platform
+            Scraper AI Platform
           </h1>
           <p
             style={{
@@ -87,23 +96,13 @@ export function Login() {
             }}
           >
             {isRegisterMode
-              ? "Create a new account"
+              ? "Create a new account to get started"
               : "Sign in to your account"}
           </p>
         </div>
 
         {error && (
-          <div
-            style={{
-              padding: "10px 12px",
-              background: "#fee2e2",
-              borderRadius: "var(--radius-md)",
-              fontSize: 13,
-              color: "var(--color-error)",
-              fontWeight: 500,
-              marginBottom: 16,
-            }}
-          >
+          <div className="form-error-banner" style={{ marginBottom: 16 }}>
             {error}
           </div>
         )}
@@ -142,22 +141,27 @@ export function Login() {
 
           <button
             type="submit"
-            className="btn btn-primary"
+            className="btn btn-primary btn-lg"
             style={{ width: "100%", marginTop: 8 }}
             disabled={isLoading || !username.trim() || !password.trim()}
           >
-            {isLoading
-              ? "Please wait..."
-              : isRegisterMode
-                ? "Create Account"
-                : "Sign In"}
+            {isLoading ? (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                <span className="spinner" />
+                Please wait...
+              </span>
+            ) : isRegisterMode ? (
+              "Create Account"
+            ) : (
+              "Sign In"
+            )}
           </button>
         </form>
 
         <div
           style={{
             textAlign: "center",
-            marginTop: 16,
+            marginTop: 20,
             fontSize: 13,
             color: "var(--color-text-secondary)",
           }}
@@ -172,9 +176,8 @@ export function Login() {
               color: "var(--color-primary)",
               cursor: "pointer",
               fontSize: 13,
-              fontWeight: 500,
+              fontWeight: 600,
               padding: 0,
-              textDecoration: "underline",
             }}
           >
             {isRegisterMode ? "Sign in" : "Create one"}

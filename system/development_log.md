@@ -1319,3 +1319,82 @@ Complete frontend upgrade to represent all backend functionality. 22 new files, 
 - Usage meters with green → amber → red thresholds
 - No new npm dependencies (pure CSS, inline SVGs)
 
+## 2026-03-24 — PROD-003/004c/005: Observability & Load Testing
+
+### PROD-004c — Health Check DB Probe (Already Complete)
+- Verified `/ready` endpoint performs `SELECT 1` against database
+- Verified `/check-connection` endpoint does deep table introspection
+- No remaining TODO comments in services/ or packages/ code
+- Only cosmetic TODOs remain (installer bitmap assets)
+
+### PROD-005 — Grafana Dashboards
+- Created Prometheus scrape config (`infrastructure/docker/prometheus/prometheus.yml`)
+- Created Grafana datasource provisioning (auto-connects to Prometheus)
+- Created dashboard provisioning config (auto-loads JSON dashboards)
+- Created `scraper-overview.json` dashboard with 10 panels:
+  - Request Rate (req/s) — total vs 5xx timeseries
+  - Request Latency — p50/p90/p99 histograms
+  - Active In-Flight Requests — stat gauge with thresholds
+  - Total Requests — stat counter
+  - Error Rate — percentage stat with green/yellow/red
+  - Unhandled Exceptions — rate stat
+  - Requests by Status Code — pie chart
+  - Requests by Method — pie chart
+  - Top 10 Endpoints by Request Rate — horizontal bar gauge
+  - Latency Heatmap — full-width heatmap
+- Added `prometheus` and `grafana` services to docker-compose.yml
+- Grafana on port 3001, Prometheus on port 9090
+
+### PROD-003 — Load Testing
+- Created `scripts/loadtest.py` with Locust framework
+- Two user profiles:
+  - `ScraperUser` — realistic mixed workload (CRUD tasks, policies, results, routes, schedules)
+  - `HighThroughputUser` — read-heavy dashboard/polling simulation
+- Covers 15+ endpoints with weighted task distribution
+- Memory-safe: caps stored IDs to prevent growth during long runs
+- Configurable via env vars (LOCUST_TENANT_ID)
+
+---
+
+## 2026-03-24 — PROD-002: Live AI Provider Integration
+
+### Problem
+- Gemini API key was expired/revoked, returning 403
+- No OpenAI provider implementation existed (factory referenced it but file was missing)
+- env.keys file was tracked in git, exposing API secrets
+
+### Actions Taken
+
+#### 1. API Key Diagnosis
+- Tested old Gemini key: 403 Forbidden
+- Tested new Gemini key: still 403 — confirmed it's a network-level block (generativelanguage.googleapis.com returns 403 even on root URL from this sandbox)
+- Tested OpenAI key: works perfectly after credit update
+
+#### 2. OpenAI Provider Created
+- New file: `packages/core/ai_providers/openai_provider.py`
+- Mirrors GeminiProvider architecture: lazy client init, same prompts, same JSON parsing
+- Uses `openai.OpenAI` client with chat completions API
+- Supports gpt-4o-mini (default), gpt-4o, gpt-4-turbo
+- System prompt enforces JSON-only responses, temperature=0.1 for determinism
+- Token tracking via response.usage.total_tokens
+
+#### 3. Security Fix — env.keys Removed from Git
+- `env.keys` was tracked in git, exposing API keys in commit history
+- Removed from tracking: `git rm --cached env.keys`
+- Added `env.keys` to .gitignore
+- All secrets now only in .env (already gitignored)
+
+#### 4. Live Test Results (OpenAI gpt-4o-mini)
+- **Classify:** "iPhone 15 Pro Max 256GB for sale at $999" → `product_listing` (correct)
+- **Extract:** 2 products from HTML (Samsung Galaxy S24 Ultra @ $1199.99, Google Pixel 9 Pro @ $999.00)
+- **Normalize:** `product_name→name`, `cost→price(999.0)`, `img→image_url`, `stars→rating(4.8)` (all correct)
+- **Fallback chain:** Gemini fails (403) → OpenAI succeeds → result returned (chain works)
+- Total tokens used: 908
+
+#### 5. Files Modified
+- `packages/core/ai_providers/openai_provider.py` (NEW — 147 lines)
+- `packages/core/ai_providers/__init__.py` (added OpenAIProvider export)
+- `.env` (updated Gemini key)
+- `env.keys` (updated Gemini key, removed from git)
+- `.gitignore` (added env.keys)
+

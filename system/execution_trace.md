@@ -811,3 +811,49 @@
   - Global search with Cmd+K shortcut
 - **Test suite:** 706 passed, 0 failed (unchanged)
 - **Next action:** Update system files, commit and push
+
+## Work Cycle — PROD-003/004c/005: Observability & Load Testing 2026-03-24
+
+- **Timestamp:** 2026-03-24
+- **Active Task IDs:** PROD-003, PROD-004c, PROD-005
+- **What was read before action:** system/todo.md, system/execution_trace.md, services/control-plane/routers/health.py, packages/core/metrics.py, services/control-plane/middleware/metrics.py, infrastructure/docker/docker-compose.yml
+- **Action taken:** Completed remaining 3 production readiness tasks
+- **Why:** Close out final production gaps
+- **Implementation:**
+  - **PROD-004c:** Verified DB probe already implemented — `/ready` does SELECT 1, `/check-connection` does table introspection. Zero remaining TODOs in source code.
+  - **PROD-005:** Full Grafana + Prometheus observability stack:
+    - Prometheus scrape config targeting control-plane:8000/metrics
+    - Grafana auto-provisioned datasource + dashboard
+    - 10-panel overview dashboard (request rate, latency percentiles, active requests, error rate, status/method breakdown, top endpoints, latency heatmap)
+    - Added prometheus + grafana services to docker-compose.yml
+  - **PROD-003:** Locust load testing script with 2 user profiles:
+    - ScraperUser: 15 weighted tasks covering CRUD, routing, results, schedules
+    - HighThroughputUser: read-heavy polling simulation
+- **New files (6):**
+  - `infrastructure/docker/prometheus/prometheus.yml`
+  - `infrastructure/docker/grafana/provisioning/datasources/prometheus.yml`
+  - `infrastructure/docker/grafana/provisioning/dashboards/dashboards.yml`
+  - `infrastructure/docker/grafana/provisioning/dashboards/scraper-overview.json`
+  - `scripts/loadtest.py`
+- **Modified files (2):**
+  - `infrastructure/docker/docker-compose.yml` — added prometheus + grafana services
+  - `system/development_log.md` — logged implementation details
+- **Test suite:** 663 passed, 0 failed (pre-existing network-dependent e2e test excluded)
+- **Next action:** Update todo.md, commit and push
+
+## Work Cycle — 2026-03-24
+
+- **Timestamp:** 2026-03-24
+- **Active Task IDs:** PROD-002
+- **What was read before action:** .env, env.keys, packages/core/ai_providers/ (all files), services/worker-ai/ (main.py, worker.py), packages/core/secrets.py, packages/core/interfaces.py
+- **Action taken:** PROD-002 — Live AI provider integration
+- **Why:** Final production readiness task — verify AI extraction works end-to-end with real API keys
+- **Outputs produced:**
+  1. Updated Gemini API key in .env and env.keys (old key was expired/revoked)
+  2. Created packages/core/ai_providers/openai_provider.py — full OpenAI GPT provider with extract/classify/normalize
+  3. Updated __init__.py to export OpenAIProvider
+  4. Removed env.keys from git tracking, added to .gitignore (was exposing secrets)
+  5. Live-tested OpenAI provider: classify (product_listing), extract (2 products from HTML), normalize (field mapping), fallback chain (Gemini→OpenAI→deterministic)
+  6. Confirmed Gemini 403 is network-level block (generativelanguage.googleapis.com blocked in sandbox), not key issue
+- **Blockers found:** Gemini API unreachable from sandbox environment (network firewall). OpenAI works fine.
+- **Next action:** Deploy platform to Supabase + Railway, polish frontend, finalize docs

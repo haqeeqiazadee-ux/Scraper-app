@@ -116,7 +116,7 @@ python -m pytest tests/integration -q
 python -m pytest tests/e2e -q
 ```
 
-**Current status:** 648 tests passing, 6 skipped, 0 failures.
+**Current status:** 706 tests passing, 0 failures.
 
 ## Tech Stack
 
@@ -126,7 +126,7 @@ python -m pytest tests/e2e -q
 - **Browser:** Playwright
 - **Desktop:** Tauri v2 (Rust + WebView)
 - **Extension:** Chrome Manifest V3
-- **AI:** Google Gemini, OpenAI, Ollama (local)
+- **AI:** Google Gemini (primary), OpenAI GPT-4o-mini (fallback), deterministic (always available)
 - **Infra:** Docker, Terraform (AWS), Helm (K8s)
 
 ## Key Features

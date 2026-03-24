@@ -21,6 +21,7 @@ class CaptchaType(StrEnum):
     RECAPTCHA_V2 = "recaptcha_v2"
     RECAPTCHA_V3 = "recaptcha_v3"
     HCAPTCHA = "hcaptcha"
+    TURNSTILE = "turnstile"
     IMAGE = "image"
 
 
@@ -341,6 +342,108 @@ class CapMonsterSolver:
         return result
 
 
+class NopeCHASolver:
+    """NopeCHA CAPTCHA solving service — supports reCAPTCHA, hCaptcha, and Turnstile.
+
+    API docs: https://developers.nopecha.com/token/
+    Pricing: 20 credits for reCAPTCHA, 10 credits for hCaptcha, 1 credit for Turnstile.
+    """
+
+    API_BASE = "https://api.nopecha.com/token/"
+    COST_PER_SOLVE = 0.002  # approximate USD cost
+
+    def __init__(self, api_key: str) -> None:
+        self._api_key = api_key
+
+    def get_name(self) -> str:
+        return "nopecha"
+
+    async def solve(
+        self,
+        captcha_type: CaptchaType,
+        site_key: str,
+        page_url: str,
+    ) -> CaptchaSolution:
+        start = time.time()
+        try:
+            import httpx
+        except ImportError:
+            return CaptchaSolution(success=False, solver_name=self.get_name(), error="httpx not installed")
+
+        type_map = {
+            CaptchaType.RECAPTCHA_V2: "recaptcha2",
+            CaptchaType.RECAPTCHA_V3: "recaptcha3",
+            CaptchaType.HCAPTCHA: "hcaptcha",
+            CaptchaType.TURNSTILE: "turnstile",
+        }
+        nopecha_type = type_map.get(captcha_type)
+        if not nopecha_type:
+            return CaptchaSolution(
+                success=False, solver_name=self.get_name(),
+                error=f"Unsupported type: {captcha_type}",
+            )
+
+        async with httpx.AsyncClient(timeout=30) as client:
+            # Submit task
+            payload: dict = {
+                "key": self._api_key,
+                "type": nopecha_type,
+                "sitekey": site_key,
+                "url": page_url,
+            }
+            resp = await client.post(self.API_BASE, json=payload)
+            result = resp.json()
+
+            if "error" in result:
+                return CaptchaSolution(
+                    success=False, solver_name=self.get_name(),
+                    error=result.get("message", f"error code {result['error']}"),
+                    elapsed_ms=int((time.time() - start) * 1000),
+                )
+
+            job_id = result.get("data")
+            if not job_id:
+                return CaptchaSolution(
+                    success=False, solver_name=self.get_name(),
+                    error="No job ID returned",
+                    elapsed_ms=int((time.time() - start) * 1000),
+                )
+
+            # Poll for result (max 60 × 3s = 180s)
+            for _ in range(60):
+                await asyncio.sleep(3)
+                resp = await client.get(
+                    self.API_BASE,
+                    params={"key": self._api_key, "id": job_id},
+                )
+                result = resp.json()
+
+                if "error" in result:
+                    if result["error"] == 14:
+                        # Incomplete job — keep polling
+                        continue
+                    return CaptchaSolution(
+                        success=False, solver_name=self.get_name(),
+                        error=result.get("message", f"error code {result['error']}"),
+                        elapsed_ms=int((time.time() - start) * 1000),
+                    )
+
+                token = result.get("data", "")
+                if token:
+                    return CaptchaSolution(
+                        success=True,
+                        solution=token,
+                        solver_name=self.get_name(),
+                        cost_usd=self.COST_PER_SOLVE,
+                        elapsed_ms=int((time.time() - start) * 1000),
+                    )
+
+        return CaptchaSolution(
+            success=False, solver_name=self.get_name(), error="timeout",
+            elapsed_ms=int((time.time() - start) * 1000),
+        )
+
+
 # ---------------------------------------------------------------------------
 # CAPTCHA escalation strategy
 # ---------------------------------------------------------------------------
@@ -400,14 +503,18 @@ class CaptchaAdapter:
         two_captcha_key: Optional[str] = None,
         anti_captcha_key: Optional[str] = None,
         capmonster_key: Optional[str] = None,
+        nopecha_key: Optional[str] = None,
     ) -> CaptchaAdapter:
         """Create adapter with solvers based on available API keys.
 
         CapSolver is preferred (cheapest + fastest) and tried first.
+        NopeCHA is second (supports Turnstile + competitive pricing).
         """
         adapter = cls()
         if capsolver_key:
             adapter.add_solver(CapSolverSolver(capsolver_key))
+        if nopecha_key:
+            adapter.add_solver(NopeCHASolver(nopecha_key))
         if two_captcha_key:
             adapter.add_solver(TwoCaptchaSolver(two_captcha_key))
         if anti_captcha_key:

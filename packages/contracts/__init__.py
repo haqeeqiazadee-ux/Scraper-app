@@ -20,6 +20,7 @@ from packages.contracts.run import Run, RunCreate, RunStatus
 from packages.contracts.result import Result, ResultCreate
 from packages.contracts.artifact import Artifact, ArtifactCreate, ArtifactType
 from packages.contracts.billing import TenantQuota, UsageCounters, PlanTier
+from packages.contracts.template import Template, TemplateCategory, TemplateConfig, FieldDefinition
 
 __all__ = [
     # Task
@@ -37,4 +38,6 @@ __all__ = [
     "Artifact", "ArtifactCreate", "ArtifactType",
     # Billing
     "TenantQuota", "UsageCounters", "PlanTier",
+    # Template
+    "Template", "TemplateCategory", "TemplateConfig", "FieldDefinition",
 ]
