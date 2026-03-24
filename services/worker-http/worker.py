@@ -57,6 +57,69 @@ def _find_next_page_url(html: str, current_url: str) -> Optional[str]:
     return None
 
 
+def _find_api_next_page(body: str, current_url: str) -> Optional[str]:
+    """Extract next page URL from JSON API responses.
+
+    Supports common patterns:
+      - { "next_page_token": "abc", "next": "url" }
+      - { "pagination": { "next_url": "..." } }
+      - { "next": "https://..." }
+      - { "links": { "next": "..." } }
+      - { "cursor": "...", "has_more": true }
+    """
+    import json
+    from urllib.parse import urljoin, urlencode, urlparse, parse_qs
+
+    try:
+        data = json.loads(body)
+    except (json.JSONDecodeError, TypeError):
+        return None
+
+    if not isinstance(data, dict):
+        return None
+
+    # Direct "next" URL
+    for key in ("next", "next_url", "next_page_url", "nextPageUrl"):
+        val = data.get(key)
+        if isinstance(val, str) and val:
+            return val if val.startswith("http") else urljoin(current_url, val)
+
+    # Nested under "pagination" or "links"
+    for container in ("pagination", "links", "paging", "meta"):
+        sub = data.get(container)
+        if isinstance(sub, dict):
+            for key in ("next", "next_url", "next_page"):
+                val = sub.get(key)
+                if isinstance(val, str) and val:
+                    return val if val.startswith("http") else urljoin(current_url, val)
+
+    # Token-based: append cursor/page_token to current URL
+    for token_key in ("next_page_token", "nextPageToken", "cursor", "next_cursor"):
+        token = data.get(token_key)
+        if not token:
+            # Check nested
+            for container in ("pagination", "meta", "paging"):
+                sub = data.get(container)
+                if isinstance(sub, dict):
+                    token = sub.get(token_key) or sub.get("cursor")
+                    if token:
+                        break
+
+        if token and isinstance(token, str):
+            # Check has_more / has_next flag
+            has_more = data.get("has_more", data.get("has_next", data.get("hasMore", True)))
+            if not has_more:
+                return None
+
+            parsed = urlparse(current_url)
+            params = parse_qs(parsed.query)
+            params["page_token"] = [token]
+            new_query = urlencode(params, doseq=True)
+            return f"{parsed.scheme}://{parsed.netloc}{parsed.path}?{new_query}"
+
+    return None
+
+
 class HttpWorker:
     """Worker that processes HTTP lane tasks."""
 

@@ -7,6 +7,11 @@
 **Canonical Remote:** `https://github.com/fahad-scraper/Scraper-app`
 Always use this repo for all git operations (fetch, pull, push). Do not use any other remote.
 
+**Authentication:** If git push fails with auth errors, read the GitHub PAT from `.env` (`GITHUB_PAT`) and set the remote URL:
+```
+git remote set-url origin https://<TOKEN>@github.com/fahad-scraper/Scraper-app.git
+```
+
 ## Project Overview
 
 **Name:** AI Scraping Platform (formerly Scrapling Pro v3.0)
