@@ -22,7 +22,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
-from services.control_plane.routers import health, tasks, policies, results, execution, metrics, schedules, billing, artifacts, sessions, webhooks  # noqa: E402 — uses symlink
+from services.control_plane.routers import health, tasks, policies, results, execution, metrics, schedules, billing, artifacts, sessions, webhooks, templates  # noqa: E402 — uses symlink
 from services.control_plane.middleware.metrics import MetricsMiddleware
 from services.control_plane.middleware.rate_limit import RateLimitMiddleware
 from services.control_plane.middleware.quota import QuotaMiddleware
@@ -207,6 +207,7 @@ def create_app() -> FastAPI:
     app.include_router(artifacts.router, prefix="/api/v1", tags=["Artifacts"])
     app.include_router(sessions.router, prefix="/api/v1", tags=["Sessions"])
     app.include_router(webhooks.router, prefix="/api/v1", tags=["Webhooks"])
+    app.include_router(templates.router, prefix="/api/v1", tags=["Templates"])
     if _auth_available:
         app.include_router(auth_router.router, prefix="/api/v1", tags=["Auth"])
 
