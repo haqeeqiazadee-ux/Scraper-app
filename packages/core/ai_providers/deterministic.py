@@ -38,6 +38,14 @@ class DeterministicProvider(BaseAIProvider):
 
     def __init__(self) -> None:
         super().__init__(name="deterministic")
+        self._social_provider = None
+
+    def _get_social_provider(self):
+        """Lazily initialize the social media provider."""
+        if self._social_provider is None:
+            from packages.core.ai_providers.social.dispatcher import SocialMediaProvider
+            self._social_provider = SocialMediaProvider()
+        return self._social_provider
 
     async def extract(
         self,
@@ -56,7 +64,14 @@ class DeterministicProvider(BaseAIProvider):
                            Overrides the default PRODUCT_SELECTORS for a single
                            product extraction pass when provided.
         """
-        # 0. If custom selectors are provided, run a targeted single-item pass first
+        # 0a. Try social media platform-specific extraction first
+        social = self._get_social_provider()
+        if social.can_handle(url):
+            social_result = await social.extract(html, url)
+            if social_result:
+                return social_result
+
+        # 0b. If custom selectors are provided, run a targeted single-item pass first
         if css_selectors:
             custom_result = self._extract_with_custom_selectors(html, url, css_selectors)
             if custom_result:
