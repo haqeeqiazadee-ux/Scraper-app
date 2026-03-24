@@ -1354,3 +1354,47 @@ Complete frontend upgrade to represent all backend functionality. 22 new files, 
 - Memory-safe: caps stored IDs to prevent growth during long runs
 - Configurable via env vars (LOCUST_TENANT_ID)
 
+---
+
+## 2026-03-24 — PROD-002: Live AI Provider Integration
+
+### Problem
+- Gemini API key was expired/revoked, returning 403
+- No OpenAI provider implementation existed (factory referenced it but file was missing)
+- env.keys file was tracked in git, exposing API secrets
+
+### Actions Taken
+
+#### 1. API Key Diagnosis
+- Tested old Gemini key: 403 Forbidden
+- Tested new Gemini key: still 403 — confirmed it's a network-level block (generativelanguage.googleapis.com returns 403 even on root URL from this sandbox)
+- Tested OpenAI key: works perfectly after credit update
+
+#### 2. OpenAI Provider Created
+- New file: `packages/core/ai_providers/openai_provider.py`
+- Mirrors GeminiProvider architecture: lazy client init, same prompts, same JSON parsing
+- Uses `openai.OpenAI` client with chat completions API
+- Supports gpt-4o-mini (default), gpt-4o, gpt-4-turbo
+- System prompt enforces JSON-only responses, temperature=0.1 for determinism
+- Token tracking via response.usage.total_tokens
+
+#### 3. Security Fix — env.keys Removed from Git
+- `env.keys` was tracked in git, exposing API keys in commit history
+- Removed from tracking: `git rm --cached env.keys`
+- Added `env.keys` to .gitignore
+- All secrets now only in .env (already gitignored)
+
+#### 4. Live Test Results (OpenAI gpt-4o-mini)
+- **Classify:** "iPhone 15 Pro Max 256GB for sale at $999" → `product_listing` (correct)
+- **Extract:** 2 products from HTML (Samsung Galaxy S24 Ultra @ $1199.99, Google Pixel 9 Pro @ $999.00)
+- **Normalize:** `product_name→name`, `cost→price(999.0)`, `img→image_url`, `stars→rating(4.8)` (all correct)
+- **Fallback chain:** Gemini fails (403) → OpenAI succeeds → result returned (chain works)
+- Total tokens used: 908
+
+#### 5. Files Modified
+- `packages/core/ai_providers/openai_provider.py` (NEW — 147 lines)
+- `packages/core/ai_providers/__init__.py` (added OpenAIProvider export)
+- `.env` (updated Gemini key)
+- `env.keys` (updated Gemini key, removed from git)
+- `.gitignore` (added env.keys)
+

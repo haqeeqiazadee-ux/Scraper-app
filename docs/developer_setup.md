@@ -69,6 +69,7 @@ Key variables (see `.env.example` for full list):
 | `STORAGE_TYPE` | `filesystem` | Object storage backend |
 | `STORAGE_PATH` | `./artifacts` | Local artifact storage path |
 | `GEMINI_API_KEY` | (empty) | Google Gemini API key |
+| `OPENAI_API_KEY` | (empty) | OpenAI API key (fallback AI) |
 | `SECRET_KEY` | `change-me-in-production` | JWT signing key |
 | `LOG_LEVEL` | `INFO` | Logging level |
 
@@ -154,6 +155,36 @@ npm run dev
 - **Type hints** on all function signatures
 - **Underscores** in Python package directory names
 - **Lazy initialization** for clients (create on first request)
+
+## AI Providers
+
+The platform supports multiple AI providers with automatic fallback:
+
+```
+Gemini (primary) → OpenAI (fallback) → Deterministic (always available)
+```
+
+**Configuration:**
+- Set `GEMINI_API_KEY` for Google Gemini (gemini-1.5-flash, gemini-2.0-flash)
+- Set `OPENAI_API_KEY` for OpenAI (gpt-4o-mini, gpt-4o)
+- Deterministic provider requires no API key (uses CSS selectors, JSON-LD, regex)
+
+**Usage in code:**
+```python
+from packages.core.ai_providers import AIProviderFactory
+
+# Single provider
+provider = AIProviderFactory.create("openai", api_key="sk-...", model="gpt-4o-mini")
+result = await provider.extract(html, url)
+
+# Fallback chain
+chain = AIProviderFactory.create_chain([
+    {"provider_type": "gemini", "api_key": gemini_key},
+    {"provider_type": "openai", "api_key": openai_key},
+    {"provider_type": "deterministic"},
+])
+result = await chain.extract(html, url)
+```
 
 ## Troubleshooting
 

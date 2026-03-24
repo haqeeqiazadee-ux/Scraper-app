@@ -99,4 +99,4 @@ open https://your-site.netlify.app
 | `infrastructure/docker/Dockerfile.railway` | Docker image for Railway |
 | `infrastructure/supabase/001_initial_schema.sql` | Database schema SQL |
 | `.env.production.example` | Production env template |
-| `env.keys` | Current credentials (rotate before production!) |
+| `.env` | Local credentials (gitignored, never committed) |

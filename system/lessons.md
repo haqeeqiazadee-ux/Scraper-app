@@ -141,3 +141,11 @@
 62. **Local test servers are better than mocks for browser testing** — Python's `http.server.HTTPServer` in a daemon thread provides a reliable local server for Playwright tests. This avoids network issues, is deterministic, and tests the full browser rendering pipeline without mocking.
 
 63. **`executable_path` should always be an optional parameter** — Browser connectors should accept an optional `executable_path` for environments where Playwright's auto-detection fails. This is a zero-cost addition that prevents hard blocks in CI/container environments.
+
+64. **Never track secret files in git, even as "reference"** — `env.keys` was tracked in git and exposed API keys in commit history. Always add secret files to `.gitignore` from day one. Once a key is in git history, it must be revoked — there's no way to truly scrub it.
+
+65. **Google API 403 can be a network block, not a key issue** — `generativelanguage.googleapis.com` returns 403 at the network level from some environments (sandboxes, CI runners). Always test with `curl` on the root URL first before blaming the API key. Have a fallback provider (OpenAI) ready.
+
+66. **OpenAI chat completions need low temperature for extraction** — Setting `temperature=0.1` with a system prompt enforcing "JSON only" responses produces reliable, parseable extraction results. Higher temperatures cause markdown wrapping, explanatory text, and inconsistent JSON structure.
+
+67. **Lazy client initialization is essential for multi-provider chains** — Creating API clients only on first use (not at import time) prevents failures when one provider's SDK is missing. The factory can safely reference all providers without requiring all SDKs installed.
