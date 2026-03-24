@@ -787,27 +787,819 @@ GOOGLE_SHOPPING = Template(
 
 
 # ---------------------------------------------------------------------------
+# 18. Amazon Seller Scraper
+# ---------------------------------------------------------------------------
+AMAZON_SELLER = Template(
+    id="amazon-seller",
+    name="Amazon Seller Scraper",
+    description=(
+        "Extract Amazon seller/merchant data — store name, total reviews, "
+        "product listings, feedback ratings, and contact details."
+    ),
+    category=TemplateCategory.ECOMMERCE,
+    tags=["amazon", "seller", "merchant", "storefront"],
+    icon="🏢",
+    platform="Amazon",
+    config=TemplateConfig(
+        target_domains=["amazon.com", "amazon.co.uk", "amazon.de"],
+        example_urls=[
+            "https://www.amazon.com/sp?seller=A1B2C3D4E5",
+        ],
+        fields=[
+            _field("seller_name", "Seller/store name", required=True),
+            _field("seller_id", "Amazon seller ID"),
+            _field("rating", "Feedback rating percentage", field_type="number"),
+            _field("total_ratings", "Lifetime rating count", field_type="number"),
+            _field("positive_last_12m", "Positive feedback last 12 months", field_type="number"),
+            _field("business_name", "Registered business name"),
+            _field("business_address", "Business address"),
+            _field("product_count", "Number of listed products", field_type="number"),
+            _field("storefront_url", "Seller storefront URL", field_type="url"),
+        ],
+        preferred_lane="browser",
+        browser_required=True,
+        stealth_required=True,
+        proxy_required=True,
+        proxy_type="residential",
+        rate_limit_rpm=15,
+        timeout_ms=45000,
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# 19. Amazon Search Results Scraper
+# ---------------------------------------------------------------------------
+AMAZON_SEARCH = Template(
+    id="amazon-search",
+    name="Amazon Search Results Scraper",
+    description=(
+        "Extract real-time search results from Amazon — product titles, prices, "
+        "ratings, sponsored flags, and ranking positions for any keyword."
+    ),
+    category=TemplateCategory.ECOMMERCE,
+    tags=["amazon", "search", "serp", "keyword", "ranking"],
+    icon="🔎",
+    platform="Amazon",
+    config=TemplateConfig(
+        target_domains=["amazon.com", "amazon.co.uk", "amazon.de"],
+        example_urls=[
+            "https://www.amazon.com/s?k=wireless+earbuds",
+        ],
+        fields=[
+            _field("position", "Organic rank position", field_type="number", required=True),
+            _field("title", "Product title", required=True),
+            _field("price", "Current price", field_type="number"),
+            _field("rating", "Star rating", field_type="number"),
+            _field("review_count", "Number of reviews", field_type="number"),
+            _field("asin", "ASIN identifier"),
+            _field("is_sponsored", "Sponsored listing flag"),
+            _field("is_prime", "Prime eligible"),
+            _field("image_url", "Product thumbnail", field_type="image"),
+            _field("product_url", "Product page URL", field_type="url"),
+            _field("badge", "Badge text (Best Seller, Choice, etc.)"),
+        ],
+        preferred_lane="browser",
+        browser_required=True,
+        stealth_required=True,
+        proxy_required=True,
+        proxy_type="residential",
+        rate_limit_rpm=15,
+        timeout_ms=45000,
+        pagination={"type": "next_button", "selector": "a.s-pagination-next"},
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# 20. Amazon Product Details Scraper
+# ---------------------------------------------------------------------------
+AMAZON_PRODUCT_DETAILS = Template(
+    id="amazon-product-details",
+    name="Amazon Product Details Scraper",
+    description=(
+        "Deep extraction of Amazon product pages — full specifications, "
+        "variant data (colors/sizes), A+ content, comparison tables, "
+        "and frequently bought together items."
+    ),
+    category=TemplateCategory.ECOMMERCE,
+    tags=["amazon", "product", "specifications", "variants", "detailed"],
+    icon="📋",
+    platform="Amazon",
+    config=TemplateConfig(
+        target_domains=["amazon.com", "amazon.co.uk", "amazon.de", "amazon.fr",
+                        "amazon.it", "amazon.es", "amazon.ca", "amazon.co.jp",
+                        "amazon.in", "amazon.com.au"],
+        example_urls=[
+            "https://www.amazon.com/dp/B0BSHF7WHW",
+        ],
+        fields=[
+            _field("title", "Product title", required=True),
+            _field("price", "Current price", field_type="number", required=True),
+            _field("specifications", "Technical specifications table", field_type="json"),
+            _field("variants", "All variants (color, size, style)", field_type="json"),
+            _field("frequently_bought_together", "FBT product ASINs", field_type="list"),
+            _field("similar_items", "Similar/compared items", field_type="list"),
+            _field("a_plus_content", "A+ / Enhanced brand content", field_type="html"),
+            _field("dimensions", "Product dimensions"),
+            _field("weight", "Item weight"),
+            _field("manufacturer", "Manufacturer name"),
+            _field("country_of_origin", "Country of origin"),
+            _field("date_first_available", "Date first available"),
+            _field("all_images", "All product images", field_type="list"),
+        ],
+        preferred_lane="browser",
+        browser_required=True,
+        stealth_required=True,
+        proxy_required=True,
+        proxy_type="residential",
+        rate_limit_rpm=15,
+        timeout_ms=60000,
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# 21. TikTok Shop Scraper
+# ---------------------------------------------------------------------------
+TIKTOK_SHOP = Template(
+    id="tiktok-shop",
+    name="TikTok Shop Scraper",
+    description=(
+        "Extract product data from TikTok Shop — prices, sales volume, "
+        "seller details, and trending product insights for e-commerce analysis."
+    ),
+    category=TemplateCategory.ECOMMERCE,
+    tags=["tiktok", "shop", "social-commerce", "trending", "viral"],
+    icon="🎵",
+    platform="TikTok Shop",
+    config=TemplateConfig(
+        target_domains=["tiktok.com", "shop.tiktok.com"],
+        example_urls=[
+            "https://shop.tiktok.com/view/product/12345",
+        ],
+        fields=[
+            _field("title", "Product name", required=True),
+            _field("price", "Current price", field_type="number", required=True),
+            _field("original_price", "Original price", field_type="number"),
+            _field("sold_count", "Total units sold", field_type="number"),
+            _field("rating", "Product rating", field_type="number"),
+            _field("review_count", "Number of reviews", field_type="number"),
+            _field("seller_name", "Shop/seller name"),
+            _field("seller_rating", "Seller rating", field_type="number"),
+            _field("image_url", "Product image", field_type="image"),
+            _field("product_url", "Product page URL", field_type="url"),
+            _field("category", "Product category"),
+            _field("variations", "Product variations (size, color)", field_type="json"),
+        ],
+        preferred_lane="hard_target",
+        browser_required=True,
+        stealth_required=True,
+        proxy_required=True,
+        proxy_type="residential",
+        rate_limit_rpm=10,
+        timeout_ms=60000,
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# 22. Trustpilot Reviews Scraper
+# ---------------------------------------------------------------------------
+TRUSTPILOT_REVIEWS = Template(
+    id="trustpilot-reviews",
+    name="Trustpilot Reviews Scraper",
+    description=(
+        "Extract company reviews from Trustpilot — review text, scores, "
+        "dates, reviewer info, company responses. Filter by star rating or date."
+    ),
+    category=TemplateCategory.REVIEWS,
+    tags=["trustpilot", "reviews", "reputation", "ratings", "trust"],
+    icon="🛡️",
+    platform="Trustpilot",
+    config=TemplateConfig(
+        target_domains=["trustpilot.com"],
+        example_urls=[
+            "https://www.trustpilot.com/review/example.com",
+        ],
+        fields=[
+            _field("review_title", "Review headline", required=True),
+            _field("review_text", "Full review body", required=True),
+            _field("score", "Star rating (1-5)", field_type="number"),
+            _field("date", "Review date"),
+            _field("reviewer_name", "Reviewer display name"),
+            _field("reviewer_country", "Reviewer country"),
+            _field("reviewer_reviews_count", "Total reviews by this reviewer", field_type="number"),
+            _field("company_response", "Company reply text"),
+            _field("verified", "Verified order flag"),
+            _field("experience_date", "Date of experience"),
+        ],
+        preferred_lane="http",
+        browser_required=False,
+        rate_limit_rpm=30,
+        timeout_ms=20000,
+        pagination={"type": "page_param", "param": "page", "start": 1, "items_per_page": 20},
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# 23. Yelp Business Scraper
+# ---------------------------------------------------------------------------
+YELP_BUSINESS = Template(
+    id="yelp-business",
+    name="Yelp Business Scraper",
+    description=(
+        "Scrape Yelp for restaurant and business data — ratings, reviews, "
+        "amenities, operating hours, photos, and detailed business info."
+    ),
+    category=TemplateCategory.REVIEWS,
+    tags=["yelp", "restaurant", "business", "reviews", "local"],
+    icon="🍽️",
+    platform="Yelp",
+    config=TemplateConfig(
+        target_domains=["yelp.com"],
+        example_urls=[
+            "https://www.yelp.com/search?find_desc=restaurants&find_loc=New+York",
+            "https://www.yelp.com/biz/example-restaurant",
+        ],
+        fields=[
+            _field("name", "Business name", required=True),
+            _field("rating", "Star rating (1-5)", field_type="number", required=True),
+            _field("review_count", "Total number of reviews", field_type="number"),
+            _field("price_range", "Price range ($ to $$$$)"),
+            _field("categories", "Business categories", field_type="list"),
+            _field("address", "Full street address"),
+            _field("phone", "Phone number"),
+            _field("hours", "Operating hours", field_type="json"),
+            _field("amenities", "Business amenities/attributes", field_type="list"),
+            _field("photos_count", "Number of photos", field_type="number"),
+            _field("website", "Business website URL", field_type="url"),
+            _field("top_reviews", "Top/highlighted reviews", field_type="json"),
+        ],
+        preferred_lane="browser",
+        browser_required=True,
+        stealth_required=True,
+        proxy_required=True,
+        rate_limit_rpm=15,
+        timeout_ms=30000,
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# 24. Facebook Ads Library Scraper
+# ---------------------------------------------------------------------------
+FACEBOOK_ADS_LIBRARY = Template(
+    id="facebook-ads-library",
+    name="Facebook Ads Library Scraper",
+    description=(
+        "Extract ads from Meta Ad Library — ad creatives, spend ranges, "
+        "impressions, run dates, targeting regions across Facebook, Instagram, "
+        "WhatsApp, and Threads."
+    ),
+    category=TemplateCategory.ECOMMERCE,
+    tags=["facebook", "meta", "ads", "advertising", "competitive-intelligence"],
+    icon="📢",
+    platform="Facebook Ads Library",
+    config=TemplateConfig(
+        target_domains=["facebook.com"],
+        example_urls=[
+            "https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=US&q=shoes",
+        ],
+        fields=[
+            _field("ad_id", "Ad library ID", required=True),
+            _field("page_name", "Advertiser page name", required=True),
+            _field("ad_creative_body", "Ad copy / body text"),
+            _field("ad_creative_link_title", "Link headline"),
+            _field("ad_creative_link_description", "Link description"),
+            _field("ad_image_url", "Ad image URL", field_type="image"),
+            _field("ad_video_url", "Ad video URL", field_type="url"),
+            _field("start_date", "Ad start date"),
+            _field("end_date", "Ad end date (if stopped)"),
+            _field("spend_lower", "Spend range lower bound", field_type="number"),
+            _field("spend_upper", "Spend range upper bound", field_type="number"),
+            _field("impressions_lower", "Impressions lower bound", field_type="number"),
+            _field("impressions_upper", "Impressions upper bound", field_type="number"),
+            _field("platforms", "Platforms (Facebook, Instagram, etc.)", field_type="list"),
+            _field("region_distribution", "Audience region breakdown", field_type="json"),
+        ],
+        preferred_lane="hard_target",
+        browser_required=True,
+        stealth_required=True,
+        proxy_required=True,
+        proxy_type="residential",
+        rate_limit_rpm=10,
+        timeout_ms=60000,
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# 25. Google Ads Scraper
+# ---------------------------------------------------------------------------
+GOOGLE_ADS = Template(
+    id="google-ads",
+    name="Google Ads Transparency Scraper",
+    description=(
+        "Extract advertising data from Google Ads Transparency Center — "
+        "ad creatives, text/image/video ads, locations, and advertiser details."
+    ),
+    category=TemplateCategory.ECOMMERCE,
+    tags=["google", "ads", "advertising", "transparency", "serp"],
+    icon="📣",
+    platform="Google Ads",
+    config=TemplateConfig(
+        target_domains=["adstransparency.google.com"],
+        example_urls=[
+            "https://adstransparency.google.com/?region=US&topic=shopping",
+        ],
+        fields=[
+            _field("advertiser_name", "Advertiser name", required=True),
+            _field("ad_format", "Ad format (text, image, video)", required=True),
+            _field("ad_text", "Ad headline and description"),
+            _field("display_url", "Display URL shown in ad"),
+            _field("landing_page", "Landing page URL", field_type="url"),
+            _field("ad_image_url", "Ad creative image", field_type="image"),
+            _field("last_shown", "Date last shown"),
+            _field("region", "Target region/country"),
+            _field("topic", "Ad topic category"),
+        ],
+        preferred_lane="browser",
+        browser_required=True,
+        stealth_required=True,
+        proxy_required=True,
+        rate_limit_rpm=10,
+        timeout_ms=45000,
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# 26. eBay Product Details Scraper
+# ---------------------------------------------------------------------------
+EBAY_PRODUCT_DETAILS = Template(
+    id="ebay-product-details",
+    name="eBay Product Details Scraper",
+    description=(
+        "Deep extraction from individual eBay product pages — seller stats, "
+        "item specifics, shipping details, return policy, and full description."
+    ),
+    category=TemplateCategory.MARKETPLACE,
+    tags=["ebay", "product", "details", "seller", "specifics"],
+    icon="🔍",
+    platform="eBay",
+    config=TemplateConfig(
+        target_domains=["ebay.com", "ebay.co.uk", "ebay.de"],
+        example_urls=[
+            "https://www.ebay.com/itm/123456789",
+        ],
+        fields=[
+            _field("title", "Item title", required=True),
+            _field("price", "Current/BIN price", field_type="number", required=True),
+            _field("condition", "Item condition with details"),
+            _field("seller_name", "Seller username"),
+            _field("seller_feedback_score", "Seller feedback score", field_type="number"),
+            _field("seller_positive_pct", "Positive feedback %", field_type="number"),
+            _field("item_specifics", "Item specifics (brand, model, etc.)", field_type="json"),
+            _field("shipping_cost", "Shipping cost", field_type="number"),
+            _field("shipping_service", "Shipping service name"),
+            _field("returns_accepted", "Returns accepted flag"),
+            _field("return_period", "Return window (days)"),
+            _field("description_html", "Full item description", field_type="html"),
+            _field("images", "All listing images", field_type="list"),
+            _field("watchers", "Number of watchers", field_type="number"),
+        ],
+        preferred_lane="http",
+        browser_required=False,
+        rate_limit_rpm=25,
+        timeout_ms=30000,
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# 27. eBay Reviews Scraper
+# ---------------------------------------------------------------------------
+EBAY_REVIEWS = Template(
+    id="ebay-reviews",
+    name="eBay Product Reviews Scraper",
+    description=(
+        "Extract product reviews from eBay with advanced filters — "
+        "sort by rating, filter verified purchases, image-only reviews."
+    ),
+    category=TemplateCategory.REVIEWS,
+    tags=["ebay", "reviews", "ratings", "feedback"],
+    icon="💬",
+    platform="eBay",
+    config=TemplateConfig(
+        target_domains=["ebay.com", "ebay.co.uk", "ebay.de"],
+        example_urls=[
+            "https://www.ebay.com/itm/123456789#UserReviews",
+        ],
+        fields=[
+            _field("review_title", "Review headline", required=True),
+            _field("review_text", "Full review body", required=True),
+            _field("rating", "Star rating (1-5)", field_type="number"),
+            _field("review_date", "Date of review"),
+            _field("reviewer_name", "Reviewer username"),
+            _field("verified_purchase", "Verified purchase flag"),
+            _field("has_images", "Review includes images"),
+            _field("helpful_count", "Helpfulness votes", field_type="number"),
+        ],
+        preferred_lane="http",
+        browser_required=False,
+        rate_limit_rpm=25,
+        timeout_ms=30000,
+        pagination={"type": "page_param", "param": "pgn", "start": 1, "items_per_page": 20},
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# 28. Zalando Product Scraper
+# ---------------------------------------------------------------------------
+ZALANDO_PRODUCT = Template(
+    id="zalando-product",
+    name="Zalando Product Scraper",
+    description=(
+        "Scrape Zalando product data across all European markets — prices, "
+        "brands, discounts, sizes, colors, and product descriptions."
+    ),
+    category=TemplateCategory.ECOMMERCE,
+    tags=["zalando", "fashion", "europe", "clothing", "shoes"],
+    icon="👗",
+    platform="Zalando",
+    config=TemplateConfig(
+        target_domains=["zalando.com", "zalando.de", "zalando.fr", "zalando.it",
+                        "zalando.es", "zalando.nl", "zalando.pl", "zalando.co.uk"],
+        example_urls=[
+            "https://www.zalando.de/herrenschuhe/",
+            "https://www.zalando.com/men-shoes/",
+        ],
+        fields=[
+            _field("title", "Product name", required=True),
+            _field("brand", "Brand name", required=True),
+            _field("price", "Current price", field_type="number", required=True),
+            _field("original_price", "Original price", field_type="number"),
+            _field("discount_pct", "Discount percentage", field_type="number"),
+            _field("currency", "Price currency"),
+            _field("color", "Product color"),
+            _field("sizes_available", "Available sizes", field_type="list"),
+            _field("image_url", "Main product image", field_type="image"),
+            _field("description", "Product description"),
+            _field("product_url", "Product page URL", field_type="url"),
+            _field("category", "Product category"),
+        ],
+        preferred_lane="browser",
+        browser_required=True,
+        stealth_required=True,
+        proxy_required=True,
+        proxy_type="residential",
+        rate_limit_rpm=15,
+        timeout_ms=45000,
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# 29. Mercado Libre Scraper
+# ---------------------------------------------------------------------------
+MERCADO_LIBRE = Template(
+    id="mercado-libre",
+    name="Mercado Libre Scraper",
+    description=(
+        "Extract products, sellers, and listings from Mercado Libre — "
+        "Latin America's largest e-commerce marketplace. Supports all country domains."
+    ),
+    category=TemplateCategory.MARKETPLACE,
+    tags=["mercadolibre", "latin-america", "marketplace", "mexico", "brazil"],
+    icon="🌎",
+    platform="Mercado Libre",
+    config=TemplateConfig(
+        target_domains=["mercadolibre.com", "mercadolibre.com.mx", "mercadolibre.com.ar",
+                        "mercadolibre.com.co", "mercadolibre.cl", "mercadolivre.com.br"],
+        example_urls=[
+            "https://www.mercadolibre.com.mx/ofertas",
+        ],
+        fields=[
+            _field("title", "Product title", required=True),
+            _field("price", "Current price", field_type="number", required=True),
+            _field("original_price", "Original price", field_type="number"),
+            _field("currency", "Price currency (MXN, ARS, BRL, etc.)"),
+            _field("seller_name", "Seller name"),
+            _field("seller_reputation", "Seller reputation level"),
+            _field("condition", "New / Used / Refurbished"),
+            _field("free_shipping", "Free shipping flag"),
+            _field("sold_count", "Units sold", field_type="number"),
+            _field("rating", "Product rating", field_type="number"),
+            _field("image_url", "Product image", field_type="image"),
+            _field("product_url", "Listing URL", field_type="url"),
+            _field("location", "Seller location"),
+        ],
+        preferred_lane="browser",
+        browser_required=True,
+        proxy_required=True,
+        rate_limit_rpm=20,
+        timeout_ms=30000,
+        pagination={"type": "next_button", "selector": "a.andes-pagination__link--next"},
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# 30. Naver Shopping Scraper
+# ---------------------------------------------------------------------------
+NAVER_SHOPPING = Template(
+    id="naver-shopping",
+    name="Naver Shopping Scraper",
+    description=(
+        "Extract product data from Naver Shopping — South Korea's dominant "
+        "e-commerce search engine. Prices, seller info, and reviews."
+    ),
+    category=TemplateCategory.ECOMMERCE,
+    tags=["naver", "korea", "shopping", "asia"],
+    icon="🇰🇷",
+    platform="Naver Shopping",
+    config=TemplateConfig(
+        target_domains=["shopping.naver.com"],
+        example_urls=[
+            "https://shopping.naver.com/search/all?query=headphones",
+        ],
+        fields=[
+            _field("title", "Product name", required=True),
+            _field("price", "Lowest price", field_type="number", required=True),
+            _field("mall_name", "Seller/mall name"),
+            _field("category", "Product category"),
+            _field("review_count", "Number of reviews", field_type="number"),
+            _field("rating", "Product rating", field_type="number"),
+            _field("image_url", "Product thumbnail", field_type="image"),
+            _field("product_url", "Product page URL", field_type="url"),
+            _field("delivery_info", "Delivery/shipping info"),
+        ],
+        preferred_lane="browser",
+        browser_required=True,
+        proxy_required=True,
+        proxy_type="residential",
+        rate_limit_rpm=15,
+        timeout_ms=30000,
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# 31. Kickstarter Scraper
+# ---------------------------------------------------------------------------
+KICKSTARTER = Template(
+    id="kickstarter",
+    name="Kickstarter Project Scraper",
+    description=(
+        "Scrape Kickstarter project data — funding progress, backer counts, "
+        "reward tiers, project descriptions, and creator info."
+    ),
+    category=TemplateCategory.MARKETPLACE,
+    tags=["kickstarter", "crowdfunding", "projects", "startups"],
+    icon="🚀",
+    platform="Kickstarter",
+    config=TemplateConfig(
+        target_domains=["kickstarter.com"],
+        example_urls=[
+            "https://www.kickstarter.com/discover/advanced?category_id=16&sort=magic",
+        ],
+        fields=[
+            _field("title", "Project name", required=True),
+            _field("pledged", "Amount pledged", field_type="number", required=True),
+            _field("goal", "Funding goal", field_type="number"),
+            _field("percent_funded", "Funding percentage", field_type="number"),
+            _field("backers_count", "Number of backers", field_type="number"),
+            _field("currency", "Currency code"),
+            _field("creator_name", "Creator/company name"),
+            _field("category", "Project category"),
+            _field("location", "Creator location"),
+            _field("status", "Project status (live, successful, failed)"),
+            _field("end_date", "Campaign end date"),
+            _field("description", "Project blurb/description"),
+            _field("image_url", "Project hero image", field_type="image"),
+            _field("project_url", "Project page URL", field_type="url"),
+        ],
+        preferred_lane="http",
+        browser_required=False,
+        rate_limit_rpm=30,
+        timeout_ms=20000,
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# 32. Shopify Lead Scraper
+# ---------------------------------------------------------------------------
+SHOPIFY_LEADS = Template(
+    id="shopify-leads",
+    name="Shopify Lead Scraper",
+    description=(
+        "Extract e-commerce leads from Shopify-powered stores — shop emails, "
+        "business contact info, technology stack, and store metadata."
+    ),
+    category=TemplateCategory.ECOMMERCE,
+    tags=["shopify", "leads", "email", "b2b", "prospecting"],
+    icon="📧",
+    platform="Shopify",
+    config=TemplateConfig(
+        target_domains=["*.myshopify.com"],
+        example_urls=[],
+        fields=[
+            _field("shop_name", "Store name", required=True),
+            _field("shop_url", "Store URL", field_type="url", required=True),
+            _field("email", "Contact email"),
+            _field("phone", "Contact phone number"),
+            _field("country", "Store country"),
+            _field("currency", "Store currency"),
+            _field("product_count", "Number of products", field_type="number"),
+            _field("social_links", "Social media links", field_type="json"),
+            _field("shopify_plan", "Shopify plan tier"),
+            _field("theme", "Active Shopify theme"),
+        ],
+        preferred_lane="api",
+        browser_required=False,
+        rate_limit_rpm=40,
+        timeout_ms=15000,
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# 33. AI Product Matcher
+# ---------------------------------------------------------------------------
+AI_PRODUCT_MATCHER = Template(
+    id="ai-product-matcher",
+    name="AI Product Matcher",
+    description=(
+        "AI-powered cross-site product matching — find the same product across "
+        "multiple e-commerce websites for price comparison and arbitrage detection."
+    ),
+    category=TemplateCategory.ECOMMERCE,
+    tags=["ai", "matching", "comparison", "arbitrage", "cross-site"],
+    icon="🔗",
+    platform="Any",
+    config=TemplateConfig(
+        target_domains=[],
+        example_urls=[],
+        fields=[
+            _field("product_title", "Product name from source", required=True),
+            _field("source_url", "Source product URL", field_type="url", required=True),
+            _field("source_price", "Price on source site", field_type="number"),
+            _field("matched_url", "Matched product URL on target site", field_type="url"),
+            _field("matched_price", "Price on target site", field_type="number"),
+            _field("match_confidence", "AI match confidence (0-1)", field_type="number"),
+            _field("price_difference", "Price delta", field_type="number"),
+            _field("match_method", "How match was determined (UPC, title, image)"),
+        ],
+        preferred_lane="auto",
+        extraction_type="ai",
+        rate_limit_rpm=20,
+        timeout_ms=45000,
+        extraction_rules={
+            "strategy": "ai_matching",
+            "matching_signals": ["upc", "ean", "title_similarity", "image_hash", "brand+model"],
+            "min_confidence": 0.85,
+        },
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# 34. Google Play Store Scraper
+# ---------------------------------------------------------------------------
+GOOGLE_PLAY = Template(
+    id="google-play",
+    name="Google Play Store Scraper",
+    description=(
+        "Extract app data and reviews from Google Play Store — ratings, "
+        "download counts, pricing, developer info, and user reviews."
+    ),
+    category=TemplateCategory.ECOMMERCE,
+    tags=["google-play", "apps", "mobile", "reviews", "android"],
+    icon="📱",
+    platform="Google Play",
+    config=TemplateConfig(
+        target_domains=["play.google.com"],
+        example_urls=[
+            "https://play.google.com/store/apps/details?id=com.example.app",
+        ],
+        fields=[
+            _field("app_name", "App title", required=True),
+            _field("developer", "Developer name", required=True),
+            _field("rating", "Average rating", field_type="number"),
+            _field("review_count", "Number of reviews", field_type="number"),
+            _field("installs", "Install count range"),
+            _field("price", "App price (0 if free)", field_type="number"),
+            _field("category", "App category"),
+            _field("description", "App description"),
+            _field("whats_new", "Latest update notes"),
+            _field("version", "Current version"),
+            _field("size", "App size"),
+            _field("icon_url", "App icon", field_type="image"),
+            _field("screenshots", "Screenshot URLs", field_type="list"),
+        ],
+        preferred_lane="http",
+        browser_required=False,
+        rate_limit_rpm=30,
+        timeout_ms=20000,
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# 35. eBay Store Scraper
+# ---------------------------------------------------------------------------
+EBAY_STORE = Template(
+    id="ebay-store",
+    name="eBay Store Scraper",
+    description=(
+        "Extract all products from a specific eBay seller's store — "
+        "complete inventory with prices, conditions, and shipping details."
+    ),
+    category=TemplateCategory.MARKETPLACE,
+    tags=["ebay", "store", "seller", "inventory", "bulk"],
+    icon="🏪",
+    platform="eBay",
+    config=TemplateConfig(
+        target_domains=["ebay.com", "ebay.co.uk", "ebay.de"],
+        example_urls=[
+            "https://www.ebay.com/str/sellername",
+        ],
+        fields=[
+            _field("title", "Item title", required=True),
+            _field("price", "Current price", field_type="number", required=True),
+            _field("condition", "Item condition"),
+            _field("shipping_cost", "Shipping cost", field_type="number"),
+            _field("free_shipping", "Free shipping flag"),
+            _field("listing_type", "Auction / Buy It Now"),
+            _field("image_url", "Item thumbnail", field_type="image"),
+            _field("item_url", "Listing URL", field_type="url"),
+            _field("sold_count", "Quantity sold", field_type="number"),
+            _field("watchers", "Number of watchers", field_type="number"),
+        ],
+        preferred_lane="http",
+        browser_required=False,
+        rate_limit_rpm=25,
+        timeout_ms=30000,
+        pagination={"type": "next_button", "selector": "a.pagination__next"},
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
 # Registry
 # ---------------------------------------------------------------------------
 
 BUILT_IN_TEMPLATES: list[Template] = [
+    # Amazon ecosystem
     AMAZON_PRODUCT,
     AMAZON_REVIEWS,
     AMAZON_BESTSELLERS,
+    AMAZON_SELLER,
+    AMAZON_SEARCH,
+    AMAZON_PRODUCT_DETAILS,
+    # Shopify ecosystem
     SHOPIFY_STORE,
+    SHOPIFY_LEADS,
+    # eBay ecosystem
     EBAY_ITEMS,
+    EBAY_PRODUCT_DETAILS,
+    EBAY_REVIEWS,
+    EBAY_STORE,
+    # Major retailers
     WALMART_PRODUCT,
-    ETSY_LISTINGS,
     TARGET_PRODUCT,
     BESTBUY_PRODUCT,
-    ALIEXPRESS_PRODUCT,
-    WOOCOMMERCE_STORE,
-    UNIVERSAL_ECOMMERCE,
-    PRICE_MONITOR,
-    ALIBABA_SUPPLIER,
     COSTCO_PRODUCT,
+    # Marketplaces
+    ETSY_LISTINGS,
+    ALIEXPRESS_PRODUCT,
+    ALIBABA_SUPPLIER,
     FACEBOOK_MARKETPLACE,
+    MERCADO_LIBRE,
+    KICKSTARTER,
+    TIKTOK_SHOP,
+    # Fashion / Regional
+    ZALANDO_PRODUCT,
+    NAVER_SHOPPING,
+    # WooCommerce
+    WOOCOMMERCE_STORE,
+    # Ads / Competitive Intelligence
+    FACEBOOK_ADS_LIBRARY,
+    GOOGLE_ADS,
     GOOGLE_SHOPPING,
+    # Reviews platforms
+    TRUSTPILOT_REVIEWS,
+    YELP_BUSINESS,
+    # Apps
+    GOOGLE_PLAY,
+    # AI-powered / Universal
+    UNIVERSAL_ECOMMERCE,
+    AI_PRODUCT_MATCHER,
+    PRICE_MONITOR,
 ]
 
 _TEMPLATE_INDEX: dict[str, Template] = {t.id: t for t in BUILT_IN_TEMPLATES}

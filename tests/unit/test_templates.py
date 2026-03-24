@@ -69,7 +69,7 @@ class TestTemplateRegistry:
     """Test the built-in template registry."""
 
     def test_builtin_templates_not_empty(self):
-        assert len(BUILT_IN_TEMPLATES) >= 17
+        assert len(BUILT_IN_TEMPLATES) >= 35
 
     def test_all_templates_have_unique_ids(self):
         ids = [t.id for t in BUILT_IN_TEMPLATES]
@@ -105,13 +105,13 @@ class TestTemplateRegistry:
 
     def test_list_templates_by_category(self):
         ecom = list_templates(category="ecommerce")
-        assert len(ecom) >= 5
+        assert len(ecom) >= 10
         for t in ecom:
             assert t.category == TemplateCategory.ECOMMERCE
 
     def test_list_templates_by_platform(self):
         amazon = list_templates(platform="Amazon")
-        assert len(amazon) >= 3
+        assert len(amazon) >= 6
         for t in amazon:
             assert t.platform == "Amazon"
 
@@ -194,3 +194,110 @@ class TestSpecificTemplates:
         assert t is not None
         assert t.config.preferred_lane == "hard_target"
         assert t.config.stealth_required is True
+
+    def test_amazon_seller_template(self):
+        t = get_template("amazon-seller")
+        assert t is not None
+        assert t.platform == "Amazon"
+        field_names = [f.name for f in t.config.fields]
+        assert "seller_name" in field_names
+        assert "seller_id" in field_names
+
+    def test_amazon_search_template(self):
+        t = get_template("amazon-search")
+        assert t is not None
+        field_names = [f.name for f in t.config.fields]
+        assert "position" in field_names
+        assert "is_sponsored" in field_names
+
+    def test_tiktok_shop_template(self):
+        t = get_template("tiktok-shop")
+        assert t is not None
+        assert t.config.preferred_lane == "hard_target"
+        assert "tiktok.com" in t.config.target_domains
+
+    def test_trustpilot_reviews_template(self):
+        t = get_template("trustpilot-reviews")
+        assert t is not None
+        assert t.category == TemplateCategory.REVIEWS
+        assert t.config.pagination is not None
+
+    def test_yelp_business_template(self):
+        t = get_template("yelp-business")
+        assert t is not None
+        field_names = [f.name for f in t.config.fields]
+        assert "hours" in field_names
+        assert "amenities" in field_names
+
+    def test_facebook_ads_library_template(self):
+        t = get_template("facebook-ads-library")
+        assert t is not None
+        field_names = [f.name for f in t.config.fields]
+        assert "spend_lower" in field_names
+        assert "impressions_upper" in field_names
+
+    def test_zalando_template(self):
+        t = get_template("zalando-product")
+        assert t is not None
+        assert "zalando.de" in t.config.target_domains
+        field_names = [f.name for f in t.config.fields]
+        assert "sizes_available" in field_names
+
+    def test_mercado_libre_template(self):
+        t = get_template("mercado-libre")
+        assert t is not None
+        assert "mercadolibre.com.mx" in t.config.target_domains
+
+    def test_naver_shopping_template(self):
+        t = get_template("naver-shopping")
+        assert t is not None
+        assert t.platform == "Naver Shopping"
+
+    def test_kickstarter_template(self):
+        t = get_template("kickstarter")
+        assert t is not None
+        field_names = [f.name for f in t.config.fields]
+        assert "pledged" in field_names
+        assert "backers_count" in field_names
+
+    def test_ebay_store_template(self):
+        t = get_template("ebay-store")
+        assert t is not None
+        assert t.platform == "eBay"
+
+    def test_ebay_reviews_template(self):
+        t = get_template("ebay-reviews")
+        assert t is not None
+        assert t.category == TemplateCategory.REVIEWS
+
+    def test_google_play_template(self):
+        t = get_template("google-play")
+        assert t is not None
+        field_names = [f.name for f in t.config.fields]
+        assert "app_name" in field_names
+        assert "installs" in field_names
+
+    def test_ai_product_matcher_template(self):
+        t = get_template("ai-product-matcher")
+        assert t is not None
+        assert t.config.extraction_type == "ai"
+        assert "strategy" in t.config.extraction_rules
+
+    def test_shopify_leads_template(self):
+        t = get_template("shopify-leads")
+        assert t is not None
+        field_names = [f.name for f in t.config.fields]
+        assert "email" in field_names
+
+    def test_google_ads_template(self):
+        t = get_template("google-ads")
+        assert t is not None
+        assert t.config.stealth_required is True
+
+    def test_amazon_product_details_template(self):
+        t = get_template("amazon-product-details")
+        assert t is not None
+        field_names = [f.name for f in t.config.fields]
+        assert "specifications" in field_names
+        assert "variants" in field_names
+        assert "frequently_bought_together" in field_names
