@@ -11,7 +11,7 @@ Your job is to design and build a production-grade, cloud-agnostic AI scraping p
 Use the existing repository as the starting point, but do not assume its current architecture is correct.
 Use the attached architecture report as a governing reference.
 If implementation decisions differ from it, explain why and record the change in docs/final_specs.md and system/development_log.md.	
-The GitHub repository to work on is https://github.com/haqeeqiazadee-ux/Scraper-app
+The GitHub repository to work on is https://github.com/fahad-scraper/Scraper-app
 
 
 You must first reverse-engineer the current repo:
