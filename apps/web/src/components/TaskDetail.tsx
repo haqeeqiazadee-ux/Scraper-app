@@ -29,7 +29,9 @@ export function TaskDetail({ task, results, resultsTotal }: TaskDetailProps) {
     task.status === "running";
 
   const canRun =
-    task.status !== "running" && task.status !== "queued";
+    task.status !== "running" &&
+    task.status !== "completed" &&
+    task.status !== "cancelled";
 
   return (
     <div className="detail-grid">

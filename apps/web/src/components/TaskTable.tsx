@@ -177,7 +177,8 @@ export function TaskTable({ tasks, onEdit }: TaskTableProps) {
                     disabled={
                       executeMutation.isPending ||
                       task.status === "running" ||
-                      task.status === "queued"
+                      task.status === "completed" ||
+                      task.status === "cancelled"
                     }
                     title="Run now"
                   >
