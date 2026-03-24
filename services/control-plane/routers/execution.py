@@ -154,8 +154,7 @@ async def _run_task_inline(task_id: str, tenant_id: str, url: str, lane: str, ex
                 error=worker_result.get("error"),
                 duration_ms=worker_result.get("duration_ms", 0),
                 bytes_downloaded=worker_result.get("bytes_downloaded", 0),
-                completed_at=datetime.now(timezone.utc),
-            )
+                )
 
             if succeeded:
                 await result_repo.create(
@@ -192,8 +191,7 @@ async def _run_task_inline(task_id: str, tenant_id: str, url: str, lane: str, ex
                     run_id, tenant_id,
                     status="failed",
                     error=short_error,
-                    completed_at=datetime.now(timezone.utc),
-                )
+                        )
                 await session.commit()
             logger.info("Task %s marked as failed after error", task_id)
         except Exception:
@@ -301,7 +299,6 @@ async def execute_task(
             error=worker_result.get("error"),
             duration_ms=worker_result.get("duration_ms", 0),
             bytes_downloaded=worker_result.get("bytes_downloaded", 0),
-            completed_at=datetime.now(timezone.utc),
         )
 
         # Store result if successful
@@ -336,17 +333,20 @@ async def execute_task(
         error_tb = traceback.format_exc()
         logger.error("Task %s execution failed: %s", task_id, error_tb)
         short_error = error_tb.strip().split("\n")[-1][:500]
-        await task_repo.update(
-            task_id, tenant_id,
-            status=TaskStatus.FAILED.value,
-            metadata_json={"last_error": short_error},
-        )
-        await run_repo.update(
-            run_id, tenant_id,
-            status="failed",
-            error=short_error,
-            completed_at=datetime.now(timezone.utc),
-        )
+        try:
+            await session.rollback()
+            await task_repo.update(
+                task_id, tenant_id,
+                status=TaskStatus.FAILED.value,
+                metadata_json={"last_error": short_error},
+            )
+            await run_repo.update(
+                run_id, tenant_id,
+                status="failed",
+                error=short_error,
+                )
+        except Exception:
+            logger.error("Failed to mark task %s as failed: %s", task_id, traceback.format_exc())
 
         return {
             "task_id": task_id,
