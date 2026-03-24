@@ -6,7 +6,7 @@
 
 **Name:** AI Scraping Platform (formerly Scrapling Pro v3.0)
 **Type:** Production-grade, cloud-agnostic AI-powered web scraping platform
-**Repo:** haqeeqiazadee-ux/Scraper-app
+**Repo:** fahad-scraper/Scraper-app
 
 ## Architecture
 

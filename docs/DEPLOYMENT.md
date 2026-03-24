@@ -12,7 +12,7 @@ The fastest way to run the platform locally or self-hosted.
 
 ```bash
 # Clone the repository
-git clone https://github.com/haqeeqiazadee-ux/Scraper-app.git
+git clone https://github.com/fahad-scraper/Scraper-app.git
 cd Scraper-app
 
 # Copy and edit environment file
