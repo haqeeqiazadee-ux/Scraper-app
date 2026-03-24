@@ -70,40 +70,22 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     db = init_database(db_url)
 
-    # --- Network diagnostics for PostgreSQL connections ---
+    # Brief network diagnostic for PostgreSQL connections
     if "asyncpg" in db_url:
         import socket
         try:
-            # Extract host from URL: ...@host:port/...
-            host_part = db_url.split("@")[1].split("/")[0]  # host:port
+            host_part = db_url.split("@")[1].split("/")[0]
             db_host = host_part.rsplit(":", 1)[0]
             db_port = int(host_part.rsplit(":", 1)[1]) if ":" in host_part else 5432
-            logger.info("Resolving database host: %s:%d", db_host, db_port)
-
-            # DNS resolution check
             addrs = socket.getaddrinfo(db_host, db_port, socket.AF_UNSPEC, socket.SOCK_STREAM)
-            for family, _, _, _, addr in addrs:
-                fam_name = "IPv4" if family == socket.AF_INET else "IPv6"
-                logger.info("  DNS resolved: %s → %s (%s)", db_host, addr[0], fam_name)
-
-            # Quick TCP connectivity test (3 second timeout)
-            test_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            test_sock.settimeout(5)
-            try:
-                # Force IPv4 for the test
-                ipv4_addrs = [a for a in addrs if a[0] == socket.AF_INET]
-                if ipv4_addrs:
-                    test_ip = ipv4_addrs[0][4][0]
-                    test_sock.connect((test_ip, db_port))
-                    logger.info("  TCP connectivity OK → %s:%d", test_ip, db_port)
-                else:
-                    logger.warning("  No IPv4 addresses found for %s", db_host)
-            except Exception as tcp_err:
-                logger.warning("  TCP connectivity FAILED → %s:%d: %s", db_host, db_port, tcp_err)
-            finally:
-                test_sock.close()
+            ipv4 = [a for a in addrs if a[0] == socket.AF_INET]
+            ipv6 = [a for a in addrs if a[0] == socket.AF_INET6]
+            logger.info(
+                "DB host %s:%d → %d IPv4, %d IPv6 addresses",
+                db_host, db_port, len(ipv4), len(ipv6),
+            )
         except Exception as dns_err:
-            logger.error("DNS resolution failed for database host: %s", dns_err)
+            logger.warning("DNS lookup failed for DB host: %s", dns_err)
 
     # Auto-create tables with retry for transient network issues in containers.
     # Railway / cloud containers may take a moment to establish network routes.
