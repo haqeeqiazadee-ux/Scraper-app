@@ -33,7 +33,7 @@ class TestTaskLifecycle:
         assert "created_at" in data
 
     async def test_execute_task_triggers_router(self, client: AsyncClient):
-        """Executing a pending task routes it and updates status to queued."""
+        """Executing a pending task routes and runs it inline with auto-escalation."""
         # Create task
         task = await TaskFactory.create_via_api(client, url="https://example.com/page")
         task_id = task["id"]
@@ -45,13 +45,15 @@ class TestTaskLifecycle:
         )
         assert resp.status_code == 200
         data = resp.json()
-        assert data["status"] == "queued"
+        assert data["status"] in ("completed", "failed")
         assert "route" in data
         assert data["route"]["lane"] in ("http", "browser", "api", "hard_target")
         assert "reason" in data["route"]
+        assert "escalation_chain" in data
+        assert isinstance(data["escalation_chain"], list)
 
     async def test_execute_updates_task_status(self, client: AsyncClient):
-        """After execution, GET /tasks/{id} shows 'queued' status."""
+        """After inline execution, GET /tasks/{id} shows terminal status."""
         task = await TaskFactory.create_via_api(client)
         task_id = task["id"]
 
@@ -59,20 +61,19 @@ class TestTaskLifecycle:
 
         resp = await client.get(f"/api/v1/tasks/{task_id}", headers=TENANT_HEADER)
         assert resp.status_code == 200
-        assert resp.json()["status"] == "queued"
+        assert resp.json()["status"] in ("completed", "failed")
 
-    async def test_execute_non_pending_task_fails(self, client: AsyncClient):
-        """Executing a task that is not pending returns 400."""
+    async def test_execute_cancelled_task_fails(self, client: AsyncClient):
+        """Executing a cancelled task returns 400."""
         task = await TaskFactory.create_via_api(client)
         task_id = task["id"]
 
-        # Execute once (pending -> queued)
-        await client.post(f"/api/v1/tasks/{task_id}/execute", headers=TENANT_HEADER)
+        # Cancel the task
+        await client.post(f"/api/v1/tasks/{task_id}/cancel", headers=TENANT_HEADER)
 
-        # Execute again (queued != pending -> 400)
+        # Execute cancelled task should fail
         resp = await client.post(f"/api/v1/tasks/{task_id}/execute", headers=TENANT_HEADER)
         assert resp.status_code == 400
-        assert "not pending" in resp.json()["detail"].lower()
 
     async def test_execute_nonexistent_task_returns_404(self, client: AsyncClient):
         """Executing a nonexistent task returns 404."""

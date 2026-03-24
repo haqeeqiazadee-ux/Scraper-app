@@ -16,6 +16,7 @@ from packages.contracts.policy import LanePreference, Policy
 from packages.contracts.task import Task, TaskStatus
 from packages.contracts.result import Result
 from packages.core.router import ExecutionRouter, RouteDecision, Lane
+from packages.core.escalation import EscalationManager
 from packages.core.webhook import WebhookExecutor
 from packages.core.storage.repositories import TaskRepository, PolicyRepository, ResultRepository, RunRepository
 from services.control_plane.dependencies import get_session, get_database, get_tenant_id
@@ -26,6 +27,72 @@ router = APIRouter()
 
 # Module-level router instance (singleton within the process)
 _execution_router = ExecutionRouter()
+_escalation_manager = EscalationManager(_execution_router)
+
+# Lane → connector name mapping
+_LANE_CONNECTORS = {
+    Lane.HTTP: "http_collector",
+    Lane.BROWSER: "playwright_browser",
+    Lane.HARD_TARGET: "hard_target_worker",
+}
+
+
+async def _execute_lane(lane: Lane, task_payload: dict) -> dict:
+    """Execute a task using the worker for the given lane.
+
+    Returns the worker result dict.  Handles worker lifecycle (close).
+    If the worker raises an exception (e.g. Playwright not installed),
+    returns a synthetic failure result so the escalation loop can continue.
+    """
+    try:
+        if lane == Lane.HTTP:
+            from services.worker_http.worker import HttpWorker
+            worker = HttpWorker()
+            try:
+                return await worker.process_task(task_payload)
+            finally:
+                await worker.close()
+
+        elif lane == Lane.BROWSER:
+            from services.worker_browser.worker import BrowserLaneWorker
+            worker = BrowserLaneWorker()
+            try:
+                return await worker.process_task(task_payload)
+            finally:
+                await worker.close()
+
+        elif lane == Lane.HARD_TARGET:
+            from services.worker_hard_target.worker import HardTargetLaneWorker
+            worker = HardTargetLaneWorker()
+            try:
+                return await worker.process_task(task_payload)
+            finally:
+                await worker.close()
+
+        else:
+            # Fallback to HTTP for unknown lanes (API, etc.)
+            from services.worker_http.worker import HttpWorker
+            worker = HttpWorker()
+            try:
+                return await worker.process_task(task_payload)
+            finally:
+                await worker.close()
+
+    except Exception as exc:
+        logger.warning("Lane %s worker failed with exception: %s", lane.value, exc)
+        return {
+            "task_id": task_payload.get("task_id", "unknown"),
+            "tenant_id": task_payload.get("tenant_id", "default"),
+            "url": task_payload.get("url", ""),
+            "lane": lane.value,
+            "status": "failed",
+            "status_code": 0,
+            "error": f"{lane.value} worker error: {str(exc)[:300]}",
+            "duration_ms": 0,
+            "extracted_data": [],
+            "item_count": 0,
+            "should_escalate": True,  # Allow escalation to next lane
+        }
 
 
 def _task_model_to_contract(task_model) -> Task:
@@ -83,117 +150,162 @@ class DryRunRequest(BaseModel):
     policy_id: Optional[UUID] = None
 
 
-async def _run_task_inline(task_id: str, tenant_id: str, url: str, lane: str, extraction_config: dict) -> None:
+async def _run_task_inline(task_id: str, tenant_id: str, url: str, lane: str, extraction_config: dict, route_decision: RouteDecision | None = None) -> None:
     """Execute a scraping task inline via asyncio.create_task.
 
-    Runs the HTTP worker directly in the control plane process,
-    stores the result, and updates the task status.
+    Runs the appropriate worker directly in the control plane process,
+    stores the result, and updates the task status.  Supports automatic
+    escalation through the fallback chain (HTTP → Browser → Hard-Target)
+    when a lane fails with ``should_escalate=True``.
     """
     import traceback
 
-    logger.info("Background task started for task_id=%s url=%s", task_id, url)
+    logger.info("Background task started for task_id=%s url=%s lane=%s", task_id, url, lane)
 
     db = get_database()
-    run_id = str(uuid4())
+    current_lane = Lane(lane)
+    escalation_chain: list[dict] = []  # track all attempts
 
     try:
-        # Mark task as running and create a run record
-        async with db.session() as session:
-            task_repo = TaskRepository(session)
-            run_repo = RunRepository(session)
-            await task_repo.update(task_id, tenant_id, status=TaskStatus.RUNNING.value)
-            await run_repo.create(
-                tenant_id=tenant_id,
-                id=run_id,
-                task_id=task_id,
-                lane=lane,
-                connector="http_collector",
-                status="running",
-            )
-            await session.commit()
-        logger.info("Task %s marked as running", task_id)
+        while True:
+            run_id = str(uuid4())
 
-        # Execute the actual scrape
-        from services.worker_http.worker import HttpWorker
-        worker = HttpWorker()
-        try:
-            worker_result = await worker.process_task({
+            # Mark task as running and create a run record for this attempt
+            async with db.session() as session:
+                task_repo = TaskRepository(session)
+                run_repo = RunRepository(session)
+                await task_repo.update(task_id, tenant_id, status=TaskStatus.RUNNING.value)
+                await run_repo.create(
+                    tenant_id=tenant_id,
+                    id=run_id,
+                    task_id=task_id,
+                    lane=current_lane.value,
+                    connector=_LANE_CONNECTORS.get(current_lane, "http_collector"),
+                    status="running",
+                )
+                await session.commit()
+
+            logger.info("Task %s executing via %s lane", task_id, current_lane.value)
+
+            # Execute the actual scrape via the lane-specific worker
+            task_payload = {
                 "task_id": task_id,
                 "tenant_id": tenant_id,
                 "url": url,
                 "css_selectors": extraction_config.get("css_selectors"),
                 "paginate": extraction_config.get("paginate", False),
                 "max_pages": extraction_config.get("max_pages", 1),
-            })
-        finally:
-            await worker.close()
+            }
 
-        logger.info("Worker finished for task %s: status=%s items=%s",
-                     task_id, worker_result.get("status"), worker_result.get("item_count"))
+            worker_result = await _execute_lane(current_lane, task_payload)
 
-        # Store result and update task + run status
-        async with db.session() as session:
-            task_repo = TaskRepository(session)
-            run_repo = RunRepository(session)
-            result_repo = ResultRepository(session)
+            logger.info("Worker finished for task %s: lane=%s status=%s items=%s",
+                         task_id, current_lane.value, worker_result.get("status"),
+                         worker_result.get("item_count"))
 
             succeeded = worker_result.get("status") == "success"
-            final_status = TaskStatus.COMPLETED.value if succeeded else TaskStatus.FAILED.value
 
-            await task_repo.update(task_id, tenant_id, status=final_status)
+            # Record run result
+            async with db.session() as session:
+                run_repo = RunRepository(session)
+                await run_repo.update(
+                    run_id, tenant_id,
+                    status="completed" if succeeded else "failed",
+                    status_code=worker_result.get("status_code"),
+                    error=worker_result.get("error"),
+                    duration_ms=worker_result.get("duration_ms", 0),
+                    bytes_downloaded=worker_result.get("bytes_downloaded", 0),
+                )
+                await session.commit()
 
-            # Store error info in task metadata for UI visibility
-            if not succeeded:
-                error_msg = worker_result.get("error") or f"HTTP {worker_result.get('status_code', 'unknown')}"
-                await task_repo.update(task_id, tenant_id, metadata_json={"last_error": error_msg})
+            escalation_chain.append({
+                "lane": current_lane.value,
+                "status": worker_result.get("status"),
+                "status_code": worker_result.get("status_code"),
+                "item_count": worker_result.get("item_count", 0),
+            })
 
-            await run_repo.update(
-                run_id, tenant_id,
-                status="completed" if succeeded else "failed",
-                status_code=worker_result.get("status_code"),
-                error=worker_result.get("error"),
-                duration_ms=worker_result.get("duration_ms", 0),
-                bytes_downloaded=worker_result.get("bytes_downloaded", 0),
+            # Check if escalation is needed
+            if succeeded or not _escalation_manager.should_escalate(worker_result):
+                # Final result — store and finish
+                async with db.session() as session:
+                    task_repo = TaskRepository(session)
+                    result_repo = ResultRepository(session)
+                    final_status = TaskStatus.COMPLETED.value if succeeded else TaskStatus.FAILED.value
+                    metadata = {"escalation_chain": escalation_chain}
+                    if not succeeded:
+                        metadata["last_error"] = worker_result.get("error") or f"HTTP {worker_result.get('status_code', 'unknown')}"
+                    await task_repo.update(task_id, tenant_id, status=final_status, metadata_json=metadata)
+
+                    if succeeded:
+                        await result_repo.create(
+                            tenant_id=tenant_id,
+                            task_id=task_id,
+                            run_id=run_id,
+                            url=url,
+                            extracted_data=worker_result.get("extracted_data", []),
+                            item_count=worker_result.get("item_count", 0),
+                            confidence=worker_result.get("confidence", 0.0),
+                            extraction_method=worker_result.get("extraction_method", "deterministic"),
+                            artifacts_json=worker_result.get("artifacts", []),
+                            normalization_applied=worker_result.get("normalization_applied", False),
+                            dedup_applied=worker_result.get("dedup_applied", False),
+                        )
+
+                    await session.commit()
+
+                logger.info("Task %s finished with status=%s (escalation_chain=%s)",
+                            task_id, final_status, [e["lane"] for e in escalation_chain])
+                break
+
+            # Attempt escalation to next lane
+            if route_decision is None:
+                route_decision = RouteDecision(
+                    lane=current_lane,
+                    reason="escalation",
+                    fallback_lanes=_execution_router._get_fallback_lanes(current_lane),
                 )
 
-            if succeeded:
-                await result_repo.create(
-                    tenant_id=tenant_id,
-                    task_id=task_id,
-                    run_id=run_id,
-                    url=url,
-                    extracted_data=worker_result.get("extracted_data", []),
-                    item_count=worker_result.get("item_count", 0),
-                    confidence=worker_result.get("confidence", 0.0),
-                    extraction_method=worker_result.get("extraction_method", "deterministic"),
-                    artifacts_json=worker_result.get("artifacts", []),
-                    normalization_applied=worker_result.get("normalization_applied", False),
-                    dedup_applied=worker_result.get("dedup_applied", False),
-                )
+            next_lane = _escalation_manager.get_escalation(task_id, worker_result, route_decision)
+            if next_lane is None:
+                # Escalation exhausted — mark as failed
+                async with db.session() as session:
+                    task_repo = TaskRepository(session)
+                    error_msg = worker_result.get("error") or f"HTTP {worker_result.get('status_code', 'unknown')}"
+                    await task_repo.update(
+                        task_id, tenant_id,
+                        status=TaskStatus.FAILED.value,
+                        metadata_json={"last_error": error_msg, "escalation_chain": escalation_chain},
+                    )
+                    await session.commit()
+                logger.info("Task %s failed — escalation exhausted (chain=%s)",
+                            task_id, [e["lane"] for e in escalation_chain])
+                break
 
-            await session.commit()
+            logger.info("Task %s escalating: %s → %s", task_id, current_lane.value, next_lane.value)
+            current_lane = next_lane
+            # Update route_decision for the next iteration
+            route_decision = RouteDecision(
+                lane=current_lane,
+                reason="escalation",
+                fallback_lanes=_execution_router._get_fallback_lanes(current_lane),
+            )
 
-        logger.info("Task %s finished with status=%s", task_id, final_status)
+        # Clean up escalation context
+        _escalation_manager.complete(task_id, worker_result)
 
     except Exception:
         error_tb = traceback.format_exc()
         logger.error("Inline task execution FAILED for %s: %s", task_id, error_tb)
-        # Mark task AND run as failed
         try:
             async with db.session() as session:
                 task_repo = TaskRepository(session)
-                run_repo = RunRepository(session)
                 short_error = error_tb.strip().split("\n")[-1][:500]
                 await task_repo.update(
                     task_id, tenant_id,
                     status=TaskStatus.FAILED.value,
-                    metadata_json={"last_error": short_error},
+                    metadata_json={"last_error": short_error, "escalation_chain": escalation_chain},
                 )
-                await run_repo.update(
-                    run_id, tenant_id,
-                    status="failed",
-                    error=short_error,
-                        )
                 await session.commit()
             logger.info("Task %s marked as failed after error", task_id)
         except Exception:
@@ -259,56 +371,103 @@ async def execute_task(
         id=run_id,
         task_id=task_id,
         lane=decision.lane.value,
-        connector="http_collector",
+        connector=_LANE_CONNECTORS.get(decision.lane, "http_collector"),
         status="running",
     )
     await session.flush()
 
     logger.info("Task %s executing inline (lane=%s)", task_id, decision.lane.value)
 
-    # Execute the scraper inline
+    # Execute the scraper inline with auto-escalation
     url = str(task.url)
     start_time = time.time()
+    current_lane = decision.lane
+    current_decision = decision
+    escalation_chain: list[dict] = []
+
     try:
-        from services.worker_http.worker import HttpWorker
+        task_payload = {
+            "task_id": task_id,
+            "tenant_id": tenant_id,
+            "url": url,
+            "css_selectors": extraction_config.get("css_selectors"),
+            "paginate": extraction_config.get("paginate", False),
+            "max_pages": extraction_config.get("max_pages", 1),
+        }
 
-        worker = HttpWorker()
-        try:
-            worker_result = await worker.process_task({
-                "task_id": task_id,
-                "tenant_id": tenant_id,
-                "url": url,
-                "css_selectors": extraction_config.get("css_selectors"),
-                "paginate": extraction_config.get("paginate", False),
-                "max_pages": extraction_config.get("max_pages", 1),
+        while True:
+            # Create a run record for this attempt
+            attempt_run_id = str(uuid4()) if escalation_chain else run_id
+            if escalation_chain:
+                await run_repo.create(
+                    tenant_id=tenant_id,
+                    id=attempt_run_id,
+                    task_id=task_id,
+                    lane=current_lane.value,
+                    connector=_LANE_CONNECTORS.get(current_lane, "http_collector"),
+                    status="running",
+                )
+                await session.flush()
+
+            worker_result = await _execute_lane(current_lane, task_payload)
+
+            succeeded = worker_result.get("status") == "success"
+
+            # Update this run's status
+            await run_repo.update(
+                attempt_run_id, tenant_id,
+                status="completed" if succeeded else "failed",
+                status_code=worker_result.get("status_code"),
+                error=worker_result.get("error"),
+                duration_ms=worker_result.get("duration_ms", 0),
+                bytes_downloaded=worker_result.get("bytes_downloaded", 0),
+            )
+
+            escalation_chain.append({
+                "lane": current_lane.value,
+                "status": worker_result.get("status"),
+                "status_code": worker_result.get("status_code"),
+                "item_count": worker_result.get("item_count", 0),
             })
-        finally:
-            await worker.close()
 
-        succeeded = worker_result.get("status") == "success"
+            # Check if we should escalate
+            if succeeded or not _escalation_manager.should_escalate(worker_result):
+                break
+
+            # Get next lane
+            next_lane = _escalation_manager.get_escalation(task_id, worker_result, current_decision)
+            if next_lane is None:
+                logger.info("Task %s escalation exhausted (chain=%s)",
+                            task_id, [e["lane"] for e in escalation_chain])
+                break
+
+            logger.info("Task %s auto-escalating: %s → %s",
+                        task_id, current_lane.value, next_lane.value)
+            current_lane = next_lane
+            current_decision = RouteDecision(
+                lane=current_lane,
+                reason="auto-escalation",
+                fallback_lanes=_execution_router._get_fallback_lanes(current_lane),
+            )
+
+        # Clean up escalation context
+        _escalation_manager.complete(task_id, worker_result)
+
+        # Final status
         final_status = TaskStatus.COMPLETED.value if succeeded else TaskStatus.FAILED.value
-
-        # Update task and run status
-        await task_repo.update(task_id, tenant_id, status=final_status)
+        metadata: dict = {"escalation_chain": escalation_chain}
         if not succeeded:
             error_msg = worker_result.get("error") or f"HTTP {worker_result.get('status_code', 'unknown')}"
-            await task_repo.update(task_id, tenant_id, metadata_json={"last_error": error_msg})
+            metadata["last_error"] = error_msg
 
-        await run_repo.update(
-            run_id, tenant_id,
-            status="completed" if succeeded else "failed",
-            status_code=worker_result.get("status_code"),
-            error=worker_result.get("error"),
-            duration_ms=worker_result.get("duration_ms", 0),
-            bytes_downloaded=worker_result.get("bytes_downloaded", 0),
-        )
+        await task_repo.update(task_id, tenant_id, status=final_status, metadata_json=metadata)
 
         # Store result if successful
         if succeeded:
             await result_repo.create(
                 tenant_id=tenant_id,
                 task_id=task_id,
-                run_id=run_id,
+                run_id=attempt_run_id,
                 url=url,
                 extracted_data=worker_result.get("extracted_data", []),
                 item_count=worker_result.get("item_count", 0),
@@ -320,13 +479,16 @@ async def execute_task(
             )
 
         elapsed = int((time.time() - start_time) * 1000)
-        logger.info("Task %s completed: status=%s items=%d in %dms",
-                     task_id, final_status, worker_result.get("item_count", 0), elapsed)
+        logger.info("Task %s completed: status=%s items=%d in %dms (chain=%s)",
+                     task_id, final_status, worker_result.get("item_count", 0), elapsed,
+                     [e["lane"] for e in escalation_chain])
 
         return {
             "task_id": task_id,
             "status": final_status,
             "route": _route_decision_to_dict(decision),
+            "lane_used": current_lane.value,
+            "escalation_chain": escalation_chain,
             "item_count": worker_result.get("item_count", 0),
             "confidence": worker_result.get("confidence", 0),
             "duration_ms": elapsed,
@@ -342,7 +504,7 @@ async def execute_task(
             await task_repo.update(
                 task_id, tenant_id,
                 status=TaskStatus.FAILED.value,
-                metadata_json={"last_error": short_error},
+                metadata_json={"last_error": short_error, "escalation_chain": escalation_chain},
             )
             await run_repo.update(
                 run_id, tenant_id,
@@ -356,6 +518,8 @@ async def execute_task(
             "task_id": task_id,
             "status": "failed",
             "route": _route_decision_to_dict(decision),
+            "lane_used": current_lane.value,
+            "escalation_chain": escalation_chain,
             "item_count": 0,
             "confidence": 0,
             "duration_ms": int((time.time() - start_time) * 1000),
@@ -384,34 +548,65 @@ async def test_scrape(
     url = str(request.url)
     start = time.time()
 
-    try:
-        from services.worker_http.worker import HttpWorker
+    # Route to determine initial lane
+    test_task = Task(tenant_id=tenant_id, url=request.url)
+    decision = _execution_router.route(test_task)
+    current_lane = decision.lane
+    current_decision = decision
+    escalation_chain: list[dict] = []
 
-        worker = HttpWorker()
-        try:
-            result = await worker.process_task({
-                "task_id": "test",
-                "tenant_id": tenant_id,
-                "url": url,
-                "timeout_ms": request.timeout_ms,
-                "paginate": False,
-                "max_pages": 1,
+    try:
+        task_payload = {
+            "task_id": "test",
+            "tenant_id": tenant_id,
+            "url": url,
+            "timeout_ms": request.timeout_ms,
+            "paginate": False,
+            "max_pages": 1,
+        }
+
+        while True:
+            result = await _execute_lane(current_lane, task_payload)
+
+            succeeded = result.get("status") == "success"
+            escalation_chain.append({
+                "lane": current_lane.value,
+                "status": result.get("status"),
+                "status_code": result.get("status_code"),
+                "item_count": result.get("item_count", 0),
             })
-        finally:
-            await worker.close()
+
+            if succeeded or not _escalation_manager.should_escalate(result):
+                break
+
+            next_lane = _escalation_manager.get_escalation("test", result, current_decision)
+            if next_lane is None:
+                break
+
+            logger.info("Test scrape auto-escalating: %s → %s", current_lane.value, next_lane.value)
+            current_lane = next_lane
+            current_decision = RouteDecision(
+                lane=current_lane,
+                reason="auto-escalation",
+                fallback_lanes=_execution_router._get_fallback_lanes(current_lane),
+            )
+
+        _escalation_manager.complete("test", result)
 
         elapsed = int((time.time() - start) * 1000)
         return {
             "url": url,
             "status": result.get("status"),
             "status_code": result.get("status_code"),
+            "lane_used": current_lane.value,
+            "escalation_chain": escalation_chain,
             "item_count": result.get("item_count", 0),
             "confidence": result.get("confidence", 0),
             "extraction_method": result.get("extraction_method"),
             "duration_ms": elapsed,
             "error": result.get("error"),
-            "extracted_data": result.get("extracted_data", [])[:10],  # Limit to 10 items
-            "should_escalate": result.get("should_escalate", False),
+            "extracted_data": result.get("extracted_data", [])[:10],
+            "should_escalate": False,  # escalation already handled
         }
 
     except Exception:
@@ -423,6 +618,8 @@ async def test_scrape(
             "url": url,
             "status": "error",
             "status_code": None,
+            "lane_used": current_lane.value,
+            "escalation_chain": escalation_chain,
             "item_count": 0,
             "confidence": 0,
             "extraction_method": None,

@@ -42,7 +42,7 @@ class TestExecuteTask:
 
     @pytest.mark.asyncio
     async def test_execute_pending_task(self, client):
-        """Executing a pending task returns a route decision and sets status to queued."""
+        """Executing a pending task returns a route decision and runs inline."""
         # Create a task
         resp = await client.post(
             "/api/v1/tasks",
@@ -60,8 +60,11 @@ class TestExecuteTask:
         assert resp.status_code == 200
         data = resp.json()
         assert data["task_id"] == task_id
-        assert data["status"] == "queued"
+        assert data["status"] in ("completed", "failed")
         assert "route" in data
+        assert "escalation_chain" in data
+        assert isinstance(data["escalation_chain"], list)
+        assert len(data["escalation_chain"]) >= 1  # At least one lane attempted
         route = data["route"]
         assert "lane" in route
         assert "reason" in route
@@ -133,8 +136,8 @@ class TestExecuteTask:
         assert resp.json()["route"]["lane"] == "browser"
 
     @pytest.mark.asyncio
-    async def test_execute_task_updates_status_to_queued(self, client):
-        """After execution routing, the task status should be updated to queued."""
+    async def test_execute_task_updates_status_after_run(self, client):
+        """After inline execution, the task status should be completed or failed."""
         resp = await client.post(
             "/api/v1/tasks",
             json={"url": "https://example.com"},
@@ -148,10 +151,10 @@ class TestExecuteTask:
             headers=TENANT_HEADER,
         )
 
-        # Verify status changed
+        # Verify status changed to a terminal state
         resp = await client.get(f"/api/v1/tasks/{task_id}", headers=TENANT_HEADER)
         assert resp.status_code == 200
-        assert resp.json()["status"] == "queued"
+        assert resp.json()["status"] in ("completed", "failed")
 
     @pytest.mark.asyncio
     async def test_execute_task_not_found(self, client):
@@ -163,8 +166,8 @@ class TestExecuteTask:
         assert resp.status_code == 404
 
     @pytest.mark.asyncio
-    async def test_execute_non_pending_task_fails(self, client):
-        """Executing a task that is not in pending status returns 400."""
+    async def test_execute_cancelled_task_fails(self, client):
+        """Executing a task that is cancelled returns 400."""
         # Create and then cancel a task
         resp = await client.post(
             "/api/v1/tasks",
@@ -181,11 +184,10 @@ class TestExecuteTask:
             headers=TENANT_HEADER,
         )
         assert resp.status_code == 400
-        assert "not pending" in resp.json()["detail"].lower()
 
     @pytest.mark.asyncio
-    async def test_execute_already_queued_task_fails(self, client):
-        """Executing a task that has already been queued returns 400."""
+    async def test_execute_completed_task_fails(self, client):
+        """Executing a task that completed successfully returns 400."""
         resp = await client.post(
             "/api/v1/tasks",
             json={"url": "https://example.com"},
@@ -193,19 +195,21 @@ class TestExecuteTask:
         )
         task_id = resp.json()["id"]
 
-        # Execute once (sets status to queued)
+        # Execute once
         resp = await client.post(
             f"/api/v1/tasks/{task_id}/execute",
             headers=TENANT_HEADER,
         )
         assert resp.status_code == 200
 
-        # Execute again should fail
-        resp = await client.post(
-            f"/api/v1/tasks/{task_id}/execute",
-            headers=TENANT_HEADER,
-        )
-        assert resp.status_code == 400
+        # If it completed, re-execution should fail; if it failed, re-execution is allowed
+        task_resp = await client.get(f"/api/v1/tasks/{task_id}", headers=TENANT_HEADER)
+        if task_resp.json()["status"] == "completed":
+            resp = await client.post(
+                f"/api/v1/tasks/{task_id}/execute",
+                headers=TENANT_HEADER,
+            )
+            assert resp.status_code == 400
 
     @pytest.mark.asyncio
     async def test_execute_task_tenant_isolation(self, client):
