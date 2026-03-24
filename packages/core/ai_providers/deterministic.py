@@ -146,7 +146,9 @@ class DeterministicProvider(BaseAIProvider):
             "article.product_pod",       # books.toscrape.com
             "div.quote",                 # quotes.toscrape.com
             ".product-card",
-            ".product-item",
+            ".product-item",             # Shopify themes
+            ".collection-product-card",
+            ".grid-view-item",
             "[data-product]",
             ".product",
             ".quote",
@@ -168,9 +170,16 @@ class DeterministicProvider(BaseAIProvider):
             product: dict[str, str] = {"product_url": url}
 
             # Extract name from heading, title, or text element
-            name_el = card.select_one("h3 a, h2 a, h4 a, .product-name, .title a, a[title], span.text, .text")
+            name_el = card.select_one(
+                "h3 a, h2 a, h4 a, .product-name, .card-title, .card__title,"
+                " .product-item-name, .title a, a[title], span.text, .text"
+            )
             if name_el:
-                product["name"] = name_el.get("title") or name_el.get_text(strip=True)
+                product["name"] = (
+                    name_el.get("data-product-title")
+                    or name_el.get("title")
+                    or name_el.get_text(strip=True)
+                )
                 href = name_el.get("href", "")
                 if href and not href.startswith(("http://", "https://")):
                     from urllib.parse import urljoin
