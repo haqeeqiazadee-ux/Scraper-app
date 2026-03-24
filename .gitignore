@@ -39,6 +39,7 @@ desktop.ini
 .env
 .env.local
 .env.production
+env.keys
 *.pem
 *.key
 credentials.json
