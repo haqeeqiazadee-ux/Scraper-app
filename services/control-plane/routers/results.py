@@ -136,6 +136,9 @@ async def get_result(
         "item_count": result.item_count,
         "confidence": result.confidence,
         "extraction_method": result.extraction_method,
+        "normalization_applied": result.normalization_applied,
+        "dedup_applied": result.dedup_applied,
+        "artifacts": result.artifacts_json or [],
         "created_at": result.created_at.isoformat() if result.created_at else None,
     }
 
