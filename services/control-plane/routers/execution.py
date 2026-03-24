@@ -336,17 +336,21 @@ async def execute_task(
         error_tb = traceback.format_exc()
         logger.error("Task %s execution failed: %s", task_id, error_tb)
         short_error = error_tb.strip().split("\n")[-1][:500]
-        await task_repo.update(
-            task_id, tenant_id,
-            status=TaskStatus.FAILED.value,
-            metadata_json={"last_error": short_error},
-        )
-        await run_repo.update(
-            run_id, tenant_id,
-            status="failed",
-            error=short_error,
-            completed_at=datetime.utcnow(),
-        )
+        try:
+            await session.rollback()
+            await task_repo.update(
+                task_id, tenant_id,
+                status=TaskStatus.FAILED.value,
+                metadata_json={"last_error": short_error},
+            )
+            await run_repo.update(
+                run_id, tenant_id,
+                status="failed",
+                error=short_error,
+                completed_at=datetime.utcnow(),
+            )
+        except Exception:
+            logger.error("Failed to mark task %s as failed: %s", task_id, traceback.format_exc())
 
         return {
             "task_id": task_id,
