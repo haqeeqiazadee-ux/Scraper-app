@@ -1,8 +1,14 @@
 """
-Apify Adapter — connector for running Apify actors to scrape video/social platforms.
+Apify Adapter — OPTIONAL connector for delegating to Apify actors.
 
-Maps template IDs to the best Apify actor for each use case.
-Implements the Connector protocol for the Apify execution lane.
+This is NOT part of the default scraping chain. All templates run through our
+own lanes (HTTP → Browser → Hard-target) by default. This adapter is an opt-in
+plugin for users who want to wire Apify as an external fallback.
+
+Usage:
+    # Only if you explicitly want Apify:
+    from packages.connectors.apify_adapter import ApifyAdapter
+    adapter = ApifyAdapter(api_token=os.environ["APIFY_API_KEY"])
 """
 
 from __future__ import annotations

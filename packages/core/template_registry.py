@@ -1,7 +1,7 @@
 """
 Template registry — built-in scraping templates for common e-commerce use cases.
 
-Inspired by popular scraping platforms (Apify, ScrapingBee, etc.), these templates
+These templates
 provide pre-configured extraction rules, field definitions, and execution policies
 for the most common scraping scenarios.
 """
@@ -1550,7 +1550,7 @@ EBAY_STORE = Template(
 
 
 # ===========================================================================
-# VIDEO / SOCIAL MEDIA TEMPLATES (Apify VIDEOS category)
+# VIDEO / SOCIAL MEDIA TEMPLATES
 # ===========================================================================
 
 
