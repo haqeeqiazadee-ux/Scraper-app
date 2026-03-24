@@ -206,13 +206,18 @@ async def execute_task(
     session: AsyncSession = Depends(get_session),
     tenant_id: str = Depends(get_tenant_id),
 ) -> dict:
-    """Trigger execution of a pending task.
+    """Trigger execution of a task — runs the scraper inline and returns results.
 
-    Fetches the task from the database, optionally loads its policy,
-    routes through the ExecutionRouter, and kicks off inline execution
-    via asyncio.create_task.
+    Fetches the task, routes it, executes the HTTP worker synchronously,
+    stores results, and returns the outcome. Typically completes in < 2s.
     """
+    import traceback
+    import time
+
     task_repo = TaskRepository(session)
+    run_repo = RunRepository(session)
+    result_repo = ResultRepository(session)
+
     task_model = await task_repo.get(task_id, tenant_id)
     if not task_model:
         raise HTTPException(status_code=404, detail="Task not found")
@@ -239,42 +244,119 @@ async def execute_task(
     # Route via ExecutionRouter
     decision = _execution_router.route(task, policy)
 
-    # Update task status to queued
-    await task_repo.update(task_id, tenant_id, status=TaskStatus.QUEUED.value)
-
-    logger.info(
-        "Task routed for execution",
-        extra={
-            "task_id": task_id,
-            "lane": decision.lane.value,
-            "reason": decision.reason,
-        },
-    )
-
-    # Include extraction config from policy extraction_rules (UC-6.3.1)
+    # Extraction config from policy
     extraction_config = {
         "css_selectors": (policy.extraction_rules or {}).get("css_selectors") if policy else None,
         "paginate": (policy.extraction_rules or {}).get("paginate", False) if policy else False,
         "max_pages": (policy.extraction_rules or {}).get("max_pages", 1) if policy else 1,
     }
 
-    # Kick off inline execution via asyncio.create_task (fire-and-forget)
-    asyncio.create_task(
-        _run_task_inline(
-            task_id=task_id,
-            tenant_id=tenant_id,
-            url=str(task.url),
-            lane=decision.lane.value,
-            extraction_config=extraction_config,
-        )
+    # Mark task as running and create a run record
+    run_id = str(uuid4())
+    await task_repo.update(task_id, tenant_id, status=TaskStatus.RUNNING.value)
+    await run_repo.create(
+        tenant_id=tenant_id,
+        id=run_id,
+        task_id=task_id,
+        lane=decision.lane.value,
+        connector="http_collector",
+        status="running",
     )
+    await session.flush()
 
-    return {
-        "task_id": task_id,
-        "status": "queued",
-        "route": _route_decision_to_dict(decision),
-        "extraction_config": extraction_config,
-    }
+    logger.info("Task %s executing inline (lane=%s)", task_id, decision.lane.value)
+
+    # Execute the scraper inline
+    url = str(task.url)
+    start_time = time.time()
+    try:
+        from services.worker_http.worker import HttpWorker
+
+        worker = HttpWorker()
+        try:
+            worker_result = await worker.process_task({
+                "task_id": task_id,
+                "tenant_id": tenant_id,
+                "url": url,
+                "css_selectors": extraction_config.get("css_selectors"),
+                "paginate": extraction_config.get("paginate", False),
+                "max_pages": extraction_config.get("max_pages", 1),
+            })
+        finally:
+            await worker.close()
+
+        succeeded = worker_result.get("status") == "success"
+        final_status = TaskStatus.COMPLETED.value if succeeded else TaskStatus.FAILED.value
+
+        # Update task and run status
+        await task_repo.update(task_id, tenant_id, status=final_status)
+        if not succeeded:
+            error_msg = worker_result.get("error") or f"HTTP {worker_result.get('status_code', 'unknown')}"
+            await task_repo.update(task_id, tenant_id, metadata_json={"last_error": error_msg})
+
+        await run_repo.update(
+            run_id, tenant_id,
+            status="completed" if succeeded else "failed",
+            status_code=worker_result.get("status_code"),
+            error=worker_result.get("error"),
+            duration_ms=worker_result.get("duration_ms", 0),
+            bytes_downloaded=worker_result.get("bytes_downloaded", 0),
+            completed_at=datetime.now(timezone.utc),
+        )
+
+        # Store result if successful
+        if succeeded:
+            await result_repo.create(
+                tenant_id=tenant_id,
+                task_id=task_id,
+                run_id=run_id,
+                url=url,
+                extracted_data=worker_result.get("extracted_data", []),
+                item_count=worker_result.get("item_count", 0),
+                confidence=worker_result.get("confidence", 0.0),
+                extraction_method=worker_result.get("extraction_method", "deterministic"),
+                artifacts_json=worker_result.get("artifacts", []),
+            )
+
+        elapsed = int((time.time() - start_time) * 1000)
+        logger.info("Task %s completed: status=%s items=%d in %dms",
+                     task_id, final_status, worker_result.get("item_count", 0), elapsed)
+
+        return {
+            "task_id": task_id,
+            "status": final_status,
+            "route": _route_decision_to_dict(decision),
+            "item_count": worker_result.get("item_count", 0),
+            "confidence": worker_result.get("confidence", 0),
+            "duration_ms": elapsed,
+            "error": worker_result.get("error"),
+        }
+
+    except Exception:
+        error_tb = traceback.format_exc()
+        logger.error("Task %s execution failed: %s", task_id, error_tb)
+        short_error = error_tb.strip().split("\n")[-1][:500]
+        await task_repo.update(
+            task_id, tenant_id,
+            status=TaskStatus.FAILED.value,
+            metadata_json={"last_error": short_error},
+        )
+        await run_repo.update(
+            run_id, tenant_id,
+            status="failed",
+            error=short_error,
+            completed_at=datetime.now(timezone.utc),
+        )
+
+        return {
+            "task_id": task_id,
+            "status": "failed",
+            "route": _route_decision_to_dict(decision),
+            "item_count": 0,
+            "confidence": 0,
+            "duration_ms": int((time.time() - start_time) * 1000),
+            "error": short_error,
+        }
 
 
 class TestScrapeRequest(BaseModel):
