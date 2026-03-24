@@ -6,17 +6,14 @@ Supports both PostgreSQL (asyncpg) and SQLite (aiosqlite).
 Supabase connection notes:
 - Direct connections (db.<ref>.supabase.co:5432) use **IPv6 only**.
   Most cloud platforms (Railway, Render, Vercel) do NOT support IPv6 outbound.
-- Use the Supavisor pooler URL instead for IPv4 compatibility:
-    Session mode:     postgres.<ref>:<pass>@aws-0-<region>.pooler.supabase.com:5432/postgres
-    Transaction mode: postgres.<ref>:<pass>@aws-0-<region>.pooler.supabase.com:6543/postgres
-- For persistent servers (Railway, VMs), use SESSION mode (port 5432).
-- For serverless (edge functions), use TRANSACTION mode (port 6543).
+- Use the Supavisor session pooler URL instead for IPv4 compatibility:
+    postgresql+asyncpg://postgres.<ref>:<pass>@aws-N-<region>.pooler.supabase.com:5432/postgres
+  Get the exact URL from Supabase dashboard → Connect → Session pooler.
 """
 
 from __future__ import annotations
 
 import logging
-import re
 
 from sqlalchemy import NullPool
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -26,55 +23,30 @@ from packages.core.storage.models import Base
 logger = logging.getLogger(__name__)
 
 
-def _convert_supabase_direct_to_pooler(url: str) -> str:
-    """Convert a Supabase direct connection URL to a Supavisor pooler URL.
-
-    Direct URLs (db.<ref>.supabase.co:5432) resolve to IPv6 only,
-    which fails on platforms like Railway that only support IPv4.
-
-    Uses SESSION mode (port 5432) on the pooler, which:
-    - Supports IPv4
-    - Supports prepared statements (asyncpg default)
-    - Is recommended for persistent servers (Railway, VMs)
-
-    Input:  postgresql+asyncpg://postgres:<pass>@db.<ref>.supabase.co:5432/postgres
-    Output: postgresql+asyncpg://postgres.<ref>:<pass>@aws-0-us-east-1.pooler.supabase.com:5432/postgres
-    """
-    # Match: ...://postgres:<password>@db.<ref>.supabase.co:5432/postgres
-    pattern = r"(postgresql\+asyncpg://)postgres:([^@]+)@db\.([^.]+)\.supabase\.co:5432/(\w+)"
-    match = re.match(pattern, url)
-    if not match:
-        return url  # Not a direct Supabase URL, return unchanged
-
-    scheme = match.group(1)
-    password = match.group(2)
-    ref = match.group(3)
-    dbname = match.group(4)
-
-    # Build pooler URL (session mode on port 5432 via Supavisor)
-    # Username becomes "postgres.<ref>" for the pooler
-    pooler_url = f"{scheme}postgres.{ref}:{password}@aws-0-us-east-1.pooler.supabase.com:5432/{dbname}"
-    logger.info(
-        "Converted Supabase direct URL (IPv6-only) to Supavisor session mode (IPv4). "
-        "Host: db.%s.supabase.co:5432 → aws-0-us-east-1.pooler.supabase.com:5432",
-        ref,
-    )
-    return pooler_url
-
-
 def _is_supavisor_url(url: str) -> bool:
     """Check if the URL points to Supabase Supavisor pooler."""
     return "pooler.supabase.com" in url
+
+
+def _is_supabase_direct_url(url: str) -> bool:
+    """Check if URL is a Supabase direct connection (IPv6-only)."""
+    return "supabase.co:5432" in url and "pooler.supabase.com" not in url
 
 
 class Database:
     """Manages database connections and sessions."""
 
     def __init__(self, url: str = "sqlite+aiosqlite:///./scraper.db") -> None:
-        # Auto-convert Supabase direct URLs to pooler URLs for IPv4 compatibility.
-        # Direct URLs use IPv6 which is unreachable from Railway/Render/Vercel.
-        if "supabase.co:5432" in url and "pooler.supabase.com" not in url:
-            url = _convert_supabase_direct_to_pooler(url)
+        # Detect Supabase direct URLs and warn — they use IPv6 which fails on
+        # Railway/Render/Vercel. The pooler URL cluster (aws-0, aws-1, etc.)
+        # varies per project, so we can't auto-convert reliably.
+        if _is_supabase_direct_url(url):
+            logger.error(
+                "DATABASE_URL uses a Supabase direct connection (IPv6-only). "
+                "This will FAIL on Railway/Render/Vercel which only support IPv4. "
+                "Use the Session pooler URL instead: Supabase dashboard → Connect → Session pooler. "
+                "Format: postgresql+asyncpg://postgres.<ref>:<pass>@aws-N-<region>.pooler.supabase.com:5432/postgres"
+            )
         self._url = url
 
         # Build engine kwargs

@@ -21,9 +21,6 @@ if config.config_file_name is not None:
 # Override sqlalchemy.url from DATABASE_URL env var if set
 database_url = os.environ.get("DATABASE_URL", "")
 if database_url:
-    # Auto-convert Supabase direct URLs to pooler URLs (IPv6 → IPv4)
-    from packages.core.storage.database import _convert_supabase_direct_to_pooler
-    database_url = _convert_supabase_direct_to_pooler(database_url)
     config.set_main_option("sqlalchemy.url", database_url)
 
 target_metadata = Base.metadata
