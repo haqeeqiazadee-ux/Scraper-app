@@ -133,8 +133,9 @@ const NAV_GROUPS: NavGroup[] = [
   {
     section: "TOOLS",
     items: [
-      { to: "/route-tester", label: "Route Tester", Icon: IconCompass },
-      { to: "/schedules",    label: "Schedules",    Icon: IconClock },
+      { to: "/route-tester",  label: "Route Tester",  Icon: IconCompass },
+      { to: "/scrape-test",   label: "Scrape Tester", Icon: IconDatabase },
+      { to: "/schedules",     label: "Schedules",     Icon: IconClock },
     ],
   },
   {

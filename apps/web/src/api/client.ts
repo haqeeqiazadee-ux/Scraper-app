@@ -444,3 +444,27 @@ export const routing = {
     });
   },
 };
+
+/* ── Test Scrape (real-time) ── */
+
+export interface TestScrapeResult {
+  url: string;
+  status: string;
+  status_code: number | null;
+  item_count: number;
+  confidence: number;
+  extraction_method: string | null;
+  duration_ms: number;
+  error: string | null;
+  extracted_data: Record<string, unknown>[];
+  should_escalate: boolean;
+}
+
+export const scrapeTest = {
+  run(url: string, timeoutMs?: number): Promise<TestScrapeResult> {
+    return request("/test-scrape", {
+      method: "POST",
+      body: JSON.stringify({ url, timeout_ms: timeoutMs ?? 15000 }),
+    });
+  },
+};
