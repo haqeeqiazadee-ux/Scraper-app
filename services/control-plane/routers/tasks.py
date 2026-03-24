@@ -185,6 +185,7 @@ def _task_dict(task) -> dict:
 
 def _task_list_dict(task) -> dict:
     """Summary task for list view."""
+    metadata = task.metadata_json or {}
     return {
         "id": task.id,
         "name": task.name or "",
@@ -193,6 +194,7 @@ def _task_list_dict(task) -> dict:
         "extraction_type": task.extraction_type or "auto",
         "priority": task.priority,
         "status": task.status,
+        "last_error": metadata.get("last_error") if task.status == "failed" else None,
         "last_run": None,
         "next_run": None,
         "created_at": task.created_at.isoformat() if task.created_at else None,

@@ -141,6 +141,12 @@ async def _run_task_inline(task_id: str, tenant_id: str, url: str, lane: str, ex
             final_status = TaskStatus.COMPLETED.value if succeeded else TaskStatus.FAILED.value
 
             await task_repo.update(task_id, tenant_id, status=final_status)
+
+            # Store error info in task metadata for UI visibility
+            if not succeeded:
+                error_msg = worker_result.get("error") or f"HTTP {worker_result.get('status_code', 'unknown')}"
+                await task_repo.update(task_id, tenant_id, metadata_json={"last_error": error_msg})
+
             await run_repo.update(
                 run_id, tenant_id,
                 status="completed" if succeeded else "failed",
@@ -169,12 +175,19 @@ async def _run_task_inline(task_id: str, tenant_id: str, url: str, lane: str, ex
         logger.info("Task %s finished with status=%s", task_id, final_status)
 
     except Exception:
-        logger.error("Inline task execution FAILED for %s: %s", task_id, traceback.format_exc())
+        error_tb = traceback.format_exc()
+        logger.error("Inline task execution FAILED for %s: %s", task_id, error_tb)
         # Mark task as failed so it doesn't stay stuck at queued/running
         try:
             async with db.session() as session:
                 task_repo = TaskRepository(session)
-                await task_repo.update(task_id, tenant_id, status=TaskStatus.FAILED.value)
+                # Store the short error message in metadata for UI
+                short_error = error_tb.strip().split("\n")[-1][:500]
+                await task_repo.update(
+                    task_id, tenant_id,
+                    status=TaskStatus.FAILED.value,
+                    metadata_json={"last_error": short_error},
+                )
                 await session.commit()
             logger.info("Task %s marked as failed after error", task_id)
         except Exception:
