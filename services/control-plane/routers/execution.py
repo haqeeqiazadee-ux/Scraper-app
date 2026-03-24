@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, HttpUrl
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -84,12 +84,14 @@ class DryRunRequest(BaseModel):
 
 
 async def _run_task_inline(task_id: str, tenant_id: str, url: str, lane: str, extraction_config: dict) -> None:
-    """Execute a scraping task inline as a background task.
+    """Execute a scraping task inline via asyncio.create_task.
 
-    This runs the HTTP worker directly in the control plane process,
-    stores the result, and updates the task status — no separate worker needed.
+    Runs the HTTP worker directly in the control plane process,
+    stores the result, and updates the task status.
     """
-    from services.worker_http.worker import HttpWorker
+    import traceback
+
+    logger.info("Background task started for task_id=%s url=%s", task_id, url)
 
     db = get_database()
     run_id = str(uuid4())
@@ -109,8 +111,10 @@ async def _run_task_inline(task_id: str, tenant_id: str, url: str, lane: str, ex
                 status="running",
             )
             await session.commit()
+        logger.info("Task %s marked as running", task_id)
 
         # Execute the actual scrape
+        from services.worker_http.worker import HttpWorker
         worker = HttpWorker()
         try:
             worker_result = await worker.process_task({
@@ -123,6 +127,9 @@ async def _run_task_inline(task_id: str, tenant_id: str, url: str, lane: str, ex
             })
         finally:
             await worker.close()
+
+        logger.info("Worker finished for task %s: status=%s items=%s",
+                     task_id, worker_result.get("status"), worker_result.get("item_count"))
 
         # Store result and update task + run status
         async with db.session() as session:
@@ -159,27 +166,24 @@ async def _run_task_inline(task_id: str, tenant_id: str, url: str, lane: str, ex
 
             await session.commit()
 
-        logger.info(
-            "Inline task execution finished",
-            extra={"task_id": task_id, "status": final_status, "items": worker_result.get("item_count", 0)},
-        )
+        logger.info("Task %s finished with status=%s", task_id, final_status)
 
     except Exception:
-        logger.exception("Inline task execution failed", extra={"task_id": task_id})
-        # Mark task as failed
+        logger.error("Inline task execution FAILED for %s: %s", task_id, traceback.format_exc())
+        # Mark task as failed so it doesn't stay stuck at queued/running
         try:
             async with db.session() as session:
                 task_repo = TaskRepository(session)
                 await task_repo.update(task_id, tenant_id, status=TaskStatus.FAILED.value)
                 await session.commit()
+            logger.info("Task %s marked as failed after error", task_id)
         except Exception:
-            logger.exception("Failed to update task status after error", extra={"task_id": task_id})
+            logger.error("Failed to update task %s to failed: %s", task_id, traceback.format_exc())
 
 
 @router.post("/tasks/{task_id}/execute")
 async def execute_task(
     task_id: str,
-    background_tasks: BackgroundTasks,
     session: AsyncSession = Depends(get_session),
     tenant_id: str = Depends(get_tenant_id),
 ) -> dict:
@@ -187,17 +191,19 @@ async def execute_task(
 
     Fetches the task from the database, optionally loads its policy,
     routes through the ExecutionRouter, and kicks off inline execution
-    as a background task.
+    via asyncio.create_task.
     """
     task_repo = TaskRepository(session)
     task_model = await task_repo.get(task_id, tenant_id)
     if not task_model:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    if task_model.status not in (TaskStatus.PENDING.value, TaskStatus.QUEUED.value):
+    # Allow re-running from pending, queued (stuck), running (stuck), or failed
+    non_runnable = {TaskStatus.COMPLETED.value, TaskStatus.CANCELLED.value}
+    if task_model.status in non_runnable:
         raise HTTPException(
             status_code=400,
-            detail=f"Task is not pending (current status: {task_model.status})",
+            detail=f"Task cannot be re-run (current status: {task_model.status})",
         )
 
     # Convert ORM model to Pydantic contract for the router
@@ -233,14 +239,15 @@ async def execute_task(
         "max_pages": (policy.extraction_rules or {}).get("max_pages", 1) if policy else 1,
     }
 
-    # Kick off inline execution as a background task
-    background_tasks.add_task(
-        _run_task_inline,
-        task_id=task_id,
-        tenant_id=tenant_id,
-        url=str(task.url),
-        lane=decision.lane.value,
-        extraction_config=extraction_config,
+    # Kick off inline execution via asyncio.create_task (fire-and-forget)
+    asyncio.create_task(
+        _run_task_inline(
+            task_id=task_id,
+            tenant_id=tenant_id,
+            url=str(task.url),
+            lane=decision.lane.value,
+            extraction_config=extraction_config,
+        )
     )
 
     return {
