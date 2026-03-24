@@ -1319,3 +1319,38 @@ Complete frontend upgrade to represent all backend functionality. 22 new files, 
 - Usage meters with green → amber → red thresholds
 - No new npm dependencies (pure CSS, inline SVGs)
 
+## 2026-03-24 — PROD-003/004c/005: Observability & Load Testing
+
+### PROD-004c — Health Check DB Probe (Already Complete)
+- Verified `/ready` endpoint performs `SELECT 1` against database
+- Verified `/check-connection` endpoint does deep table introspection
+- No remaining TODO comments in services/ or packages/ code
+- Only cosmetic TODOs remain (installer bitmap assets)
+
+### PROD-005 — Grafana Dashboards
+- Created Prometheus scrape config (`infrastructure/docker/prometheus/prometheus.yml`)
+- Created Grafana datasource provisioning (auto-connects to Prometheus)
+- Created dashboard provisioning config (auto-loads JSON dashboards)
+- Created `scraper-overview.json` dashboard with 10 panels:
+  - Request Rate (req/s) — total vs 5xx timeseries
+  - Request Latency — p50/p90/p99 histograms
+  - Active In-Flight Requests — stat gauge with thresholds
+  - Total Requests — stat counter
+  - Error Rate — percentage stat with green/yellow/red
+  - Unhandled Exceptions — rate stat
+  - Requests by Status Code — pie chart
+  - Requests by Method — pie chart
+  - Top 10 Endpoints by Request Rate — horizontal bar gauge
+  - Latency Heatmap — full-width heatmap
+- Added `prometheus` and `grafana` services to docker-compose.yml
+- Grafana on port 3001, Prometheus on port 9090
+
+### PROD-003 — Load Testing
+- Created `scripts/loadtest.py` with Locust framework
+- Two user profiles:
+  - `ScraperUser` — realistic mixed workload (CRUD tasks, policies, results, routes, schedules)
+  - `HighThroughputUser` — read-heavy dashboard/polling simulation
+- Covers 15+ endpoints with weighted task distribution
+- Memory-safe: caps stored IDs to prevent growth during long runs
+- Configurable via env vars (LOCUST_TENANT_ID)
+

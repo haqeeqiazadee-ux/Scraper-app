@@ -811,3 +811,32 @@
   - Global search with Cmd+K shortcut
 - **Test suite:** 706 passed, 0 failed (unchanged)
 - **Next action:** Update system files, commit and push
+
+## Work Cycle — PROD-003/004c/005: Observability & Load Testing 2026-03-24
+
+- **Timestamp:** 2026-03-24
+- **Active Task IDs:** PROD-003, PROD-004c, PROD-005
+- **What was read before action:** system/todo.md, system/execution_trace.md, services/control-plane/routers/health.py, packages/core/metrics.py, services/control-plane/middleware/metrics.py, infrastructure/docker/docker-compose.yml
+- **Action taken:** Completed remaining 3 production readiness tasks
+- **Why:** Close out final production gaps
+- **Implementation:**
+  - **PROD-004c:** Verified DB probe already implemented — `/ready` does SELECT 1, `/check-connection` does table introspection. Zero remaining TODOs in source code.
+  - **PROD-005:** Full Grafana + Prometheus observability stack:
+    - Prometheus scrape config targeting control-plane:8000/metrics
+    - Grafana auto-provisioned datasource + dashboard
+    - 10-panel overview dashboard (request rate, latency percentiles, active requests, error rate, status/method breakdown, top endpoints, latency heatmap)
+    - Added prometheus + grafana services to docker-compose.yml
+  - **PROD-003:** Locust load testing script with 2 user profiles:
+    - ScraperUser: 15 weighted tasks covering CRUD, routing, results, schedules
+    - HighThroughputUser: read-heavy polling simulation
+- **New files (6):**
+  - `infrastructure/docker/prometheus/prometheus.yml`
+  - `infrastructure/docker/grafana/provisioning/datasources/prometheus.yml`
+  - `infrastructure/docker/grafana/provisioning/dashboards/dashboards.yml`
+  - `infrastructure/docker/grafana/provisioning/dashboards/scraper-overview.json`
+  - `scripts/loadtest.py`
+- **Modified files (2):**
+  - `infrastructure/docker/docker-compose.yml` — added prometheus + grafana services
+  - `system/development_log.md` — logged implementation details
+- **Test suite:** 663 passed, 0 failed (pre-existing network-dependent e2e test excluded)
+- **Next action:** Update todo.md, commit and push
