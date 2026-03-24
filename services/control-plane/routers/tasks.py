@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from packages.contracts.task import Task, TaskCreate, TaskUpdate, TaskStatus
-from packages.core.storage.repositories import TaskRepository
+from packages.core.storage.repositories import TaskRepository, RunRepository
 from services.control_plane.dependencies import get_session, get_tenant_id
 
 router = APIRouter()
@@ -128,6 +128,36 @@ async def cancel_task(
 
     task = await repo.update(task_id, tenant_id, status="cancelled")
     return {"id": task.id, "status": task.status}
+
+
+@router.get("/tasks/{task_id}/runs")
+async def list_task_runs(
+    task_id: str,
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
+) -> dict:
+    """List execution runs for a task."""
+    run_repo = RunRepository(session)
+    runs = await run_repo.list_by_task(task_id, tenant_id)
+    return {
+        "items": [
+            {
+                "id": r.id,
+                "task_id": r.task_id,
+                "lane": r.lane,
+                "connector": r.connector,
+                "status": r.status,
+                "status_code": r.status_code,
+                "error": r.error,
+                "duration_ms": r.duration_ms,
+                "bytes_downloaded": r.bytes_downloaded,
+                "started_at": r.started_at.isoformat() if r.started_at else None,
+                "completed_at": r.completed_at.isoformat() if r.completed_at else None,
+            }
+            for r in runs
+        ],
+        "total": len(runs),
+    }
 
 
 def _task_dict(task) -> dict:

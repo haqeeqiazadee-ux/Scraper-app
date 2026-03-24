@@ -182,6 +182,25 @@ class ResultRepository:
         result = await self._session.execute(stmt)
         return result.scalar_one_or_none()
 
+    async def list(
+        self, tenant_id: str, limit: int = 50, offset: int = 0,
+        min_confidence: float | None = None, sort_by: str = "created_at", sort_order: str = "desc",
+    ) -> tuple[list[ResultModel], int]:
+        stmt = select(ResultModel).where(ResultModel.tenant_id == tenant_id)
+        count_stmt = select(func.count()).select_from(ResultModel).where(ResultModel.tenant_id == tenant_id)
+
+        if min_confidence is not None:
+            stmt = stmt.where(ResultModel.confidence >= min_confidence)
+            count_stmt = count_stmt.where(ResultModel.confidence >= min_confidence)
+
+        col = getattr(ResultModel, sort_by, ResultModel.created_at)
+        stmt = stmt.order_by(col.desc() if sort_order == "desc" else col.asc())
+        stmt = stmt.offset(offset).limit(limit)
+
+        result = await self._session.execute(stmt)
+        count_result = await self._session.execute(count_stmt)
+        return list(result.scalars().all()), count_result.scalar() or 0
+
     async def list_by_task(self, task_id: str, tenant_id: str) -> list[ResultModel]:
         stmt = (
             select(ResultModel)
