@@ -70,13 +70,21 @@ class DedupEngine:
             if parsed.path and parsed.path not in ("", "/"):
                 return True
 
-        # Fuzzy match on name
+        # Fuzzy match on name — only when URLs also match or are absent.
+        # Names like "Multisure For Women" vs "Multisure For Men" score >0.95
+        # but are distinct products, so name similarity alone is not enough.
         name_a = str(a.get("name", "")).strip().lower()
         name_b = str(b.get("name", "")).strip().lower()
         if name_a and name_b:
             similarity = SequenceMatcher(None, name_a, name_b).ratio()
+            if similarity >= 1.0:
+                return True  # Exact name match — always a duplicate
             if similarity >= self._threshold:
-                return True
+                # Near-match: only merge if URLs also match (or both lack URLs)
+                url_a = str(a.get("product_url", "")).strip().rstrip("/")
+                url_b = str(b.get("product_url", "")).strip().rstrip("/")
+                if not url_a or not url_b or url_a == url_b:
+                    return True
 
         return False
 
