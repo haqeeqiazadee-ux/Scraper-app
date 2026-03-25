@@ -107,6 +107,16 @@ function IconCreditCard() {
   );
 }
 
+function IconTemplate() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="1" y="1" width="14" height="4" rx="1" />
+      <rect x="1" y="7" width="6" height="8" rx="1" />
+      <rect x="9" y="7" width="6" height="8" rx="1" />
+    </svg>
+  );
+}
+
 /* ── Nav groups ── */
 
 interface NavItem {
@@ -133,6 +143,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     section: "TOOLS",
     items: [
+      { to: "/templates",     label: "Templates",     Icon: IconTemplate },
       { to: "/route-tester",  label: "Route Tester",  Icon: IconCompass },
       { to: "/scrape-test",   label: "Scrape Tester", Icon: IconDatabase },
       { to: "/schedules",     label: "Schedules",     Icon: IconClock },

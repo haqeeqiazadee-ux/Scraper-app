@@ -416,6 +416,95 @@ export const webhooks = {
   },
 };
 
+/* ── Templates ── */
+
+export interface TemplateSummary {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  tags: string[];
+  icon: string;
+  platform: string;
+  version: string;
+  field_count: number;
+  preferred_lane: string;
+  browser_required: boolean;
+  stealth_required: boolean;
+}
+
+export interface TemplateDetail extends TemplateSummary {
+  config: {
+    target_domains: string[];
+    example_urls: string[];
+    fields: {
+      name: string;
+      description: string;
+      field_type: string;
+      required: boolean;
+      css_selector: string | null;
+      xpath_selector: string | null;
+      json_path: string | null;
+      ai_hint: string | null;
+    }[];
+    preferred_lane: string;
+    extraction_type: string;
+    pagination: Record<string, unknown> | null;
+    rate_limit_rpm: number;
+    proxy_required: boolean;
+    proxy_type: string | null;
+    browser_required: boolean;
+    stealth_required: boolean;
+    timeout_ms: number;
+    robots_compliance: boolean;
+    extraction_rules: Record<string, unknown>;
+  };
+}
+
+export interface TemplateCategory {
+  name: string;
+  label: string;
+  count: number;
+}
+
+export const templates = {
+  list(params?: {
+    category?: string;
+    platform?: string;
+    tag?: string;
+    q?: string;
+  }): Promise<{ items: TemplateSummary[]; total: number }> {
+    const qs = buildQuery({
+      category: params?.category,
+      platform: params?.platform,
+      tag: params?.tag,
+      q: params?.q,
+    });
+    return request(`/templates${qs}`);
+  },
+
+  categories(): Promise<{ categories: TemplateCategory[] }> {
+    return request("/templates/categories");
+  },
+
+  get(templateId: string): Promise<TemplateDetail> {
+    return request(`/templates/${templateId}`);
+  },
+
+  apply(templateId: string, overrides?: Record<string, unknown>): Promise<{
+    policy_id: string;
+    policy_name: string;
+    template_id: string;
+    template_name: string;
+    message: string;
+  }> {
+    return request(`/templates/${templateId}/apply`, {
+      method: "POST",
+      body: JSON.stringify(overrides ?? {}),
+    });
+  },
+};
+
 /* ── Health & Metrics ── */
 
 export const health = {
