@@ -20,7 +20,8 @@ from urllib.parse import urljoin
 logger = logging.getLogger(__name__)
 
 # Minimum number of similar siblings to consider a repeating group
-MIN_REPEATING_COUNT = 3
+# Lowered from 3 to 2 — pages with only 2 products shouldn't fail silently
+MIN_REPEATING_COUNT = 2
 
 # Tags that are never data containers
 SKIP_TAGS = frozenset({

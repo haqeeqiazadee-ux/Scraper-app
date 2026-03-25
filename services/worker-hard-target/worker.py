@@ -156,16 +156,30 @@ class HardTargetLaneWorker:
             extracted_data = self._dedup.deduplicate(extracted_data)
             dedup_applied = len(extracted_data) < original_count
 
-        # Step 6: Confidence
+        # Step 6: Confidence (data quality, not just field coverage)
         confidence = 0.0
         if extracted_data:
-            total_fields = sum(len(item) for item in extracted_data)
-            filled_fields = sum(
-                1 for item in extracted_data
-                for v in item.values()
-                if v and str(v).strip()
-            )
-            confidence = filled_fields / total_fields if total_fields > 0 else 0.0
+            item_scores = []
+            for item in extracted_data:
+                score = 0.0
+                if item.get("name") and len(str(item["name"]).strip()) > 2:
+                    score += 0.3
+                if item.get("price"):
+                    score += 0.3
+                if item.get("image_url"):
+                    score += 0.15
+                if item.get("product_url") and item["product_url"] != url:
+                    score += 0.1
+                if item.get("currency"):
+                    score += 0.05
+                if item.get("rating"):
+                    score += 0.05
+                if item.get("brand"):
+                    score += 0.025
+                if item.get("sku"):
+                    score += 0.025
+                item_scores.append(min(score, 1.0))
+            confidence = sum(item_scores) / len(item_scores) if item_scores else 0.0
 
         elapsed = int((time.time() - start_time) * 1000)
         method = "deterministic" if isinstance(self._ai, DeterministicProvider) else "ai"
