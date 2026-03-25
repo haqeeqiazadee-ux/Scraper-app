@@ -1,23 +1,37 @@
 # =============================================================================
-# Dockerfile.railway — Optimized for Railway deployment
+# Dockerfile.railway — AI Scraping Platform (Full Stack)
 # =============================================================================
-# Single image for control-plane. Workers can be deployed as separate
-# Railway services using the same image with different start commands.
+# Includes Playwright + Chromium for browser/hard-target lane execution.
+# Single image for control-plane + all workers.
 # =============================================================================
 
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# System dependencies (gcc + libxml2/libxslt for lxml, curl for healthchecks)
+# System dependencies:
+#   - gcc/g++: compile native extensions (lxml, etc.)
+#   - libxml2/libxslt: lxml parsing
+#   - curl: healthchecks
+#   - Playwright system deps: installed via playwright install-deps
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl gcc g++ \
     libxml2-dev libxslt1-dev \
+    # Playwright/Chromium system dependencies
+    libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 \
+    libcups2 libdrm2 libdbus-1-3 libxkbcommon0 \
+    libatspi2.0-0 libxcomposite1 libxdamage1 libxfixes3 \
+    libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2 \
+    fonts-liberation fonts-noto-color-emoji \
     && rm -rf /var/lib/apt/lists/*
 
 # Python dependencies (production only)
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Install Playwright Chromium browser binary
+# This is the critical step — without it, browser/hard-target lanes fail
+RUN playwright install chromium
 
 # Application code
 COPY packages/ packages/
@@ -39,8 +53,12 @@ RUN cd services && \
 # Create artifacts directory
 RUN mkdir -p /app/artifacts
 
-# Non-root user
+# Non-root user — Playwright cache must be accessible
 RUN useradd -m appuser && chown -R appuser:appuser /app
+# Copy Playwright browsers to appuser's home (installed as root above)
+RUN cp -r /root/.cache/ms-playwright /home/appuser/.cache/ms-playwright 2>/dev/null; \
+    chown -R appuser:appuser /home/appuser/.cache 2>/dev/null; \
+    true
 USER appuser
 
 # Railway provides PORT env var dynamically
