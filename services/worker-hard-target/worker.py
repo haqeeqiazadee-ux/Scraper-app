@@ -1,11 +1,11 @@
 """
-Hard-Target Lane Worker — processes hard-target extraction tasks from the queue.
+Hard-Target Lane Worker — stealth browser scraping with intelligent extraction.
 
-Pipeline: dequeue task -> stealth browser fetch -> optional scroll/wait ->
-           extract data -> normalize -> store result
+Pipeline: stealth fetch → wait for JS content → smart scroll → detect CAPTCHA →
+          extract data → normalize → deduplicate
 
-Uses HardTargetWorker connector for sites with aggressive anti-bot protection
-(Cloudflare, Akamai, PerimeterX, DataDome, etc.).
+Uses HardTargetWorker connector with fingerprint randomization, stealth flags,
+and optional proxy/CAPTCHA solving for sites with aggressive anti-bot protection.
 """
 
 from __future__ import annotations
@@ -19,17 +19,49 @@ from packages.connectors.captcha_adapter import CaptchaAdapter
 from packages.connectors.hard_target_worker import HardTargetWorker
 from packages.connectors.proxy_adapter import ProxyAdapter
 from packages.core.ai_providers.deterministic import DeterministicProvider
+from packages.core.dedup import DedupEngine
+from packages.core.normalizer import Normalizer
 from packages.core.interfaces import AIProvider, FetchRequest
 
 logger = logging.getLogger(__name__)
 
+# Content selectors — same as browser worker for consistency
+_CONTENT_SELECTORS = [
+    "[data-component-type='s-search-result']",
+    ".s-result-item",
+    ".a-carousel-card",
+    "[class*='DealCard']",
+    "[class*='GridCard']",
+    ".a-price",
+    "[data-a-target*='deal']",
+    "[class*='ProductCard']",
+    ".product-card", ".product-item",
+    "[data-testid='product']",
+    "[data-testid='tweet']",
+    "article[role='article']",
+    "[data-component-type]",
+    "main [class*='grid'] > div:nth-child(3)",
+    ".feed-item", ".listing",
+]
+
+_CAPTCHA_SELECTORS = [
+    "#captchacharacters",
+    ".g-recaptcha",
+    "#challenge-running",
+    "[class*='captcha']",
+    "#px-captcha",
+    "iframe[src*='captcha']",
+]
+
 
 class HardTargetLaneWorker:
-    """Worker that processes hard-target lane tasks.
+    """Stealth browser worker with intelligent content detection.
 
-    Wraps the HardTargetWorker connector and provides a task-processing
-    pipeline that creates Run records, stores Results, and handles errors
-    with detailed failure reasons.
+    Extends HardTargetWorker with:
+    - Smart waiting for JS-rendered content
+    - Auto-scrolling for lazy-loaded elements
+    - CAPTCHA detection
+    - Normalization and deduplication
     """
 
     def __init__(
@@ -47,28 +79,18 @@ class HardTargetLaneWorker:
             max_retries=max_retries,
         )
         self._ai = ai_provider or DeterministicProvider()
+        self._normalizer = Normalizer()
+        self._dedup = DedupEngine()
 
     async def process_task(self, task: dict) -> dict:
-        """
-        Process a single hard-target extraction task.
-
-        Args:
-            task: Dict with at least 'url' and 'tenant_id' keys.
-                  Optional keys:
-                    - wait_selector (str): CSS selector to wait for before extraction
-                    - wait_selector_timeout_ms (int): timeout for wait_selector
-                    - wait_until (str): Playwright wait strategy (default "networkidle")
-                    - timeout_ms (int): page load timeout (default 60000)
-
-        Returns:
-            Dict with extraction results, run metadata, and status.
-        """
+        """Process a hard-target extraction task with intelligent content detection."""
         url = task["url"]
         tenant_id = task.get("tenant_id", "default")
         task_id = task.get("task_id", str(uuid4()))
         run_id = str(uuid4())
+        css_selectors = task.get("css_selectors")
 
-        logger.info("Processing hard-target task", extra={"task_id": task_id, "url": url})
+        logger.info("Hard-target task starting", extra={"task_id": task_id, "url": url})
         start_time = time.time()
 
         # Build metadata for the HardTargetWorker
@@ -91,10 +113,7 @@ class HardTargetLaneWorker:
 
         if not response.ok:
             elapsed = int((time.time() - start_time) * 1000)
-
-            # Determine detailed failure reason
             failure_reason = self._classify_failure(response)
-
             logger.warning("Hard-target fetch failed", extra={
                 "task_id": task_id, "url": url,
                 "status_code": response.status_code,
@@ -102,86 +121,165 @@ class HardTargetLaneWorker:
                 "failure_reason": failure_reason,
             })
             return {
-                "task_id": task_id,
-                "run_id": run_id,
-                "tenant_id": tenant_id,
-                "lane": "hard_target",
-                "connector": "hard_target_worker",
-                "status": "failed",
-                "status_code": response.status_code,
+                "task_id": task_id, "run_id": run_id, "tenant_id": tenant_id,
+                "url": url, "lane": "hard_target", "connector": "hard_target_worker",
+                "status": "failed", "status_code": response.status_code,
                 "error": response.error or f"Hard-target fetch failed (status {response.status_code})",
                 "failure_reason": failure_reason,
-                "duration_ms": elapsed,
-                "extracted_data": [],
-                "item_count": 0,
-                "should_escalate": False,  # Hard-target is the last lane
+                "duration_ms": elapsed, "extracted_data": [], "item_count": 0,
+                "should_escalate": False,
             }
 
-        # Step 2: Extract data from HTML
+        # Step 2: Smart post-fetch — wait for JS, scroll, detect CAPTCHA
+        page = self._hard_target._page
         html = response.html or response.text
-        extracted_data = await self._ai.extract(html, url)
+        scrolled = False
+        waited = False
 
-        # Step 3: Calculate confidence
+        if page:
+            # Check for CAPTCHA
+            for selector in _CAPTCHA_SELECTORS:
+                try:
+                    el = await page.query_selector(selector)
+                    if el:
+                        elapsed = int((time.time() - start_time) * 1000)
+                        logger.warning("CAPTCHA detected in hard-target",
+                                       extra={"task_id": task_id, "selector": selector})
+                        return {
+                            "task_id": task_id, "run_id": run_id, "tenant_id": tenant_id,
+                            "url": url, "lane": "hard_target", "connector": "hard_target_worker",
+                            "status": "failed", "status_code": response.status_code,
+                            "error": f"CAPTCHA detected ({selector})",
+                            "duration_ms": elapsed, "extracted_data": [], "item_count": 0,
+                            "should_escalate": False,
+                        }
+                except Exception:
+                    pass
+
+            # Wait for content selectors
+            if task.get("wait_selector"):
+                try:
+                    await page.wait_for_selector(task["wait_selector"], timeout=10000)
+                    waited = True
+                except Exception:
+                    pass
+
+            if not waited:
+                for selector in _CONTENT_SELECTORS:
+                    try:
+                        await page.wait_for_selector(selector, timeout=8000)
+                        waited = True
+                        logger.info("Hard-target content detected: %s", selector,
+                                    extra={"task_id": task_id})
+                        break
+                    except Exception:
+                        continue
+
+            # Extra wait for JS to finish filling containers
+            try:
+                await page.wait_for_timeout(3000)
+            except Exception:
+                pass
+
+            # Smart scroll
+            max_scrolls = task.get("max_scrolls", 5)
+            try:
+                prev_height = await page.evaluate("document.body.scrollHeight")
+                for _ in range(max_scrolls):
+                    await page.evaluate("window.scrollBy(0, window.innerHeight)")
+                    await page.wait_for_timeout(1500)
+                    new_height = await page.evaluate("document.body.scrollHeight")
+                    if new_height == prev_height:
+                        break
+                    prev_height = new_height
+                    scrolled = True
+                await page.evaluate("window.scrollTo(0, 0)")
+                await page.wait_for_timeout(500)
+            except Exception:
+                pass
+
+            # Get final rendered HTML
+            try:
+                html = await page.content()
+            except Exception:
+                pass
+
+        # Step 3: Extract data
+        extract_kwargs: dict = {}
+        if css_selectors and isinstance(self._ai, DeterministicProvider):
+            extract_kwargs["css_selectors"] = css_selectors
+
+        extracted_data = await self._ai.extract(html, url, **extract_kwargs)
+
+        # Step 4: Normalize
+        normalization_applied = False
+        if extracted_data:
+            extracted_data = self._normalizer.normalize_batch(extracted_data)
+            normalization_applied = True
+
+        # Step 5: Deduplicate
+        dedup_applied = False
+        original_count = len(extracted_data)
+        if extracted_data:
+            extracted_data = self._dedup.deduplicate(extracted_data)
+            dedup_applied = len(extracted_data) < original_count
+
+        # Step 6: Confidence
         confidence = 0.0
         if extracted_data:
-            total_fields = 0
-            filled_fields = 0
-            for item in extracted_data:
-                for key, value in item.items():
-                    total_fields += 1
-                    if value and str(value).strip():
-                        filled_fields += 1
+            total_fields = sum(len(item) for item in extracted_data)
+            filled_fields = sum(
+                1 for item in extracted_data
+                for v in item.values()
+                if v and str(v).strip()
+            )
             confidence = filled_fields / total_fields if total_fields > 0 else 0.0
 
         elapsed = int((time.time() - start_time) * 1000)
-        extraction_method = "deterministic" if isinstance(self._ai, DeterministicProvider) else "ai"
+        method = "deterministic" if isinstance(self._ai, DeterministicProvider) else "ai"
 
         logger.info("Hard-target task completed", extra={
             "task_id": task_id, "url": url,
             "items": len(extracted_data), "confidence": f"{confidence:.2f}",
-            "duration_ms": elapsed,
+            "duration_ms": elapsed, "scrolled": scrolled, "waited": waited,
         })
 
         return {
-            "task_id": task_id,
-            "run_id": run_id,
-            "tenant_id": tenant_id,
-            "url": url,
-            "lane": "hard_target",
-            "connector": "hard_target_worker",
-            "status": "success",
-            "status_code": response.status_code,
+            "task_id": task_id, "run_id": run_id, "tenant_id": tenant_id,
+            "url": url, "lane": "hard_target", "connector": "hard_target_worker",
+            "status": "success", "status_code": response.status_code,
             "duration_ms": elapsed,
-            "bytes_downloaded": len(response.body),
+            "bytes_downloaded": len(response.body) if response.body else len(html),
             "extracted_data": extracted_data,
             "item_count": len(extracted_data),
             "confidence": round(confidence, 4),
-            "extraction_method": extraction_method,
-            "should_escalate": False,  # Hard-target is the last lane
+            "extraction_method": method,
+            "normalization_applied": normalization_applied,
+            "dedup_applied": dedup_applied,
+            "should_escalate": False,
         }
 
     def _classify_failure(self, response: object) -> str:
-        """Classify the failure reason from the response for diagnostics."""
+        """Classify the failure reason from the response."""
         error = getattr(response, "error", "") or ""
         status = getattr(response, "status_code", 0)
         error_lower = error.lower()
 
         if "captcha" in error_lower:
-            return "captcha_unsolved"
-        if status == 403:
-            return "access_denied"
-        if status == 429:
-            return "rate_limited"
-        if status == 503:
-            return "service_unavailable"
-        if "timeout" in error_lower:
+            return "captcha_detected"
+        elif "timeout" in error_lower:
             return "timeout"
-        if "connection" in error_lower or "network" in error_lower:
+        elif status == 403:
+            return "access_denied"
+        elif status == 429:
+            return "rate_limited"
+        elif status >= 500:
+            return "server_error"
+        elif "connection" in error_lower or "network" in error_lower:
             return "network_error"
-        if "retries exhausted" in error_lower:
-            return "retries_exhausted"
-        return "unknown"
+        else:
+            return "unknown"
 
     async def close(self) -> None:
-        """Clean up all resources."""
+        """Clean up resources."""
         await self._hard_target.close()
