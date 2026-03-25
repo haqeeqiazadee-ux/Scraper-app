@@ -114,13 +114,30 @@ class TestFingerprint:
         assert "height" in fp.viewport
         assert fp.timezone
         assert fp.locale
+        assert fp.profile is not None
 
     def test_random_varies_across_calls(self) -> None:
         """Multiple random fingerprints should not all be identical."""
         fingerprints = [Fingerprint.random() for _ in range(20)]
         user_agents = {fp.user_agent for fp in fingerprints}
-        # With 5 user agents and 20 samples, we should see more than 1
+        # With 14 profiles and 20 samples, we should see more than 1
         assert len(user_agents) > 1
+
+    def test_from_profile_preserves_values(self) -> None:
+        """Fingerprint.from_profile() uses the profile's values."""
+        from packages.core.device_profiles import DeviceProfile
+        profile = DeviceProfile.for_geo("US")
+        fp = Fingerprint.from_profile(profile)
+        assert fp.user_agent == profile.user_agent
+        assert fp.viewport == profile.viewport
+        assert fp.timezone == profile.timezone
+        assert fp.locale == profile.locale
+
+    def test_random_with_geo_filter(self) -> None:
+        """Fingerprint.random(geo='GB') returns UK fingerprint."""
+        for _ in range(10):
+            fp = Fingerprint.random(geo="GB")
+            assert fp.profile.geo_hint == "GB"
 
 
 # ---------------------------------------------------------------------------
@@ -134,20 +151,41 @@ class TestHardTargetWorkerStealth:
         """At least one stealth JS snippet is configured."""
         assert len(STEALTH_SCRIPTS) >= 3
 
+    def test_stealth_scripts_include_canvas_noise(self) -> None:
+        """Stealth scripts include Canvas fingerprint noise injection."""
+        scripts_text = " ".join(STEALTH_SCRIPTS)
+        assert "toDataURL" in scripts_text, "Should include Canvas noise injection"
+
+    def test_stealth_scripts_include_webgl_masking(self) -> None:
+        """Stealth scripts include WebGL vendor/renderer masking."""
+        scripts_text = " ".join(STEALTH_SCRIPTS)
+        assert "WebGLRenderingContext" in scripts_text, "Should include WebGL masking"
+
     @pytest.mark.asyncio
-    async def test_stealth_scripts_injected(self) -> None:
-        """All stealth scripts are injected via add_init_script before navigation."""
+    async def test_stealth_scripts_injected_playwright_mode(self) -> None:
+        """All stealth scripts are injected when using Playwright fallback."""
         page = _make_mock_page()
-        worker = HardTargetWorker(max_retries=1)
+        worker = HardTargetWorker(max_retries=1, use_camoufox=False)
+        worker._browser_type = "playwright"  # Force Playwright mode
         await worker._apply_stealth(page)
         assert page.add_init_script.call_count == len(STEALTH_SCRIPTS)
+
+    @pytest.mark.asyncio
+    async def test_stealth_scripts_skipped_camoufox_mode(self) -> None:
+        """Stealth scripts are NOT injected when using Camoufox (handled at C++ level)."""
+        page = _make_mock_page()
+        worker = HardTargetWorker(max_retries=1, use_camoufox=False)
+        worker._browser_type = "camoufox"  # Simulate Camoufox mode
+        await worker._apply_stealth(page)
+        assert page.add_init_script.call_count == 0
 
     @pytest.mark.asyncio
     async def test_browser_launch_args_disable_automation(self) -> None:
         """Browser launch args include --disable-blink-features=AutomationControlled."""
         import sys
+        from packages.core.device_profiles import DeviceProfile
 
-        worker = HardTargetWorker()
+        worker = HardTargetWorker(use_camoufox=False)
 
         mock_browser = AsyncMock()
         mock_pw_instance = AsyncMock()
@@ -156,12 +194,12 @@ class TestHardTargetWorkerStealth:
         mock_async_playwright = MagicMock()
         mock_async_playwright.return_value.start = AsyncMock(return_value=mock_pw_instance)
 
-        # Create a mock playwright.async_api module
         mock_module = MagicMock()
         mock_module.async_playwright = mock_async_playwright
 
         with patch.dict(sys.modules, {"playwright": MagicMock(), "playwright.async_api": mock_module}):
-            await worker._ensure_browser()
+            profile = DeviceProfile.random()
+            await worker._launch_playwright(profile)
 
         launch_call = mock_pw_instance.chromium.launch.call_args
         assert "--disable-blink-features=AutomationControlled" in launch_call.kwargs.get("args", [])
@@ -243,7 +281,7 @@ class TestHardTargetWorkerRetry:
     @pytest.mark.asyncio
     async def test_retry_on_blocked_status(self) -> None:
         """Worker retries when receiving a 403 blocking status."""
-        worker = HardTargetWorker(max_retries=2, backoff_base=0.01, backoff_max=0.02)
+        worker = HardTargetWorker(max_retries=2, backoff_base=0.01, backoff_max=0.02, enable_warm_up=False, use_camoufox=False)
 
         call_count = 0
 
@@ -267,6 +305,7 @@ class TestHardTargetWorkerRetry:
         mock_browser.new_context = AsyncMock(return_value=context)
 
         worker._browser = mock_browser
+        worker._browser_type = "playwright"
 
         request = FetchRequest(url="https://blocked.com", timeout_ms=5000)
         response = await worker.fetch(request)
@@ -277,7 +316,7 @@ class TestHardTargetWorkerRetry:
     @pytest.mark.asyncio
     async def test_all_retries_exhausted(self) -> None:
         """When all retries fail, returns error response."""
-        worker = HardTargetWorker(max_retries=2, backoff_base=0.01, backoff_max=0.02)
+        worker = HardTargetWorker(max_retries=2, backoff_base=0.01, backoff_max=0.02, enable_warm_up=False, use_camoufox=False)
 
         page = _make_mock_page()
         page.goto = AsyncMock(return_value=MagicMock(status=403))
@@ -287,6 +326,7 @@ class TestHardTargetWorkerRetry:
         mock_browser = AsyncMock()
         mock_browser.new_context = AsyncMock(return_value=context)
         worker._browser = mock_browser
+        worker._browser_type = "playwright"
 
         request = FetchRequest(url="https://blocked.com", timeout_ms=5000)
         response = await worker.fetch(request)
@@ -301,7 +341,7 @@ class TestHardTargetWorkerCookiePersistence:
     @pytest.mark.asyncio
     async def test_cookies_saved_and_loaded(self) -> None:
         """Cookies from first fetch are restored on subsequent fetch to same domain."""
-        worker = HardTargetWorker(max_retries=1, backoff_base=0.01)
+        worker = HardTargetWorker(max_retries=1, backoff_base=0.01, enable_warm_up=False, use_camoufox=False)
 
         saved_cookies = [{"name": "session", "value": "abc123", "domain": "example.com"}]
 
@@ -314,6 +354,7 @@ class TestHardTargetWorkerCookiePersistence:
         mock_browser = AsyncMock()
         mock_browser.new_context = AsyncMock(return_value=context)
         worker._browser = mock_browser
+        worker._browser_type = "playwright"
 
         # First fetch — saves cookies
         request = FetchRequest(url="https://example.com/page1", timeout_ms=5000)
@@ -387,7 +428,7 @@ class TestHardTargetLaneWorker:
                 "tenant_id": "t1",
             })
 
-        assert result["failure_reason"] == "captcha_unsolved"
+        assert result["failure_reason"] == "captcha_detected"
 
     @pytest.mark.asyncio
     async def test_close_delegates(self, lane_worker: HardTargetLaneWorker) -> None:

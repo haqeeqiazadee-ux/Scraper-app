@@ -160,6 +160,24 @@ All 31 previously-skipped QA items have been resolved:
 - 4 e-commerce items → wholesale, Shopify fallback, reviews extraction (11 tests)
 - 4 misc items → browser tab switching, crash recovery, API pagination (25 tests)
 
+## In Progress — Phase 6: Stealth Upgrade (Anti-Bot Evasion Overhaul)
+
+Research-driven upgrade based on analysis of top-tier scrapers (Crawlee, Camoufox, Bright Data, ScrapFly, ZenRows, curl_cffi) and modern anti-bot systems (AWS WAF, Cloudflare, DataDome, PerimeterX).
+
+### P0 — Critical (fixes 3+ detection layers each)
+- [x] **STEALTH-001:** Replace httpx with curl_cffi for TLS/JA3/HTTP2 browser impersonation in HTTP lane
+- [x] **STEALTH-002:** Build coherent device profiles (UA + locale + timezone + screen + proxy geo — all must tell a consistent story)
+
+### P1 — High Impact
+- [x] **STEALTH-003:** Integrate Camoufox as hard-target browser engine (C++-level stealth, 0% detection on CreepJS)
+- [x] **STEALTH-004:** Add warm-up navigation + referrer chains (visit homepage before deep pages)
+- [x] **STEALTH-005:** Human-like behavioral simulation (Bezier mouse curves, scroll velocity, idle jitter, log-normal delays)
+
+### P2 — Nice to Have (deferred)
+- [ ] **STEALTH-006:** AWS WAF token lifecycle management (Amazon-specific)
+- [ ] **STEALTH-007:** Auto-updating UA string database
+- [ ] **STEALTH-008:** Mobile proxy tier support
+
 ## Blocked
 (none)
 
@@ -170,5 +188,6 @@ All 31 previously-skipped QA items have been resolved:
 - **QA sessions completed:** 6
 - **QA use cases:** 193 pass, 0 skip, 5 fixed
 - **Total unit/integration/E2E tests:** 936 passed, 0 failed
-- **Lessons learned:** 64
-- **Platform completeness:** 100% production-ready (all tracked tasks complete, all QA gaps closed)
+- **Lessons learned:** 67
+- **Stealth upgrade tasks:** 5/5 complete (76 tests passing)
+- **Platform completeness:** Production-ready, undergoing stealth hardening

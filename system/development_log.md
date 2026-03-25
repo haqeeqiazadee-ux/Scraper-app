@@ -1433,3 +1433,105 @@ bringing total from 806 to 936 tests (all passing, 0 failures).
 - 25 Playwright E2E tests passing
 - 936 total, 0 failures
 
+---
+
+## 2026-03-25 — Phase 6: Stealth Upgrade (Anti-Bot Evasion Overhaul)
+
+### Research Findings
+
+Comprehensive analysis of top-tier scrapers and modern anti-bot systems revealed critical gaps in our stealth implementation:
+
+**Detection layers we fail at:**
+1. **TLS fingerprinting (JA3/JA4):** httpx uses Python's OpenSSL, instantly identifiable as non-browser. Anti-bot systems check this BEFORE seeing any HTTP headers.
+2. **HTTP/2 fingerprinting:** httpx defaults to HTTP/1.1. In 2026, real browsers always use HTTP/2+. HTTP/1.1 is itself a bot signal.
+3. **Cross-signal inconsistency:** We randomize UA, timezone, locale, viewport independently — a German locale with US IP and French timezone is detectable.
+4. **JS-level stealth patches:** Our `Object.defineProperty` patches on navigator.webdriver are detectable via prototype chain inspection. Camoufox patches at C++ level, invisible to JS.
+5. **Behavioral signals:** DataDome tracks mouse movement, scroll velocity, click patterns. Our uniform random delays are detectable.
+
+**What top tools do that we don't:**
+- curl_cffi: Browser-matching TLS handshake, HTTP/2 SETTINGS frames, header ordering
+- Camoufox: C++ source-level Firefox modifications, 0% detection on CreepJS/BrowserScan
+- Crawlee: browserforge for consistent device profiles, session-fingerprint pairing
+- Bright Data: Matches fingerprint to IP reputation automatically
+- Commercial APIs: 94-98% success against Cloudflare, Akamai, DataDome
+
+### Implementation Plan
+
+| Task | Description | Impact |
+|------|------------|--------|
+| STEALTH-001 | curl_cffi replacing httpx | Fixes TLS + HTTP/2 + header order (3 layers) |
+| STEALTH-002 | Coherent device profiles | Stops cross-signal detection |
+| STEALTH-003 | Camoufox for hard-target | 0% detection on fingerprint tests |
+| STEALTH-004 | Warm-up navigation + referrers | Session credibility |
+| STEALTH-005 | Behavioral simulation | Defeats intent-based detection |
+
+### STEALTH-001: curl_cffi Integration (DONE)
+
+**File:** `packages/connectors/http_collector.py` (rewritten)
+
+- Replaced httpx with curl_cffi `AsyncSession` as primary HTTP backend
+- Uses `impersonate="chrome131"` for browser-matching TLS/JA3/HTTP2
+- Graceful fallback to httpx (with HTTP/2 enabled) if curl_cffi not installed
+- Per-request device profile selection for fingerprint diversity
+- Auto-generates Google referrer on 70% of requests
+- Added `client_type` property to check which backend is active
+
+### STEALTH-002: Coherent Device Profiles (DONE)
+
+**File:** `packages/core/device_profiles.py` (new)
+
+- 14 real-world device profiles (Chrome 131 Win/Mac/Linux, Firefox 132, Safari 17.6)
+- 8 geo regions: US (5 profiles), GB, DE, FR, CA, AU
+- Each profile bundles: UA, browser version, platform, locale, accept-language, timezone, viewport, screen, color depth, pixel ratio, hardware concurrency, geo hint, curl_cffi impersonate target
+- Browser-specific header generation with correct ordering (Chrome sec-ch-ua headers, Firefox style, Safari style)
+- `DeviceProfile.random()`, `.for_geo()`, `.for_browser()` selectors
+- `get_headers_for_profile()` generates browser-realistic headers in correct order
+- `get_referer_for_url()` generates plausible Google search referrers
+
+### STEALTH-003: Camoufox Integration (DONE)
+
+**File:** `packages/connectors/hard_target_worker.py` (rewritten)
+
+- Camoufox as primary browser engine (C++-level stealth, 0% CreepJS detection)
+- Falls back to Playwright Chromium with enhanced JS stealth patches
+- JS stealth now includes Canvas noise injection and WebGL vendor masking
+- Added Cloudflare challenge detection (`challenges.cloudflare.com`)
+- Added AWS WAF marker detection (`aws-waf-token`, `awswaf`)
+- Context creation uses full device profile (screen, color scheme, viewport)
+- `browser_type` property reports "camoufox" or "playwright"
+
+### STEALTH-004: Warm-Up Navigation (DONE)
+
+**File:** `packages/core/human_behavior.py` (new) — `warm_up_navigation()`
+
+- Visits homepage before target URL to establish session credibility
+- 40% chance of visiting intermediate category page
+- Includes scrolling and idle jitter on homepage
+- Non-fatal on failure (proceeds to target)
+
+### STEALTH-005: Human Behavioral Simulation (DONE)
+
+**File:** `packages/core/human_behavior.py` (new)
+
+- **Bezier mouse curves:** Cubic Bezier paths with random control points, variable speed
+- **Human click:** Moves to element via curve, pauses, clicks random point within element
+- **Variable scroll:** Sinusoidal speed profile (slow-fast-slow), random step count
+- **Idle jitter:** Micro mouse movements (1-5px) simulating idle fidgeting
+- **Log-normal delays:** `log_normal_delay()` replaces uniform random — matches real browsing patterns
+- All integrated into hard-target fetch loop (post-navigation scroll + jitter)
+
+### Test Results
+
+**New test files:**
+- `tests/unit/test_device_profiles.py` — 23 tests (profile integrity, selection, headers, referrers)
+- `tests/unit/test_human_behavior.py` — 16 tests (Bezier curves, log-normal delays, mouse, scroll, jitter)
+- `tests/unit/test_stealth_http.py` — 9 tests (curl_cffi backend, metrics, profile integration)
+
+**Updated test files:**
+- `tests/unit/test_hard_target.py` — 28 tests (added Camoufox mode tests, Canvas/WebGL stealth, geo-filtered fingerprints)
+
+**Service layer fix:**
+- `services/worker_hard_target/worker.py` — removed tight coupling to `_page` internal state, HardTargetWorker now handles all post-fetch behavior internally
+
+**Total stealth tests: 76 passed, 0 failed**
+

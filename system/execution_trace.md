@@ -857,3 +857,19 @@
   6. Confirmed Gemini 403 is network-level block (generativelanguage.googleapis.com blocked in sandbox), not key issue
 - **Blockers found:** Gemini API unreachable from sandbox environment (network firewall). OpenAI works fine.
 - **Next action:** Deploy platform to Supabase + Railway, polish frontend, finalize docs
+
+## Work Cycle 027 — 2026-03-25
+
+- **Timestamp:** 2026-03-25
+- **Active Task IDs:** STEALTH-001 through STEALTH-005
+- **What was read before action:** All connector source files (http_collector.py, hard_target_worker.py, browser_worker.py, proxy_adapter.py, captcha_adapter.py), core/router.py, core/interfaces.py, worker-http/worker.py, pyproject.toml. Research: web search on top-tier scraper techniques (Crawlee, Camoufox, Bright Data, ScrapFly, ZenRows, curl_cffi, nodriver), anti-bot detection methods (JA3/JA4 TLS fingerprinting, HTTP/2 fingerprinting, header order, browser fingerprinting, behavioral analysis), Amazon-specific detection (AWS WAF, aws-waf-token).
+- **Action taken:** Phase 6 — Stealth Upgrade (Anti-Bot Evasion Overhaul)
+- **Why:** Real-world testing against hard targets (Amazon, Cloudflare-protected sites) revealed detection at multiple layers that our current implementation doesn't address. Research showed 3 critical gaps: TLS fingerprinting (httpx has Python/OpenSSL JA3), cross-signal inconsistency (random UA+timezone+locale combinations are detectable), and JS-level stealth patches (detectable via prototype chain inspection).
+- **Outputs produced:**
+  1. STEALTH-001: curl_cffi integration replacing httpx — fixes TLS/JA3, HTTP/2, and header order in one shot
+  2. STEALTH-002: Coherent device profile system — bundles UA, locale, timezone, screen, proxy geo into consistent personas
+  3. STEALTH-003: Camoufox integration for hard-target lane — C++-level stealth patches invisible to JS detection
+  4. STEALTH-004: Warm-up navigation + referrer chains — visit homepage before deep pages
+  5. STEALTH-005: Human behavioral simulation — Bezier mouse curves, variable scroll velocity, idle jitter, log-normal delays
+- **Blockers found:** (recording as work progresses)
+- **Next action:** Execute implementation plan in order

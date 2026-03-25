@@ -149,3 +149,9 @@
 66. **OpenAI chat completions need low temperature for extraction** — Setting `temperature=0.1` with a system prompt enforcing "JSON only" responses produces reliable, parseable extraction results. Higher temperatures cause markdown wrapping, explanatory text, and inconsistent JSON structure.
 
 67. **Lazy client initialization is essential for multi-provider chains** — Creating API clients only on first use (not at import time) prevents failures when one provider's SDK is missing. The factory can safely reference all providers without requiring all SDKs installed.
+
+68. **TLS fingerprinting is the #1 detection layer** — Anti-bot systems (Cloudflare, Akamai, DataDome) check JA3/JA4 TLS fingerprints BEFORE seeing any HTTP data. Python's httpx/requests produce OpenSSL fingerprints instantly identifiable as non-browser. curl_cffi impersonates real browser TLS handshakes and is the standard solution. Standard HTTPS proxies do NOT change your TLS fingerprint — it's end-to-end.
+
+69. **All fingerprint signals must tell a coherent story** — Random spoofing of individual attributes (UA, timezone, locale, screen) creates cross-signal inconsistencies that are trivially detectable. A German locale with a US IP, French timezone, and mobile screen on a desktop UA is an instant flag. Use complete "device profiles" from real-world combinations.
+
+70. **JS-level stealth patches are detectable** — `Object.defineProperty(navigator, 'webdriver', ...)` can be detected by checking prototype chains, property descriptors, stack traces, and error message strings. Camoufox solves this by modifying Firefox at the C++ source level, making patches invisible to any JavaScript inspection. This is the only approach that consistently passes CreepJS and BrowserScan.
