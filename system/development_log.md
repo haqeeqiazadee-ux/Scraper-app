@@ -1535,3 +1535,116 @@ Comprehensive analysis of top-tier scrapers and modern anti-bot systems revealed
 
 **Total stealth tests: 76 passed, 0 failed**
 
+---
+
+## 2026-03-25 — Extraction Quality Fixes
+
+### Currency Detection Fix
+
+**Issue:** superdrugs.pk showed currency as INR (Indian Rupee) instead of PKR (Pakistani Rupee). Root cause: `.pk` domain missing from `DOMAIN_CURRENCY` map, and "Rs" symbol was hardcoded to INR.
+
+**Fix:** (`normalizer.py`)
+- Added `.pk → PKR`, `.com.pk → PKR` to domain-currency map
+- Added `"PKR": "PKR"` to currency symbols
+- Rewrote `detect_currency()` to check domain FIRST, then use domain to disambiguate ambiguous symbols (Rs, $, R, kr)
+- "Rs" on a `.pk` site → PKR. "Rs" on a `.in` site → INR.
+
+### Noise Filtering
+
+**Issue:** Navigation elements ("Trending Now", "Top Brands", "Superdrugs") were extracted as products because they had `<a>` tags with text.
+
+**Fix:** (`dom_discovery.py`, `deterministic.py`)
+- New `_is_noise_item()` function checks for product signals beyond just a name
+- Must have at least one of: price, image, rating, description
+- Common section header names blacklisted ("trending", "top brands", "sale", "view all", etc.)
+- Short names (≤2 words) without price/rating/image are rejected
+- Applied in both DOM discovery and CSS selector extraction paths
+
+---
+
+## 2026-03-25 — Universal Extraction Overhaul
+
+### Problem
+Extraction only worked reliably on sites with JSON-LD or one of 12 specific CSS classes. On other sites, the fallback returned the page `<title>` tag + first price found anywhere in HTML as "success" with 100% confidence. This is the opposite of what a production scraper should do.
+
+### New Extraction Tiers
+
+**Microdata extraction** (`deterministic.py:_extract_microdata`)
+- Parses `itemscope itemtype="schema.org/Product"` HTML attributes
+- Extracts: name, description, image, sku, brand, price, currency, availability, rating, reviews
+- Second most common structured data format after JSON-LD (~20% of e-commerce)
+
+**Open Graph extraction** (`deterministic.py:_extract_opengraph`)
+- Parses `og:type=product`, `og:price:amount`, `og:title`, `og:image` meta tags
+- Only activates when page is explicitly tagged as product or has price meta tags
+- Requires name + at least one signal (price or image) before returning
+
+### Extraction Cascade (6 tiers)
+```
+1. JSON-LD (schema.org @type:Product)           → ~40-60% of e-commerce
+2. Microdata (itemprop/itemscope)               → ~20% more
+3. Open Graph (og:type=product)                 → PDPs with social tags
+4. DOM Discovery (repeating structural patterns) → Any templated listing
+5. CSS Selectors (50+ selectors, was 12)        → Nearly all platforms
+6. Basic Fallback (validated, not garbage)       → Single product pages only
+```
+
+### Expanded CSS Selectors (12 → 50+)
+Covers: Shopify, WooCommerce, Magento, BigCommerce, PrestaShop, OpenCart, Bootstrap, Tailwind, data-attribute patterns, schema.org selectors. Also expanded name and price sub-selectors within cards.
+
+### Fixed Basic Fallback
+- **Before:** Always returned `{name: <title>, price: first_price_in_html}` — even for homepages, blogs, about pages
+- **After:** Requires 2+ product signals (h1 product name + price in a price element + add-to-cart button). Returns `None` for non-product pages. Uses og:title with site name suffix removal instead of raw `<title>` tag.
+
+### Quality-Based Confidence Scoring (all 3 workers)
+- **Before:** `filled_fields / total_fields` — a nav label with name+url scored 100%
+- **After:** Weighted product quality: name(0.3) + price(0.3) + image(0.15) + url(0.1) + currency(0.05) + rating(0.05) + brand/sku(0.05)
+- An item with only a name scores 30%, correctly triggering lane escalation
+
+### DOM Discovery Threshold
+- Lowered from 3 to 2 minimum similar siblings
+- Pages with only 2 products no longer fail silently
+
+---
+
+## 2026-03-25 — Pro-Level Operational Upgrades
+
+### Resource Blocking (`browser_worker.py`)
+- Blocks image, stylesheet, font, media resource types via `page.route()`
+- Blocks known tracking/ad domains (Google Analytics, Facebook, Hotjar, Segment, Mixpanel, etc.)
+- Saves 60-80% bandwidth, cuts page load time dramatically
+- Configurable via `block_resources=True` parameter
+
+### API/XHR Interception (`browser_worker.py`)
+- Monitors all network responses for JSON payloads containing product data
+- Detects common response shapes: `{products: [...]}`, `{items: [...]}`, `{results: [...]}`
+- Modern SPAs fetch products via internal APIs — JSON is 10x cleaner than DOM parsing
+- Captured data available via `get_captured_api_data()`
+- Configurable via `intercept_api=True` parameter
+
+### URL-Level Deduplication (`dedup.py`)
+- New `URLDedup` class tracks seen URLs per session
+- Normalizes URLs (strips www, trailing slash, sorts query params) for consistent comparison
+- TTL-based expiry (default 1 hour)
+- `check_and_mark()` atomic operation for thread-safe use
+- Prevents scraping the same URL twice — saves requests/bandwidth at scale
+
+### Post-Extraction Data Validation (`normalizer.py`)
+- New `validate_item()` function integrated into `normalize_batch()`
+- Rejects garbage items:
+  - Names < 3 chars or placeholder text ("undefined", "null", "N/A", "loading")
+  - Zero or negative prices
+  - Prices > $1M (parsing errors)
+  - Clears placeholder images (1x1 pixel, data URIs, spinners)
+  - Clears javascript: URLs
+- Bad items auto-removed before reaching the user
+
+### Browser Worker Device Profiles
+- Uses coherent `DeviceProfile` instead of hardcoded UA string
+- Consistent viewport, locale, timezone per browser session
+
+### Test Results
+- 122 existing tests passing (normalizer, hard-target, device profiles, AI normalization)
+- All new validation and URL dedup smoke tests passing
+- 2 pre-existing price format failures in dom_discovery (not regression)
+

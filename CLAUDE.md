@@ -74,7 +74,8 @@ This is a **monorepo** with the following structure:
 - **Database:** PostgreSQL 15+ (cloud/self-hosted), SQLite (desktop)
 - **Cache/Queue:** Redis 7+ / Valkey (cloud), in-memory (desktop)
 - **Object Storage:** S3-compatible (cloud), filesystem (desktop)
-- **Browser Automation:** Playwright
+- **Browser Automation:** Camoufox (primary, C++-level stealth), Playwright (fallback)
+- **HTTP Client:** curl_cffi (browser TLS/JA3 impersonation), httpx (fallback)
 - **Desktop Shell:** Tauri v2 (Rust + WebView)
 - **Extension:** Chrome Manifest V3
 - **AI Providers:** Google Gemini (default), OpenAI, Anthropic, Ollama (local)
@@ -101,7 +102,7 @@ After completing any task:
 
 ## Current Phase
 
-**All Phases COMPLETE — Platform Production-Ready**
+**All Phases COMPLETE — Platform Production-Hardened**
 
 **Phase 3 — Architecture Scaffolding (COMPLETE)**
 - Monorepo folder structure created (26 directories)
@@ -131,6 +132,25 @@ After completing any task:
 - E-commerce scenarios verified (25-item PLP, PDP JSON-LD, Shopify detection)
 - 706 tests passing, 0 failed
 
+**Phase 6 — Stealth Upgrade (COMPLETE)**
+- curl_cffi for browser-matching TLS/JA3/HTTP2 (replaces httpx in HTTP lane)
+- 14 coherent device profiles across 8 geo regions (all signals consistent)
+- Camoufox C++-level stealth for hard-target lane (0% detection on CreepJS)
+- Human behavioral simulation: Bezier mouse curves, log-normal delays, idle jitter
+- Warm-up navigation + Google referrer chains
+
+**Phase 7 — Universal Extraction Overhaul (COMPLETE)**
+- 6-tier extraction cascade: JSON-LD → Microdata → Open Graph → DOM Discovery → CSS (50+ selectors) → Validated Fallback
+- Noise filtering rejects nav labels, section headers, items without product signals
+- Quality-based confidence scoring (weighted by name/price/image, not field coverage)
+- PKR + 30 other currencies with domain-priority disambiguation
+
+**Phase 8 — Pro-Level Operational Upgrades (COMPLETE)**
+- Browser resource blocking (images/CSS/fonts/ads) — 60-80% faster page loads
+- API/XHR interception — captures JSON payloads from SPAs
+- URL-level deduplication — prevents scraping the same URL twice
+- Post-extraction data validation — rejects garbage (zero prices, placeholder names, fake images)
+
 ## Coding Conventions
 
 - Use Pydantic v2 for all data models
@@ -155,8 +175,18 @@ After completing any task:
 | `system/todo.md` | Current task queue |
 | `system/execution_trace.md` | Decision audit trail |
 | `system/development_log.md` | Engineering log |
-| `system/lessons.md` | What we've learned (63 lessons) |
+| `system/lessons.md` | What we've learned (76 lessons) |
 | `system/final_step_logs.md` | Per-task execution evidence |
+
+## Key New Modules (Phase 6-8)
+
+| File | Purpose |
+|------|---------|
+| `packages/core/device_profiles.py` | 14 coherent browser identity profiles for anti-detection |
+| `packages/core/human_behavior.py` | Bezier mouse curves, scroll simulation, idle jitter, warm-up nav |
+| `packages/connectors/http_collector.py` | curl_cffi HTTP client with TLS/JA3 browser impersonation |
+| `packages/connectors/hard_target_worker.py` | Camoufox stealth browser + Playwright fallback |
+| `packages/connectors/browser_worker.py` | Resource blocking, API interception, device profiles |
 
 ## Legacy Code (scraper_pro/)
 

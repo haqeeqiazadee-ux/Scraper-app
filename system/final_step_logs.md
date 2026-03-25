@@ -1220,3 +1220,99 @@
 - **Pass/Fail:** PASS
 - **Final Status:** COMPLETE
 
+---
+
+## STEALTH-001 through STEALTH-005: Anti-Bot Evasion Overhaul
+
+- **Task IDs:** STEALTH-001 (curl_cffi), STEALTH-002 (device profiles), STEALTH-003 (Camoufox), STEALTH-004 (warm-up nav), STEALTH-005 (human behavior)
+- **Task Title:** Phase 6 — Stealth Upgrade
+- **Start Time:** 2026-03-25
+- **End Time:** 2026-03-25
+- **Exact steps performed:**
+  1. Researched top-tier scrapers via web search (Crawlee, Camoufox, Bright Data, ScrapFly, ZenRows, curl_cffi, nodriver)
+  2. Audited existing codebase (http_collector.py, hard_target_worker.py, browser_worker.py, proxy_adapter.py)
+  3. Identified 3 critical gaps: TLS fingerprinting, cross-signal inconsistency, JS-level stealth detectability
+  4. Created `packages/core/device_profiles.py` — 14 coherent profiles, 8 geos, browser-specific headers
+  5. Created `packages/core/human_behavior.py` — Bezier curves, log-normal delays, scroll sim, idle jitter, warm-up nav
+  6. Rewrote `packages/connectors/http_collector.py` — curl_cffi primary, httpx fallback, per-request profiles
+  7. Rewrote `packages/connectors/hard_target_worker.py` — Camoufox primary, Playwright fallback, Canvas/WebGL stealth
+  8. Updated `services/worker-hard-target/worker.py` — removed _page coupling
+  9. Added curl-cffi>=0.7, camoufox[geoip]>=0.4 to pyproject.toml
+  10. Created 3 new test files (48 tests), updated test_hard_target.py (28 tests)
+  11. Ran all 76 tests — 76 passed, 0 failed
+  12. Committed and pushed to claude/review-repo-status-csFgT
+- **Files touched:** device_profiles.py (NEW), human_behavior.py (NEW), http_collector.py, hard_target_worker.py, worker.py, pyproject.toml, test_device_profiles.py (NEW), test_human_behavior.py (NEW), test_stealth_http.py (NEW), test_hard_target.py
+- **Validation evidence:** 76 tests passed (23 profile + 16 behavior + 9 HTTP + 28 hard-target)
+- **Pass/Fail:** PASS
+- **Final Status:** COMPLETE
+
+---
+
+## EXTRACT-001 through EXTRACT-003: Extraction Quality Fixes
+
+- **Task IDs:** EXTRACT-001 (PKR currency), EXTRACT-002 (noise filtering), EXTRACT-003 (product signals)
+- **Task Title:** Fix extraction quality for superdrugs.pk and similar sites
+- **Start Time:** 2026-03-25
+- **End Time:** 2026-03-25
+- **Exact steps performed:**
+  1. Analyzed live scrape results from superdrugs.pk — 3/5 items were nav elements, currency was INR not PKR
+  2. Added .pk → PKR to DOMAIN_CURRENCY map in normalizer.py
+  3. Rewrote detect_currency() — domain checks first, then disambiguates ambiguous symbols
+  4. Created _is_noise_item() in dom_discovery.py — rejects nav labels, section headers
+  5. Added product signal threshold in deterministic.py CSS extraction — require price/image/rating
+  6. Ran 5 manual currency detection tests — all passed (PKR, INR, USD, PKR code, domain fallback)
+  7. Ran 90/92 existing tests — 2 pre-existing price format failures, 0 regressions
+  8. Committed and pushed
+- **Files touched:** normalizer.py, dom_discovery.py, deterministic.py
+- **Validation evidence:** 5 currency tests passed, noise filter tests passed, 90/92 existing tests (2 pre-existing)
+- **Pass/Fail:** PASS
+- **Final Status:** COMPLETE
+
+---
+
+## EXTRACT-004 through EXTRACT-008: Universal Extraction Overhaul
+
+- **Task IDs:** EXTRACT-004 (microdata), EXTRACT-005 (Open Graph), EXTRACT-006 (CSS selectors), EXTRACT-007 (basic fallback), EXTRACT-008 (confidence)
+- **Task Title:** Make extraction work on ANY website
+- **Start Time:** 2026-03-25
+- **End Time:** 2026-03-25
+- **Exact steps performed:**
+  1. Read full extraction pipeline (deterministic.py, dom_discovery.py, normalizer.py, all workers)
+  2. Researched universal extraction approaches (Diffbot, Zyte, Crawlee)
+  3. Added _extract_microdata() — parses schema.org Product in HTML attributes
+  4. Added _extract_opengraph() — parses og:type=product, og:price:amount meta tags
+  5. Expanded CSS card selectors from 12 → 50+ (Shopify, WooCommerce, Magento, BigCommerce, PrestaShop, OpenCart)
+  6. Rewrote _extract_basic() — validates product signals, returns None for non-product pages
+  7. Replaced confidence scoring in all 3 workers — weighted quality instead of field coverage
+  8. Lowered DOM discovery MIN_REPEATING_COUNT from 3 → 2
+  9. Ran 4 smoke tests: microdata, Open Graph, homepage (empty), PDP (1 item) — all passed
+  10. Ran 166 tests — 166 passed, 0 new failures
+  11. Committed and pushed
+- **Files touched:** deterministic.py, dom_discovery.py, worker-http/worker.py, worker-browser/worker.py, worker-hard-target/worker.py
+- **Validation evidence:** 4 extraction smoke tests passed, 166 tests passed
+- **Pass/Fail:** PASS
+- **Final Status:** COMPLETE
+
+---
+
+## OPS-001 through OPS-005: Pro-Level Operational Upgrades
+
+- **Task IDs:** OPS-001 (resource blocking), OPS-002 (API interception), OPS-003 (URL dedup), OPS-004 (data validation), OPS-005 (browser profiles)
+- **Task Title:** Production scraper engineering improvements
+- **Start Time:** 2026-03-25
+- **End Time:** 2026-03-25
+- **Exact steps performed:**
+  1. Audited full scraping lifecycle for operational gaps
+  2. Rewrote browser_worker.py — resource blocking via page.route(), API interception, device profiles
+  3. Added validate_item() to normalizer.py — rejects garbage data, clears placeholder images/URLs
+  4. Integrated validate_item() into normalize_batch() — auto-removes invalid items
+  5. Added URLDedup class to dedup.py — URL normalization, TTL, check_and_mark()
+  6. Ran validation tests: 7 rejection cases, 3 acceptance cases, placeholder clearing — all passed
+  7. Ran URL dedup tests: first visit, duplicate detection, normalization, seen count — all passed
+  8. Ran 122 existing tests — all passed
+  9. Committed and pushed
+- **Files touched:** browser_worker.py, normalizer.py, dedup.py
+- **Validation evidence:** All validation/dedup smoke tests passed, 122 existing tests passed
+- **Pass/Fail:** PASS
+- **Final Status:** COMPLETE
+

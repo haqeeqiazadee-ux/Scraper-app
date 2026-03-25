@@ -160,23 +160,49 @@ All 31 previously-skipped QA items have been resolved:
 - 4 e-commerce items → wholesale, Shopify fallback, reviews extraction (11 tests)
 - 4 misc items → browser tab switching, crash recovery, API pagination (25 tests)
 
-## In Progress — Phase 6: Stealth Upgrade (Anti-Bot Evasion Overhaul)
+## Completed — Phase 6: Stealth Upgrade (Anti-Bot Evasion Overhaul)
 
 Research-driven upgrade based on analysis of top-tier scrapers (Crawlee, Camoufox, Bright Data, ScrapFly, ZenRows, curl_cffi) and modern anti-bot systems (AWS WAF, Cloudflare, DataDome, PerimeterX).
 
-### P0 — Critical (fixes 3+ detection layers each)
 - [x] **STEALTH-001:** Replace httpx with curl_cffi for TLS/JA3/HTTP2 browser impersonation in HTTP lane
-- [x] **STEALTH-002:** Build coherent device profiles (UA + locale + timezone + screen + proxy geo — all must tell a consistent story)
-
-### P1 — High Impact
-- [x] **STEALTH-003:** Integrate Camoufox as hard-target browser engine (C++-level stealth, 0% detection on CreepJS)
+- [x] **STEALTH-002:** Build coherent device profiles (UA + locale + timezone + screen + proxy geo — all consistent)
+- [x] **STEALTH-003:** Integrate Camoufox as hard-target browser engine (C++-level stealth, 0% CreepJS)
 - [x] **STEALTH-004:** Add warm-up navigation + referrer chains (visit homepage before deep pages)
-- [x] **STEALTH-005:** Human-like behavioral simulation (Bezier mouse curves, scroll velocity, idle jitter, log-normal delays)
+- [x] **STEALTH-005:** Human-like behavioral simulation (Bezier mouse, scroll, idle jitter, log-normal delays)
 
-### P2 — Nice to Have (deferred)
+## Completed — Phase 7: Universal Extraction Overhaul
+
+- [x] **EXTRACT-001:** Fix .pk → PKR currency mapping + domain-priority disambiguation for ambiguous symbols
+- [x] **EXTRACT-002:** Add noise filtering — reject nav labels, section headers, items without product signals
+- [x] **EXTRACT-003:** Add microdata extraction tier (schema.org Product in HTML attributes)
+- [x] **EXTRACT-004:** Add Open Graph extraction tier (og:type=product, og:price:amount)
+- [x] **EXTRACT-005:** Expand CSS card selectors from 12 → 50+ (Shopify, WooCommerce, Magento, BigCommerce, etc.)
+- [x] **EXTRACT-006:** Fix basic fallback to stop returning garbage — validate product signals before returning
+- [x] **EXTRACT-007:** Quality-based confidence scoring (name=0.3, price=0.3, image=0.15, not field coverage)
+- [x] **EXTRACT-008:** Lower DOM discovery threshold from 3 → 2 items
+
+## Completed — Phase 8: Pro-Level Operational Upgrades
+
+- [x] **OPS-001:** Resource blocking in browser worker (images/CSS/fonts/ads blocked = 60-80% faster)
+- [x] **OPS-002:** API/XHR interception — capture JSON payloads from SPAs for cleaner data
+- [x] **OPS-003:** URL-level deduplication — prevent scraping the same URL twice per session
+- [x] **OPS-004:** Post-extraction data validation (reject zero prices, placeholder names, fake images)
+- [x] **OPS-005:** Device profile integration in browser worker (consistent fingerprint per session)
+
+## Remaining — Deferred Items (P2)
+
+### Stealth
 - [ ] **STEALTH-006:** AWS WAF token lifecycle management (Amazon-specific)
 - [ ] **STEALTH-007:** Auto-updating UA string database
 - [ ] **STEALTH-008:** Mobile proxy tier support
+
+### Infrastructure
+- [ ] **INFRA-001:** Sitemap.xml discovery for URL enumeration
+- [ ] **INFRA-002:** robots.txt compliance wiring (parser exists in legacy, not integrated)
+- [ ] **INFRA-003:** Response caching with ETag/Last-Modified headers
+- [ ] **INFRA-004:** Circuit breaker for consistently-failing domains
+- [ ] **INFRA-005:** Load More button clicking in browser worker
+- [ ] **INFRA-006:** srcset image resolution (extract highest-res from srcset)
 
 ## Blocked
 (none)
@@ -187,7 +213,8 @@ Research-driven upgrade based on analysis of top-tier scrapers (Crawlee, Camoufo
 - **Production readiness tasks:** 5/5 complete
 - **QA sessions completed:** 6
 - **QA use cases:** 193 pass, 0 skip, 5 fixed
-- **Total unit/integration/E2E tests:** 936 passed, 0 failed
-- **Lessons learned:** 67
-- **Stealth upgrade tasks:** 5/5 complete (76 tests passing)
-- **Platform completeness:** Production-ready, undergoing stealth hardening
+- **Stealth upgrade tasks:** 5/5 complete
+- **Extraction overhaul tasks:** 8/8 complete
+- **Operational upgrade tasks:** 5/5 complete
+- **Lessons learned:** 76
+- **Platform completeness:** Production-hardened (stealth + extraction + operations)

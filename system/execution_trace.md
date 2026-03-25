@@ -873,3 +873,64 @@
   5. STEALTH-005: Human behavioral simulation — Bezier mouse curves, variable scroll velocity, idle jitter, log-normal delays
 - **Blockers found:** (recording as work progresses)
 - **Next action:** Execute implementation plan in order
+
+## Work Cycle 028 — 2026-03-25
+
+- **Timestamp:** 2026-03-25
+- **Active Task IDs:** STEALTH-001 through STEALTH-005 (implementation)
+- **What was read before action:** All files read in cycle 027
+- **Action taken:** Implemented all 5 stealth upgrades
+- **Why:** Execute the research-driven plan from cycle 027
+- **Outputs produced:**
+  1. `packages/core/device_profiles.py` (NEW) — 14 coherent device profiles across 8 geos, browser-specific header generation
+  2. `packages/core/human_behavior.py` (NEW) — Bezier mouse curves, log-normal delays, scroll simulation, idle jitter, warm-up navigation
+  3. `packages/connectors/http_collector.py` (REWRITTEN) — curl_cffi with Chrome TLS/JA3/HTTP2 impersonation, httpx fallback
+  4. `packages/connectors/hard_target_worker.py` (REWRITTEN) — Camoufox primary, Playwright fallback, Canvas/WebGL stealth, behavioral simulation
+  5. `services/worker-hard-target/worker.py` — removed tight coupling to `_page` internal state
+  6. `pyproject.toml` — added curl-cffi>=0.7, camoufox[geoip]>=0.4
+  7. 3 new test files: test_device_profiles.py (23), test_human_behavior.py (16), test_stealth_http.py (9)
+  8. Updated test_hard_target.py — 28 tests adapted for new API
+- **Blockers found:** None
+- **Next action:** Fix extraction quality issues
+
+## Work Cycle 029 — 2026-03-25
+
+- **Timestamp:** 2026-03-25
+- **Active Task IDs:** EXTRACT-001, EXTRACT-002, EXTRACT-003
+- **What was read before action:** Live scrape results from superdrugs.pk showing 3/5 items were navigation elements, wrong currency (INR instead of PKR), 100% false confidence
+- **Action taken:** Extraction quality fixes (currency + noise filtering)
+- **Why:** User reported that extracted data from superdrugs.pk included navigation headers ("Trending Now", "Top Brands") as products, and currency was wrong (.pk domain → INR instead of PKR)
+- **Outputs produced:**
+  1. `packages/core/normalizer.py` — added .pk → PKR mapping, domain-priority disambiguation for ambiguous symbols (Rs, $, R, kr)
+  2. `packages/core/dom_discovery.py` — added `_is_noise_item()` filter for nav labels, section headers
+  3. `packages/core/ai_providers/deterministic.py` — product signal threshold (require price/image/rating, not just name)
+- **Blockers found:** None
+- **Next action:** Universal extraction overhaul (not just superdrugs.pk)
+
+## Work Cycle 030 — 2026-03-25
+
+- **Timestamp:** 2026-03-25
+- **Active Task IDs:** EXTRACT-004 through EXTRACT-008
+- **What was read before action:** Full extraction pipeline analysis (deterministic.py, dom_discovery.py, normalizer.py, dedup.py, all 3 worker files). Research on universal extraction (Diffbot, Zyte, Crawlee approaches).
+- **Action taken:** Universal extraction overhaul — make extraction work on ANY site
+- **Why:** The extraction pipeline only worked reliably on sites with JSON-LD or 12 specific CSS classes. Basic fallback returned garbage (site title + random price) with 100% confidence. Confidence scoring measured field coverage, not data quality.
+- **Outputs produced:**
+  1. `deterministic.py` — 2 new extraction tiers (microdata, Open Graph), 50+ CSS card selectors (was 12), validated basic fallback
+  2. `dom_discovery.py` — lowered min threshold from 3 to 2 items
+  3. All 3 workers — quality-based confidence scoring (name=0.3, price=0.3, image=0.15, url=0.1, extras=0.15)
+- **Blockers found:** None
+- **Next action:** Pro-level operational improvements
+
+## Work Cycle 031 — 2026-03-25
+
+- **Timestamp:** 2026-03-25
+- **Active Task IDs:** OPS-001 through OPS-004
+- **What was read before action:** Full lifecycle audit — browser_worker.py, dedup.py, normalizer.py, all worker files. Identified gaps: no resource blocking, no API interception, no URL dedup, no data validation.
+- **Action taken:** Pro-level scraper upgrades
+- **Why:** Thinking like a production scraper engineer — the platform was wasting browser sessions on unnecessary resources, had no data quality gates, and would scrape the same URL twice without knowing it.
+- **Outputs produced:**
+  1. `browser_worker.py` (REWRITTEN) — resource blocking (images/CSS/fonts/ads), API/XHR interception, device profiles
+  2. `normalizer.py` — `validate_item()` function, integrated into `normalize_batch()`
+  3. `dedup.py` — `URLDedup` class with TTL, URL normalization, check_and_mark()
+- **Blockers found:** None
+- **Next action:** Update all system tracking files, then address remaining P2 items

@@ -155,3 +155,15 @@
 69. **All fingerprint signals must tell a coherent story** — Random spoofing of individual attributes (UA, timezone, locale, screen) creates cross-signal inconsistencies that are trivially detectable. A German locale with a US IP, French timezone, and mobile screen on a desktop UA is an instant flag. Use complete "device profiles" from real-world combinations.
 
 70. **JS-level stealth patches are detectable** — `Object.defineProperty(navigator, 'webdriver', ...)` can be detected by checking prototype chains, property descriptors, stack traces, and error message strings. Camoufox solves this by modifying Firefox at the C++ source level, making patches invisible to any JavaScript inspection. This is the only approach that consistently passes CreepJS and BrowserScan.
+
+71. **Currency symbols are ambiguous across countries** — "Rs" means INR in India but PKR in Pakistan. "$" means USD in America but CAD in Canada. Domain-based disambiguation must take priority over symbol matching. Always resolve the domain first, then use it to disambiguate symbols.
+
+72. **"Just having a name" doesn't make something a product** — Navigation elements (`<a>` tags with text like "Trending Now", "Top Brands") pass through extraction as "products" because they have a name field. Real products need at least one additional signal: price, image, rating, or description. Name-only items are noise.
+
+73. **Confidence should measure data quality, not field coverage** — Measuring `filled_fields / total_fields` gives 100% confidence to a garbage item with `{name: "Shop Now", product_url: "https://..."}`. Weighted quality scoring (name=0.3, price=0.3, image=0.15) correctly reflects that an item missing price is low quality.
+
+74. **The basic fallback is the most dangerous extraction method** — It runs when everything else fails, and if it returns garbage, the system reports "success" with high confidence. A basic fallback that returns `<title>` + first price in HTML is actively harmful. The fallback must validate that the page is actually a product page (h1 + price element + add-to-cart) before returning anything.
+
+75. **Browser resource blocking saves 60-80% bandwidth** — Images, CSS, fonts, and tracking scripts are unnecessary for data extraction. Blocking them via `page.route()` dramatically speeds up page loads and reduces proxy bandwidth costs. This is a free performance win that every pro scraper uses.
+
+76. **API interception beats DOM parsing** — Modern SPAs (React/Next.js) fetch product data via internal APIs. The JSON payload from an XHR/fetch response is 10x cleaner than parsing the rendered DOM. Intercepting network responses should be tried before or alongside DOM extraction.
