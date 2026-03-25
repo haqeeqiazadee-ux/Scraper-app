@@ -207,40 +207,115 @@ class AmazonExtractor:
         """Parse a deal card element into a deal dict."""
         deal: dict[str, Any] = {}
 
-        # Title — try various patterns
-        for sel in ["h3", "h2", ".a-text-normal", "[class*='Title']", "a[href*='/dp/']"]:
+        # Title — try specific selectors first, avoid grabbing entire card text
+        title_found = False
+        for sel in [
+            "h3", "h2",
+            ".a-text-normal",
+            "[class*='Title'] span",
+            "[class*='title'] span",
+            "a[href*='/dp/'] span",
+            "a[href*='/dp/']",
+        ]:
             el = card.select_one(sel)
             if el:
                 text = el.get_text(strip=True)
-                if text and len(text) > 5:
+                # Filter out non-title text (discount badges, timers, prices)
+                if text and len(text) > 5 and not self._is_noise_text(text):
                     deal["name"] = text[:200]
+                    title_found = True
                     break
 
-        # Price
-        price_el = card.select_one(".a-price .a-offscreen") or card.select_one("[class*='price']")
+        # If no title found from selectors, try the product link text
+        if not title_found:
+            link = card.select_one("a[href*='/dp/']")
+            if link:
+                # Get only the direct text, not all descendant text
+                img = link.select_one("img[alt]")
+                if img and img.get("alt"):
+                    alt = img["alt"].strip()
+                    if len(alt) > 10 and not self._is_noise_text(alt):
+                        deal["name"] = alt[:200]
+
+        # ASIN from product link
+        link = card.select_one("a[href*='/dp/']")
+        if link:
+            href = link.get("href", "")
+            match = re.search(r'/dp/([A-Z0-9]{10})', href)
+            if match:
+                deal["asin"] = match.group(1)
+
+        # Price — get the first .a-offscreen (visually hidden but contains clean price text)
+        price_el = card.select_one(".a-price .a-offscreen")
         if price_el:
             deal["price"] = price_el.get_text(strip=True)
 
-        # Discount percentage
-        discount_el = card.select_one("[class*='discount'], [class*='saving'], [class*='off']")
-        if discount_el:
-            text = discount_el.get_text(strip=True)
-            match = re.search(r'(\d+%)', text)
-            if match:
-                deal["discount"] = match.group(1)
+        # Original/list price
+        orig_el = card.select_one(".a-price.a-text-price .a-offscreen")
+        if orig_el:
+            deal["original_price"] = orig_el.get_text(strip=True)
 
-        # Image
-        img_el = card.select_one("img[src*='media-amazon'], img[src*='images-amazon']")
-        if img_el:
-            deal["image_url"] = img_el.get("src", "")
+        # Discount percentage
+        for sel in [
+            "[class*='discount']", "[class*='saving']",
+            "[data-a-badge-type='deal'] span",
+            ".a-badge-text",
+        ]:
+            discount_el = card.select_one(sel)
+            if discount_el:
+                text = discount_el.get_text(strip=True)
+                match = re.search(r'(\d+)\s*%', text)
+                if match:
+                    deal["discount"] = f"{match.group(1)}%"
+                    break
+
+        # Image — prefer product images, not icons
+        for sel in [
+            "img[src*='images-amazon'][alt]",
+            "img[src*='media-amazon'][alt]",
+            "img.s-image",
+            "img[alt]",
+        ]:
+            img_el = card.select_one(sel)
+            if img_el:
+                src = img_el.get("src", "")
+                if src and "sprite" not in src and "icon" not in src:
+                    deal["image_url"] = src
+                    # Use alt text as fallback title
+                    if not deal.get("name"):
+                        alt = img_el.get("alt", "").strip()
+                        if alt and len(alt) > 10 and not self._is_noise_text(alt):
+                            deal["name"] = alt[:200]
+                    break
 
         # Product URL
-        link_el = card.select_one("a[href*='/dp/']") or card.select_one("a[href*='/gp/']")
-        if link_el:
-            href = link_el.get("href", "")
-            deal["product_url"] = urljoin(base_url, href) if href else ""
+        if link:
+            href = link.get("href", "")
+            if href:
+                deal["product_url"] = urljoin(base_url, unescape(href))
 
         return deal
+
+    @staticmethod
+    def _is_noise_text(text: str) -> bool:
+        """Check if text is noise (discount badge, timer, price fragment) not a product title."""
+        text_lower = text.lower().strip()
+        noise_patterns = [
+            r'^\d+%\s*off',           # "42% off"
+            r'^ends?\s*in',            # "Ends in 17:09:21"
+            r'^\$[\d,.]+',             # "$132.00"
+            r'^£[\d,.]+',             # "£132.00"
+            r'^€[\d,.]+',             # "€132.00"
+            r'^limited\s*time',        # "Limited time deal"
+            r'^deal\s*of\s*the\s*day', # "Deal of the day"
+            r'^save\s+\d',             # "Save $50"
+            r'^big\s*spring\s*sale',   # "Big Spring Sale"
+            r'^list\s*price',          # "List Price"
+            r'^\d+:\d+:\d+',          # "17:09:21" (timer)
+            r'^shop\s*(all|now)',       # "Shop all deals"
+            r'^see\s*all',             # "See all deals"
+        ]
+        return any(re.match(p, text_lower) for p in noise_patterns)
 
     # -------------------------------------------------------------------
     # Product detail page extraction
