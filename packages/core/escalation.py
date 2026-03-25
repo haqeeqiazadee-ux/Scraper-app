@@ -48,7 +48,11 @@ class EscalationManager:
         self._active_contexts: dict[str, EscalationContext] = {}
 
     def should_escalate(self, result: dict) -> bool:
-        """Determine if a result warrants escalation to a higher lane."""
+        """Determine if a result warrants escalation to a higher lane.
+
+        Checks for: explicit escalation flag, failure status, zero items,
+        suspiciously low item counts (likely garbage), and low confidence.
+        """
         # Explicit escalation flag from worker
         if result.get("should_escalate", False):
             return True
@@ -57,16 +61,37 @@ class EscalationManager:
         if result.get("status") == "failed":
             return True
 
-        # Low confidence with no items
+        # No items extracted
         if result.get("item_count", 0) == 0:
+            return True
+
+        # Suspiciously low item count — likely garbage/header text.
+        # Real listing/deal/search pages should have 3+ items.
+        # A single item from a category/deal page is almost always wrong.
+        item_count = result.get("item_count", 0)
+        url = result.get("url", "")
+        if item_count <= 2 and self._looks_like_listing_page(url):
+            logger.info("Low item count (%d) for listing-type URL — escalating", item_count)
             return True
 
         # Low confidence below threshold
         confidence = result.get("confidence", 0.0)
-        if confidence < self._confidence_threshold and result.get("item_count", 0) > 0:
+        if confidence < self._confidence_threshold:
             return True
 
         return False
+
+    @staticmethod
+    def _looks_like_listing_page(url: str) -> bool:
+        """Heuristic: does this URL look like it should return multiple items?"""
+        url_lower = url.lower()
+        listing_indicators = [
+            "/search", "/s?", "/category", "/browse", "/deal", "/sale",
+            "/collection", "/products", "/listings", "/results",
+            "/events/", "/trending", "/feed", "/explore", "/discover",
+            "/tag/", "/hashtag/", "q=", "query=", "keyword=",
+        ]
+        return any(ind in url_lower for ind in listing_indicators)
 
     def get_escalation(self, task_id: str, current_result: dict, route_decision: RouteDecision) -> Optional[Lane]:
         """Get the next lane to escalate to, or None if exhausted."""

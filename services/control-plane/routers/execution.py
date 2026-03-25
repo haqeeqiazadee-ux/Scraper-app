@@ -390,6 +390,12 @@ async def execute_task(
             "css_selectors": extraction_config.get("css_selectors"),
             "paginate": extraction_config.get("paginate", False),
             "max_pages": extraction_config.get("max_pages", 1),
+            # Browser worker config — enable smart scrolling and waiting
+            "scroll": True,
+            "max_scrolls": extraction_config.get("max_scrolls", 5),
+            "wait_selector": extraction_config.get("wait_selector"),
+            "wait_timeout_ms": extraction_config.get("wait_timeout_ms", 10000),
+            "timeout_ms": extraction_config.get("timeout_ms", 45000),
         }
 
         while True:

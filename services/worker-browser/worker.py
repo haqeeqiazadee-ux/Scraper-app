@@ -27,23 +27,29 @@ from packages.core.interfaces import AIProvider, FetchRequest
 
 logger = logging.getLogger(__name__)
 
-# Common selectors that indicate page content has loaded
+# Common selectors that indicate page content has loaded.
+# Ordered from most specific to most generic — first match wins.
 _CONTENT_SELECTORS = [
-    # E-commerce / product listings
-    "[data-component-type='s-search-result']",   # Amazon search
-    ".s-result-item",                              # Amazon results
-    ".a-carousel-card",                            # Amazon carousels
-    "[class*='DealCard']",                         # Amazon deals
-    "[class*='ProductCard']",                      # Generic product cards
-    ".product-card", ".product-item",              # Common product layouts
-    "[data-testid='product']",                     # React test ID patterns
+    # Amazon-specific (deals, search, product pages)
+    "[data-component-type='s-search-result']",     # Amazon search results
+    ".s-result-item",                               # Amazon search items
+    ".a-carousel-card",                             # Amazon carousels
+    "[class*='DealCard']",                          # Amazon deal cards
+    "[class*='GridCard']",                          # Amazon grid cards
+    ".a-price",                                     # Amazon price elements (multiple = products)
+    "[data-a-target*='deal']",                      # Amazon deal targets
+    # Shopify / Generic e-commerce
+    "[class*='ProductCard']",
+    ".product-card", ".product-item", ".product-grid-item",
+    "[data-testid='product']",
+    ".collection-product", ".grid-product",
     # Social media
-    "[data-testid='tweet']",                       # Twitter/X
-    "article",                                     # Generic article containers
+    "[data-testid='tweet']", "[data-testid='post']",
+    "article[role='article']",
     # General dynamic content
-    "[data-component-type]",                       # Amazon component system
-    ".feed-item", ".card", ".listing",             # Common card patterns
-    "main [class*='grid'] > div",                  # CSS grid layouts
+    "[data-component-type]",
+    "main [class*='grid'] > div:nth-child(3)",     # Wait for 3rd grid item (confirms content loaded)
+    ".feed-item", ".listing",
 ]
 
 # Selectors that indicate bot detection / CAPTCHA
@@ -163,7 +169,7 @@ class BrowserLaneWorker:
         if not waited:
             for selector in _CONTENT_SELECTORS:
                 try:
-                    await page.wait_for_selector(selector, timeout=3000)
+                    await page.wait_for_selector(selector, timeout=8000)
                     waited = True
                     logger.info("Content detected via: %s", selector,
                                 extra={"task_id": task_id})
@@ -171,12 +177,12 @@ class BrowserLaneWorker:
                 except Exception:
                     continue
 
-        # Fallback: just wait a bit for any remaining JS to settle
-        if not waited:
-            try:
-                await page.wait_for_timeout(3000)
-            except Exception:
-                pass
+        # Always give JS an extra moment to finish rendering after first element appears
+        # Amazon, React SPAs, etc. often load the container first, then fill data
+        try:
+            await page.wait_for_timeout(3000)
+        except Exception:
+            pass
 
         # ── Step 4: Smart scroll to load lazy content ──
         scrolled = False
@@ -290,7 +296,8 @@ class BrowserLaneWorker:
             "dedup_applied": dedup_applied,
             "scrolled": scrolled,
             "waited_for_selector": waited,
-            "should_escalate": len(extracted_data) == 0,
+            # Escalate if no data, or suspiciously few items for what looks like a listing page
+            "should_escalate": len(extracted_data) == 0 or (len(extracted_data) <= 2 and confidence < 0.5),
         }
 
     @staticmethod

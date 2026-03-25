@@ -9,15 +9,17 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+# Create non-root user FIRST so we can install Playwright as this user
+RUN useradd -m appuser
+
 # System dependencies:
 #   - gcc/g++: compile native extensions (lxml, etc.)
 #   - libxml2/libxslt: lxml parsing
 #   - curl: healthchecks
-#   - Playwright system deps: installed via playwright install-deps
+#   - Playwright/Chromium system deps
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl gcc g++ \
     libxml2-dev libxslt1-dev \
-    # Playwright/Chromium system dependencies
     libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 \
     libcups2 libdrm2 libdbus-1-3 libxkbcommon0 \
     libatspi2.0-0 libxcomposite1 libxdamage1 libxfixes3 \
@@ -25,13 +27,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-liberation fonts-noto-color-emoji \
     && rm -rf /var/lib/apt/lists/*
 
-# Python dependencies (production only)
+# Python dependencies
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Playwright Chromium browser binary
-# This is the critical step — without it, browser/hard-target lanes fail
-RUN playwright install chromium
+# Install Playwright Chromium into a shared location accessible to appuser
+# Using PLAYWRIGHT_BROWSERS_PATH to control where browsers are installed
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers
+RUN mkdir -p /opt/pw-browsers && \
+    playwright install chromium && \
+    chmod -R 755 /opt/pw-browsers
 
 # Application code
 COPY packages/ packages/
@@ -41,28 +46,23 @@ COPY run.py ./
 # Ensure apps/web/dist exists (frontend served by Netlify, not this container)
 RUN mkdir -p apps/web/dist
 
-# Create symlinks for Python imports (hyphens → underscores)
+# Create symlinks for Python imports (hyphens -> underscores)
 RUN cd services && \
-    ln -sf control-plane control_plane 2>/dev/null; \
-    ln -sf worker-http worker_http 2>/dev/null; \
-    ln -sf worker-browser worker_browser 2>/dev/null; \
-    ln -sf worker-ai worker_ai 2>/dev/null; \
-    ln -sf worker-hard-target worker_hard_target 2>/dev/null; \
+    ln -sf control-plane control_plane; \
+    ln -sf worker-http worker_http; \
+    ln -sf worker-browser worker_browser; \
+    ln -sf worker-ai worker_ai; \
+    ln -sf worker-hard-target worker_hard_target; \
     cd ..
 
 # Create artifacts directory
-RUN mkdir -p /app/artifacts
+RUN mkdir -p /app/artifacts && chown -R appuser:appuser /app
 
-# Non-root user — Playwright cache must be accessible
-RUN useradd -m appuser && chown -R appuser:appuser /app
-# Copy Playwright browsers to appuser's home (installed as root above)
-RUN cp -r /root/.cache/ms-playwright /home/appuser/.cache/ms-playwright 2>/dev/null; \
-    chown -R appuser:appuser /home/appuser/.cache 2>/dev/null; \
-    true
+# Switch to non-root user
 USER appuser
 
 # Railway provides PORT env var dynamically
 EXPOSE 8000
 
-# Default: control plane. Override in Railway service settings for workers.
+# Default: control plane
 CMD ["python", "run.py"]
