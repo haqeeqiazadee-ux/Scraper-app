@@ -333,6 +333,64 @@ def repair_truncated_title(title: str) -> str:
     return title.strip()
 
 
+def validate_item(item: dict) -> bool:
+    """Validate that an extracted item is real data, not garbage.
+
+    A pro scraper never returns garbage data. This catches:
+    - Empty/placeholder names ("undefined", "null", "N/A", single chars)
+    - Zero or negative prices
+    - Obviously fake prices (> $1M for a normal product)
+    - Placeholder images (1x1 pixel, data URIs, spinners)
+    - Items with no useful fields at all
+    """
+    name = str(item.get("name", "")).strip()
+    price_raw = str(item.get("price", "")).strip()
+
+    # Must have a name
+    if not name or len(name) < 3:
+        return False
+
+    # Reject placeholder/garbage names
+    garbage_names = {
+        "undefined", "null", "none", "n/a", "na", "test", "placeholder",
+        "untitled", "no title", "product", "item", "loading", "...",
+    }
+    if name.lower() in garbage_names:
+        return False
+
+    # If there's a price, validate it
+    if price_raw:
+        try:
+            price_val = float(re.sub(r'[^\d.]', '', price_raw))
+            if price_val <= 0:
+                return False  # Zero or negative prices
+            if price_val > 1_000_000:
+                return False  # > $1M is almost certainly a parsing error
+        except (ValueError, TypeError):
+            pass  # Non-numeric price string — let it through, could be "Call for price"
+
+    # Validate image URL if present
+    image_url = str(item.get("image_url", "")).strip()
+    if image_url:
+        # Reject data URIs (usually placeholders/spinners)
+        if image_url.startswith("data:image/gif") or image_url.startswith("data:image/png;base64,iVBOR"):
+            item["image_url"] = ""  # Clear it rather than rejecting the whole item
+        # Reject known placeholder patterns
+        placeholder_patterns = ["1x1", "pixel", "blank", "spacer", "placeholder", "loading", "spinner"]
+        if any(p in image_url.lower() for p in placeholder_patterns):
+            item["image_url"] = ""
+
+    # Validate product URL if present
+    product_url = str(item.get("product_url", "")).strip()
+    if product_url:
+        if not product_url.startswith(("http://", "https://")):
+            item["product_url"] = ""
+        elif product_url.endswith(("javascript:void(0)", "#", "javascript:;")):
+            item["product_url"] = ""
+
+    return True
+
+
 class Normalizer:
     """Normalizer with optional AI-enhanced features.
 
@@ -353,8 +411,20 @@ class Normalizer:
         return self._token_usage
 
     def normalize_batch(self, items: list[dict], url: str = "") -> list[dict]:
-        """Normalize a list of extracted items to canonical schema."""
-        return [self.normalize_one(item, url=url) for item in items]
+        """Normalize a list of extracted items and validate data quality.
+
+        Items that fail validation are removed. This prevents garbage data
+        (empty names, zero prices, placeholder images) from reaching the user.
+        """
+        normalized = [self.normalize_one(item, url=url) for item in items]
+        validated = [item for item in normalized if validate_item(item)]
+        if len(validated) < len(normalized):
+            logger.debug(
+                "Validation removed %d/%d items",
+                len(normalized) - len(validated),
+                len(normalized),
+            )
+        return validated
 
     def normalize_one(self, item: dict, url: str = "") -> dict:
         """Normalize a single extracted item with full cleaning pipeline."""
