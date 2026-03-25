@@ -40,13 +40,10 @@ _LANE_CONNECTORS = {
 async def _execute_lane(lane: Lane, task_payload: dict) -> dict:
     """Execute a task using the worker for the given lane.
 
-    Returns the worker result dict.  Handles worker lifecycle (close).
-
-    When browser/hard_target lanes fail because Playwright is not installed
-    (common on Railway/cloud deployments), transparently falls back to the
-    HTTP lane.  The HTTP worker's DeterministicProvider already includes
-    platform-specific extractors for YouTube, TikTok, Instagram, and
-    Facebook that parse embedded JSON from raw HTML — no browser needed.
+    Returns the worker result dict. If browser/hard_target fails
+    (including Playwright not installed), returns a failure result with
+    should_escalate=True so the escalation loop tries the next lane.
+    Does NOT silently fall back to HTTP -- that masks real errors.
     """
     try:
         if lane == Lane.HTTP:
@@ -58,40 +55,18 @@ async def _execute_lane(lane: Lane, task_payload: dict) -> dict:
                 await worker.close()
 
         elif lane in (Lane.BROWSER, Lane.HARD_TARGET):
-            # Try the native browser worker first
+            if lane == Lane.BROWSER:
+                from services.worker_browser.worker import BrowserLaneWorker
+                worker = BrowserLaneWorker()
+            else:
+                from services.worker_hard_target.worker import HardTargetLaneWorker
+                worker = HardTargetLaneWorker()
             try:
-                if lane == Lane.BROWSER:
-                    from services.worker_browser.worker import BrowserLaneWorker
-                    worker = BrowserLaneWorker()
-                else:
-                    from services.worker_hard_target.worker import HardTargetLaneWorker
-                    worker = HardTargetLaneWorker()
-                try:
-                    return await worker.process_task(task_payload)
-                finally:
-                    await worker.close()
-            except Exception as browser_exc:
-                playwright_missing = "Executable doesn't exist" in str(browser_exc) or "playwright" in str(browser_exc).lower()
-                if not playwright_missing:
-                    raise  # Re-raise non-Playwright errors
-
-                # Playwright not installed — fall back to HTTP lane.
-                # The HTTP worker uses DeterministicProvider which includes
-                # social media extractors (YouTube, TikTok, Instagram, Facebook)
-                # that parse embedded JSON from raw HTML without a browser.
-                logger.warning(
-                    "Playwright not available for %s lane, falling back to HTTP for task %s",
-                    lane.value, task_payload.get("task_id"),
-                )
-                from services.worker_http.worker import HttpWorker
-                worker = HttpWorker()
-                try:
-                    return await worker.process_task(task_payload)
-                finally:
-                    await worker.close()
+                return await worker.process_task(task_payload)
+            finally:
+                await worker.close()
 
         else:
-            # Fallback to HTTP for unknown lanes (API, etc.)
             from services.worker_http.worker import HttpWorker
             worker = HttpWorker()
             try:
@@ -100,7 +75,7 @@ async def _execute_lane(lane: Lane, task_payload: dict) -> dict:
                 await worker.close()
 
     except Exception as exc:
-        logger.warning("Lane %s worker failed with exception: %s", lane.value, exc)
+        logger.warning("Lane %s worker failed: %s", lane.value, exc)
         return {
             "task_id": task_payload.get("task_id", "unknown"),
             "tenant_id": task_payload.get("tenant_id", "default"),
@@ -108,13 +83,12 @@ async def _execute_lane(lane: Lane, task_payload: dict) -> dict:
             "lane": lane.value,
             "status": "failed",
             "status_code": 0,
-            "error": f"{lane.value} worker error: {str(exc)[:300]}",
+            "error": f"{lane.value} worker error: {str(exc)[:500]}",
             "duration_ms": 0,
             "extracted_data": [],
             "item_count": 0,
-            "should_escalate": True,  # Allow escalation to next lane
+            "should_escalate": True,
         }
-
 
 
 
@@ -753,3 +727,55 @@ async def dry_run_route(
         "url": str(request.url),
         "route": _route_decision_to_dict(decision),
     }
+
+
+@router.get("/debug/playwright")
+async def debug_playwright() -> dict:
+    """Diagnostic: check if Playwright + Chromium is available on this instance."""
+    import shutil
+    import os
+
+    info: dict = {
+        "playwright_installed": False,
+        "chromium_path": None,
+        "chromium_exists": False,
+        "error": None,
+    }
+
+    try:
+        from playwright.async_api import async_playwright
+        info["playwright_installed"] = True
+
+        # Check if chromium binary exists
+        pw = await async_playwright().start()
+        try:
+            browser = await pw.chromium.launch(headless=True)
+            info["chromium_exists"] = True
+            info["chromium_version"] = browser.version
+            await browser.close()
+        except Exception as e:
+            info["error"] = str(e)[:500]
+        finally:
+            await pw.stop()
+
+    except ImportError as e:
+        info["error"] = f"playwright not importable: {e}"
+    except Exception as e:
+        info["error"] = str(e)[:500]
+
+    # Check common Playwright cache locations
+    for cache_dir in [
+        os.path.expanduser("~/.cache/ms-playwright"),
+        "/root/.cache/ms-playwright",
+        "/home/appuser/.cache/ms-playwright",
+    ]:
+        if os.path.isdir(cache_dir):
+            info["chromium_path"] = cache_dir
+            # List contents
+            try:
+                info["cache_contents"] = os.listdir(cache_dir)
+            except Exception:
+                pass
+            break
+
+    return info
