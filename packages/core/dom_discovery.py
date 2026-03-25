@@ -48,6 +48,93 @@ HAS_PRICE = re.compile(
 )
 
 
+def _parse_srcset(srcset: str) -> list[tuple[str, int]]:
+    """Parse srcset attribute and return [(url, width)] sorted by width descending."""
+    entries = []
+    for part in srcset.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        tokens = part.split()
+        if len(tokens) >= 2:
+            url = tokens[0]
+            descriptor = tokens[1]
+            # Parse width descriptor (e.g. "800w") or pixel density (e.g. "2x")
+            if descriptor.endswith("w"):
+                try:
+                    width = int(descriptor[:-1])
+                    entries.append((url, width))
+                except ValueError:
+                    entries.append((url, 0))
+            elif descriptor.endswith("x"):
+                try:
+                    density = float(descriptor[:-1])
+                    entries.append((url, int(density * 1000)))  # Normalize density to comparable scale
+                except ValueError:
+                    entries.append((url, 0))
+        elif len(tokens) == 1:
+            entries.append((tokens[0], 0))
+    # Sort by width descending — largest image first
+    entries.sort(key=lambda x: x[1], reverse=True)
+    return entries
+
+
+def _extract_best_image(element, url: str = "") -> Optional[str]:
+    """Extract the best image URL from an element, handling srcset and <picture>.
+
+    Priority:
+    1. <picture> <source> with highest resolution
+    2. <img srcset> highest resolution entry
+    3. <img src> or data-src / data-lazy-src
+    """
+    # Placeholder patterns to reject
+    REJECT_PATTERNS = ("sprite", "icon", "pixel", "1x1", "blank", "spacer", "placeholder", "loading")
+
+    def _is_valid(src: str) -> bool:
+        if not src:
+            return False
+        src_lower = src.lower()
+        return not any(p in src_lower for p in REJECT_PATTERNS)
+
+    def _resolve(src: str) -> str:
+        if url and not src.startswith(("http://", "https://", "data:")):
+            return urljoin(url, src)
+        return src
+
+    # Try <picture> element first
+    picture = element.select_one("picture")
+    if picture:
+        # Check <source> elements for highest-res
+        for source in picture.select("source"):
+            srcset = source.get("srcset", "")
+            if srcset:
+                entries = _parse_srcset(srcset)
+                if entries:
+                    resolved = _resolve(entries[0][0])
+                    if _is_valid(resolved):
+                        return resolved
+
+    # Try <img> with srcset
+    img_el = element.select_one("img")
+    if img_el:
+        srcset = img_el.get("srcset", "")
+        if srcset:
+            entries = _parse_srcset(srcset)
+            if entries:
+                resolved = _resolve(entries[0][0])
+                if _is_valid(resolved):
+                    return resolved
+
+        # Fall back to src / data-src / data-lazy-src
+        src = img_el.get("src") or img_el.get("data-src") or img_el.get("data-lazy-src", "")
+        if src:
+            resolved = _resolve(src)
+            if _is_valid(resolved) and resolved.startswith(("http://", "https://", "data:")):
+                return resolved
+
+    return None
+
+
 def _tag_signature(element) -> str:
     """Create a structural signature for a DOM element."""
     try:
@@ -308,15 +395,10 @@ def extract_fields_from_card(element, url: str = "") -> dict:
             if price_match:
                 result["price"] = price_match.group(0)
 
-        # --- Image ---
-        img_el = element.select_one("img")
-        if img_el:
-            src = img_el.get("src") or img_el.get("data-src") or img_el.get("data-lazy-src", "")
-            if src and "sprite" not in src and "icon" not in src and "pixel" not in src:
-                if url and not src.startswith(("http://", "https://", "data:")):
-                    src = urljoin(url, src)
-                if src.startswith(("http://", "https://", "data:")):
-                    result["image_url"] = src
+        # --- Image (with srcset and <picture> support) ---
+        best_img = _extract_best_image(element, url)
+        if best_img:
+            result["image_url"] = best_img
 
         # --- Rating ---
         rating_el = element.select_one(

@@ -246,6 +246,118 @@ class PlaywrightBrowserWorker:
             prev_height = new_height
         return prev_height
 
+    async def click_load_more(
+        self,
+        max_clicks: int = 20,
+        item_selector: Optional[str] = None,
+    ) -> int:
+        """Click "Load More" / "Show More" buttons to load additional items.
+
+        Automatically detects common load-more button patterns, clicks them,
+        waits for new content, and repeats until no more content loads or
+        max_clicks is reached.
+
+        Args:
+            max_clicks: Maximum number of button clicks.
+            item_selector: Optional CSS selector to count items (for progress tracking).
+
+        Returns:
+            Total number of clicks performed.
+        """
+        if not self._page:
+            return 0
+
+        # Common "Load More" button selectors (ordered by specificity)
+        load_more_selectors = [
+            "button[data-action*='load-more']",
+            "button[class*='load-more']",
+            "button[class*='loadmore']",
+            "button[class*='show-more']",
+            "a[class*='load-more']",
+            "a[class*='show-more']",
+            "[class*='load-more'] button",
+            "[class*='load-more'] a",
+            ".pagination-load-more",
+            "#load-more",
+            "#loadMore",
+        ]
+
+        # Also try text-based matching as fallback
+        text_patterns = [
+            "Load More", "load more", "Show More", "show more",
+            "View More", "view more", "See More", "see more",
+            "Load more products", "Show more products",
+        ]
+
+        clicks = 0
+        prev_count = 0
+
+        if item_selector:
+            try:
+                prev_count = await self._page.evaluate(
+                    f"document.querySelectorAll('{item_selector}').length"
+                )
+            except Exception:
+                pass
+
+        for _ in range(max_clicks):
+            clicked = False
+
+            # Try CSS selectors first
+            for selector in load_more_selectors:
+                try:
+                    btn = await self._page.query_selector(selector)
+                    if btn and await btn.is_visible():
+                        await btn.scroll_into_view_if_needed()
+                        await self._page.wait_for_timeout(300)
+                        await btn.click()
+                        clicked = True
+                        break
+                except Exception:
+                    continue
+
+            # Try text-based matching
+            if not clicked:
+                for text in text_patterns:
+                    try:
+                        btn = await self._page.query_selector(f"button:has-text('{text}'), a:has-text('{text}')")
+                        if btn and await btn.is_visible():
+                            await btn.scroll_into_view_if_needed()
+                            await self._page.wait_for_timeout(300)
+                            await btn.click()
+                            clicked = True
+                            break
+                    except Exception:
+                        continue
+
+            if not clicked:
+                break  # No load-more button found
+
+            clicks += 1
+
+            # Wait for new content to load
+            await self._page.wait_for_timeout(2000)
+            try:
+                await self._page.wait_for_load_state("networkidle", timeout=5000)
+            except Exception:
+                pass
+
+            # Check if new items appeared (if we have a selector to count)
+            if item_selector:
+                try:
+                    new_count = await self._page.evaluate(
+                        f"document.querySelectorAll('{item_selector}').length"
+                    )
+                    if new_count <= prev_count:
+                        break  # No new items loaded
+                    prev_count = new_count
+                except Exception:
+                    pass
+
+        if clicks > 0:
+            logger.info("Clicked Load More %d times", clicks)
+        return clicks
+
     async def click_element(self, selector: str) -> bool:
         """Click an element on the page."""
         if not self._page:
