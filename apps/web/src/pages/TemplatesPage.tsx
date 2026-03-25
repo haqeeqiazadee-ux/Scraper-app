@@ -13,116 +13,14 @@ import {
   type TemplateDetail,
   type TemplateCategory,
 } from "../api/client";
+import "./TemplatesPage.css";
 
-/* ── Styles ── */
+/* ── Helpers ── */
 
-const PAGE_STYLE: React.CSSProperties = {
-  padding: "32px 40px",
-  maxWidth: 1400,
-};
-
-const HEADER_STYLE: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "flex-start",
-  marginBottom: 24,
-};
-
-const FILTER_BAR: React.CSSProperties = {
-  display: "flex",
-  gap: 8,
-  flexWrap: "wrap",
-  marginBottom: 24,
-};
-
-const CHIP_STYLE = (active: boolean): React.CSSProperties => ({
-  padding: "6px 14px",
-  borderRadius: 20,
-  border: "1px solid var(--color-border)",
-  background: active ? "var(--color-primary)" : "var(--color-surface)",
-  color: active ? "#fff" : "var(--color-text)",
-  fontSize: 13,
-  fontWeight: active ? 600 : 500,
-  cursor: "pointer",
-  transition: "all 0.15s",
-});
-
-const SEARCH_STYLE: React.CSSProperties = {
-  padding: "8px 14px",
-  borderRadius: 8,
-  border: "1px solid var(--color-border)",
-  background: "var(--color-surface)",
-  color: "var(--color-text)",
-  fontSize: 14,
-  width: 280,
-  outline: "none",
-};
-
-const GRID_STYLE: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
-  gap: 16,
-};
-
-const CARD_STYLE: React.CSSProperties = {
-  background: "var(--color-surface)",
-  border: "1px solid var(--color-border)",
-  borderRadius: 12,
-  padding: 20,
-  cursor: "pointer",
-  transition: "border-color 0.15s, box-shadow 0.15s",
-};
-
-const TAG_STYLE: React.CSSProperties = {
-  display: "inline-block",
-  padding: "2px 8px",
-  borderRadius: 4,
-  background: "rgba(37,99,235,0.1)",
-  color: "var(--color-primary)",
-  fontSize: 11,
-  fontWeight: 500,
-};
-
-const BADGE_STYLE = (color: string): React.CSSProperties => ({
-  display: "inline-block",
-  padding: "2px 8px",
-  borderRadius: 4,
-  background: `${color}20`,
-  color,
-  fontSize: 11,
-  fontWeight: 600,
-});
-
-const LANE_COLORS: Record<string, string> = {
-  api: "#10b981",
-  http: "#3b82f6",
-  browser: "#f59e0b",
-  hard_target: "#ef4444",
-  auto: "#8b5cf6",
-};
-
-/* ── Modal Overlay ── */
-
-const OVERLAY: React.CSSProperties = {
-  position: "fixed",
-  inset: 0,
-  background: "rgba(0,0,0,0.5)",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  zIndex: 1000,
-};
-
-const MODAL: React.CSSProperties = {
-  background: "var(--color-bg)",
-  border: "1px solid var(--color-border)",
-  borderRadius: 16,
-  width: "90%",
-  maxWidth: 700,
-  maxHeight: "85vh",
-  overflow: "auto",
-  padding: 32,
-};
+function laneClass(lane: string): string {
+  const known = ["api", "http", "browser", "hard_target", "auto"];
+  return known.includes(lane) ? `lane-badge lane-badge--${lane}` : "lane-badge";
+}
 
 /* ── Component ── */
 
@@ -229,12 +127,12 @@ export function TemplatesPage() {
   };
 
   return (
-    <div style={PAGE_STYLE}>
+    <div className="templates-page">
       {/* Header */}
-      <div style={HEADER_STYLE}>
+      <div className="templates-header">
         <div>
-          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 700 }}>Templates</h1>
-          <p style={{ margin: "4px 0 0", color: "var(--color-text-muted)", fontSize: 14 }}>
+          <h1>Templates</h1>
+          <p>
             Pre-built scraping templates for popular platforms. Click to view details or apply as a policy.
           </p>
         </div>
@@ -243,14 +141,14 @@ export function TemplatesPage() {
           placeholder="Search templates..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          style={SEARCH_STYLE}
+          className="templates-search"
         />
       </div>
 
       {/* Category filter chips */}
-      <div style={FILTER_BAR}>
+      <div className="templates-filter-bar">
         <button
-          style={CHIP_STYLE(!activeCategory)}
+          className={`templates-chip${!activeCategory ? " templates-chip--active" : ""}`}
           onClick={() => setActiveCategory(null)}
         >
           All ({items.length})
@@ -260,7 +158,7 @@ export function TemplatesPage() {
           .map((cat) => (
             <button
               key={cat.name}
-              style={CHIP_STYLE(activeCategory === cat.name)}
+              className={`templates-chip${activeCategory === cat.name ? " templates-chip--active" : ""}`}
               onClick={() =>
                 setActiveCategory(activeCategory === cat.name ? null : cat.name)
               }
@@ -272,20 +170,12 @@ export function TemplatesPage() {
 
       {/* Loading / Error */}
       {loading && (
-        <div style={{ textAlign: "center", padding: 40, color: "var(--color-text-muted)" }}>
+        <div className="templates-loading">
           Loading templates...
         </div>
       )}
       {error && (
-        <div
-          style={{
-            padding: 16,
-            background: "rgba(239,68,68,0.1)",
-            borderRadius: 8,
-            color: "#ef4444",
-            marginBottom: 16,
-          }}
-        >
+        <div className="templates-error">
           {error}
         </div>
       )}
@@ -293,70 +183,51 @@ export function TemplatesPage() {
       {/* Template Grid */}
       {!loading && !error && (
         <>
-          <p style={{ fontSize: 13, color: "var(--color-text-muted)", marginBottom: 12 }}>
+          <p className="templates-count">
             {items.length} template{items.length !== 1 ? "s" : ""}
             {activeCategory ? ` in ${activeCategory.replace("_", " ")}` : ""}
           </p>
-          <div style={GRID_STYLE}>
+          <div className="templates-grid">
             {items.map((t) => (
               <div
                 key={t.id}
-                style={CARD_STYLE}
+                className="template-card"
                 onClick={() => openDetail(t.id)}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "var(--color-primary)";
-                  e.currentTarget.style.boxShadow = "0 2px 12px rgba(37,99,235,0.15)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = "var(--color-border)";
-                  e.currentTarget.style.boxShadow = "none";
-                }}
               >
                 {/* Card header */}
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                  <span style={{ fontSize: 24 }}>{t.icon}</span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, fontSize: 15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                <div className="template-card__header">
+                  <span className="template-card__icon">{t.icon}</span>
+                  <div className="template-card__info">
+                    <div className="template-card__name">
                       {t.name}
                     </div>
-                    <div style={{ fontSize: 12, color: "var(--color-text-muted)" }}>
+                    <div className="template-card__platform">
                       {t.platform}
                     </div>
                   </div>
-                  <span style={BADGE_STYLE(LANE_COLORS[t.preferred_lane] ?? "#888")}>
+                  <span className={laneClass(t.preferred_lane)}>
                     {t.preferred_lane}
                   </span>
                 </div>
 
                 {/* Description */}
-                <p
-                  style={{
-                    fontSize: 13,
-                    color: "var(--color-text-muted)",
-                    margin: "0 0 12px",
-                    lineHeight: 1.5,
-                    display: "-webkit-box",
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: "vertical",
-                    overflow: "hidden",
-                  }}
-                >
+                <p className="template-card__desc">
                   {t.description}
                 </p>
 
                 {/* Meta row */}
-                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                  <span style={{ fontSize: 12, color: "var(--color-text-muted)" }}>
+                <div className="template-card__meta">
+                  <span className="template-card__fields">
                     {t.field_count} fields
                   </span>
                   {t.browser_required && (
-                    <span style={BADGE_STYLE("#f59e0b")}>Browser</span>
+                    <span className="capability-badge--browser">Browser</span>
                   )}
                   {t.stealth_required && (
-                    <span style={BADGE_STYLE("#ef4444")}>Stealth</span>
+                    <span className="capability-badge--stealth">Stealth</span>
                   )}
                   {t.tags.slice(0, 3).map((tag) => (
-                    <span key={tag} style={TAG_STYLE}>
+                    <span key={tag} className="template-tag">
                       {tag}
                     </span>
                   ))}
@@ -369,61 +240,54 @@ export function TemplatesPage() {
 
       {/* Detail Modal */}
       {selectedDetail && (
-        <div style={OVERLAY} onClick={() => setSelectedDetail(null)}>
-          <div style={MODAL} onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay" onClick={() => setSelectedDetail(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             {/* Modal header */}
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-              <span style={{ fontSize: 32 }}>{selectedDetail.icon}</span>
-              <div style={{ flex: 1 }}>
-                <h2 style={{ margin: 0, fontSize: 22 }}>{selectedDetail.name}</h2>
-                <div style={{ fontSize: 13, color: "var(--color-text-muted)" }}>
+            <div className="template-modal__header">
+              <span className="template-modal__icon">{selectedDetail.icon}</span>
+              <div className="template-modal__title-area">
+                <h2>{selectedDetail.name}</h2>
+                <div className="template-modal__subtitle">
                   {selectedDetail.platform} &middot; v{selectedDetail.version} &middot;{" "}
                   {selectedDetail.category.replace("_", " ")}
                 </div>
               </div>
               <button
                 onClick={() => setSelectedDetail(null)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  fontSize: 20,
-                  cursor: "pointer",
-                  color: "var(--color-text-muted)",
-                  padding: 4,
-                }}
+                className="template-modal__close"
               >
                 x
               </button>
             </div>
 
-            <p style={{ fontSize: 14, lineHeight: 1.6, marginBottom: 20 }}>
+            <p className="template-modal__desc">
               {selectedDetail.description}
             </p>
 
             {/* Config details */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
+            <div className="template-config-grid">
               <div>
-                <div style={{ fontSize: 11, color: "var(--color-text-muted)", fontWeight: 600, marginBottom: 4 }}>
+                <div className="template-config-label">
                   PREFERRED LANE
                 </div>
-                <span style={BADGE_STYLE(LANE_COLORS[selectedDetail.config.preferred_lane] ?? "#888")}>
+                <span className={laneClass(selectedDetail.config.preferred_lane)}>
                   {selectedDetail.config.preferred_lane}
                 </span>
               </div>
               <div>
-                <div style={{ fontSize: 11, color: "var(--color-text-muted)", fontWeight: 600, marginBottom: 4 }}>
+                <div className="template-config-label">
                   RATE LIMIT
                 </div>
                 {selectedDetail.config.rate_limit_rpm} req/min
               </div>
               <div>
-                <div style={{ fontSize: 11, color: "var(--color-text-muted)", fontWeight: 600, marginBottom: 4 }}>
+                <div className="template-config-label">
                   TIMEOUT
                 </div>
                 {(selectedDetail.config.timeout_ms / 1000).toFixed(0)}s
               </div>
               <div>
-                <div style={{ fontSize: 11, color: "var(--color-text-muted)", fontWeight: 600, marginBottom: 4 }}>
+                <div className="template-config-label">
                   PROXY
                 </div>
                 {selectedDetail.config.proxy_required
@@ -434,65 +298,46 @@ export function TemplatesPage() {
 
             {/* Target domains */}
             {selectedDetail.config.target_domains.length > 0 && (
-              <div style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 11, color: "var(--color-text-muted)", fontWeight: 600, marginBottom: 6 }}>
+              <div className="template-section">
+                <div className="template-section__label">
                   TARGET DOMAINS
                 </div>
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                <div className="template-tag-list">
                   {selectedDetail.config.target_domains.map((d) => (
-                    <span key={d} style={TAG_STYLE}>{d}</span>
+                    <span key={d} className="template-tag">{d}</span>
                   ))}
                 </div>
               </div>
             )}
 
             {/* Fields table */}
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 11, color: "var(--color-text-muted)", fontWeight: 600, marginBottom: 6 }}>
+            <div className="template-section--fields">
+              <div className="template-section__label">
                 EXTRACTION FIELDS ({selectedDetail.config.fields.length})
               </div>
-              <div
-                style={{
-                  border: "1px solid var(--color-border)",
-                  borderRadius: 8,
-                  overflow: "hidden",
-                  maxHeight: 240,
-                  overflowY: "auto",
-                }}
-              >
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <div className="template-fields-table-wrap">
+                <table className="template-fields-table">
                   <thead>
-                    <tr style={{ background: "var(--color-surface)" }}>
-                      <th style={{ padding: "8px 12px", textAlign: "left", fontWeight: 600 }}>Field</th>
-                      <th style={{ padding: "8px 12px", textAlign: "left", fontWeight: 600 }}>Type</th>
-                      <th style={{ padding: "8px 12px", textAlign: "left", fontWeight: 600 }}>Required</th>
-                      <th style={{ padding: "8px 12px", textAlign: "left", fontWeight: 600 }}>Selector</th>
+                    <tr>
+                      <th>Field</th>
+                      <th>Type</th>
+                      <th>Required</th>
+                      <th>Selector</th>
                     </tr>
                   </thead>
                   <tbody>
                     {selectedDetail.config.fields.map((f) => (
-                      <tr key={f.name} style={{ borderTop: "1px solid var(--color-border)" }}>
-                        <td style={{ padding: "6px 12px", fontWeight: 500 }}>{f.name}</td>
-                        <td style={{ padding: "6px 12px", color: "var(--color-text-muted)" }}>{f.field_type}</td>
-                        <td style={{ padding: "6px 12px" }}>
+                      <tr key={f.name}>
+                        <td className="field-name">{f.name}</td>
+                        <td className="field-type">{f.field_type}</td>
+                        <td>
                           {f.required ? (
-                            <span style={{ color: "#ef4444", fontWeight: 600 }}>Yes</span>
+                            <span className="field-required-yes">Yes</span>
                           ) : (
-                            <span style={{ color: "var(--color-text-muted)" }}>No</span>
+                            <span className="field-required-no">No</span>
                           )}
                         </td>
-                        <td
-                          style={{
-                            padding: "6px 12px",
-                            fontSize: 11,
-                            color: "var(--color-text-muted)",
-                            fontFamily: "monospace",
-                            maxWidth: 180,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
+                        <td className="field-selector">
                           {f.css_selector || f.xpath_selector || f.json_path || f.ai_hint || "-"}
                         </td>
                       </tr>
@@ -504,23 +349,12 @@ export function TemplatesPage() {
 
             {/* Example URLs */}
             {selectedDetail.config.example_urls.length > 0 && (
-              <div style={{ marginBottom: 20 }}>
-                <div style={{ fontSize: 11, color: "var(--color-text-muted)", fontWeight: 600, marginBottom: 6 }}>
+              <div className="template-section--example-urls">
+                <div className="template-section__label">
                   EXAMPLE URLS
                 </div>
                 {selectedDetail.config.example_urls.map((url) => (
-                  <div
-                    key={url}
-                    style={{
-                      fontSize: 12,
-                      fontFamily: "monospace",
-                      padding: "4px 0",
-                      color: "var(--color-primary)",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
+                  <div key={url} className="template-example-url">
                     {url}
                   </div>
                 ))}
@@ -528,26 +362,18 @@ export function TemplatesPage() {
             )}
 
             {/* Tags */}
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 24 }}>
+            <div className="template-tag-list template-tag-list--bottom">
               {selectedDetail.tags.map((tag) => (
-                <span key={tag} style={TAG_STYLE}>{tag}</span>
+                <span key={tag} className="template-tag">{tag}</span>
               ))}
             </div>
 
             {/* Run Scrape section */}
-            <div
-              style={{
-                background: "var(--color-surface)",
-                border: "1px solid var(--color-border)",
-                borderRadius: 12,
-                padding: 20,
-                marginBottom: 20,
-              }}
-            >
-              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>
+            <div className="template-scrape-section">
+              <div className="template-scrape-section__title">
                 Run Scrape with this Template
               </div>
-              <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
+              <div className="template-scrape-section__row">
                 <input
                   type="url"
                   placeholder={
@@ -556,16 +382,7 @@ export function TemplatesPage() {
                   }
                   value={scrapeUrl}
                   onChange={(e) => setScrapeUrl(e.target.value)}
-                  style={{
-                    flex: 1,
-                    padding: "10px 14px",
-                    borderRadius: 8,
-                    border: "1px solid var(--color-border)",
-                    background: "var(--color-bg)",
-                    color: "var(--color-text)",
-                    fontSize: 14,
-                    outline: "none",
-                  }}
+                  className="form-input template-scrape-section__input"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && scrapeUrl.trim()) {
                       runScrape();
@@ -575,47 +392,21 @@ export function TemplatesPage() {
                 <button
                   onClick={runScrape}
                   disabled={scraping || !scrapeUrl.trim()}
-                  style={{
-                    padding: "10px 24px",
-                    borderRadius: 8,
-                    border: "none",
-                    background: "#10b981",
-                    color: "#fff",
-                    fontSize: 14,
-                    fontWeight: 600,
-                    cursor:
-                      scraping || !scrapeUrl.trim()
-                        ? "not-allowed"
-                        : "pointer",
-                    opacity: scraping || !scrapeUrl.trim() ? 0.6 : 1,
-                    whiteSpace: "nowrap",
-                  }}
+                  className="btn btn-success btn-lg"
                 >
                   {scraping ? "Starting..." : "Scrape Now"}
                 </button>
               </div>
               {selectedDetail.config.example_urls.length > 0 && (
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-                  <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
+                <div className="template-scrape-section__try">
+                  <span className="template-scrape-section__try-label">
                     Try:
                   </span>
                   {selectedDetail.config.example_urls.slice(0, 3).map((url) => (
                     <button
                       key={url}
                       onClick={() => setScrapeUrl(url)}
-                      style={{
-                        padding: "2px 8px",
-                        borderRadius: 4,
-                        border: "1px solid var(--color-border)",
-                        background: "transparent",
-                        color: "var(--color-primary)",
-                        fontSize: 11,
-                        cursor: "pointer",
-                        maxWidth: 200,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
+                      className="template-try-url-btn"
                     >
                       {url.replace(/^https?:\/\//, "").substring(0, 40)}...
                     </button>
@@ -624,19 +415,11 @@ export function TemplatesPage() {
               )}
               {scrapeStatus && (
                 <div
-                  style={{
-                    marginTop: 10,
-                    padding: "8px 12px",
-                    borderRadius: 6,
-                    fontSize: 13,
-                    fontWeight: 500,
-                    background: scrapeStatus.startsWith("Error")
-                      ? "rgba(239,68,68,0.1)"
-                      : "rgba(16,185,129,0.1)",
-                    color: scrapeStatus.startsWith("Error")
-                      ? "#ef4444"
-                      : "#10b981",
-                  }}
+                  className={`template-scrape-status ${
+                    scrapeStatus.startsWith("Error")
+                      ? "template-scrape-status--error"
+                      : "template-scrape-status--success"
+                  }`}
                 >
                   {scrapeStatus}
                 </div>
@@ -644,31 +427,21 @@ export function TemplatesPage() {
             </div>
 
             {/* Apply as Policy button */}
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div className="template-apply-row">
               <button
                 onClick={applyTemplate}
                 disabled={applying}
-                style={{
-                  padding: "10px 24px",
-                  borderRadius: 8,
-                  border: "1px solid var(--color-border)",
-                  background: "var(--color-surface)",
-                  color: "var(--color-text)",
-                  fontSize: 14,
-                  fontWeight: 600,
-                  cursor: applying ? "not-allowed" : "pointer",
-                  opacity: applying ? 0.6 : 1,
-                }}
+                className="btn btn-secondary btn-lg"
               >
                 {applying ? "Applying..." : "Save as Policy"}
               </button>
               {applyResult && (
                 <span
-                  style={{
-                    fontSize: 13,
-                    color: applyResult.startsWith("Error") ? "#ef4444" : "#10b981",
-                    fontWeight: 500,
-                  }}
+                  className={`template-apply-result ${
+                    applyResult.startsWith("Error")
+                      ? "template-apply-result--error"
+                      : "template-apply-result--success"
+                  }`}
                 >
                   {applyResult}
                 </span>
