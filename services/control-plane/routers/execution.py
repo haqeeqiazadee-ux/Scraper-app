@@ -222,8 +222,11 @@ async def _run_task_inline(task_id: str, tenant_id: str, url: str, lane: str, ex
                 "item_count": worker_result.get("item_count", 0),
             })
 
-            # Check if escalation is needed
-            if succeeded or not _escalation_manager.should_escalate(worker_result):
+            # Check if escalation is needed — ALWAYS consult escalation manager,
+            # even on "success". A success with 1 garbage item on a listing page
+            # should still escalate to a better lane.
+            needs_escalation = _escalation_manager.should_escalate(worker_result)
+            if not needs_escalation:
                 # Final result — store and finish
                 async with db.session() as session:
                     task_repo = TaskRepository(session)
@@ -433,8 +436,8 @@ async def execute_task(
                 "item_count": worker_result.get("item_count", 0),
             })
 
-            # Check if we should escalate
-            if succeeded or not _escalation_manager.should_escalate(worker_result):
+            # Check if we should escalate — always consult manager, even on "success"
+            if not _escalation_manager.should_escalate(worker_result):
                 break
 
             # Get next lane
@@ -579,7 +582,7 @@ async def test_scrape(
                 "item_count": result.get("item_count", 0),
             })
 
-            if succeeded or not _escalation_manager.should_escalate(result):
+            if not _escalation_manager.should_escalate(result):
                 break
 
             next_lane = _escalation_manager.get_escalation("test", result, current_decision)
