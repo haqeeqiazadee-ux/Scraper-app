@@ -5,8 +5,10 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   templates as templatesApi,
+  tasks as tasksApi,
   type TemplateSummary,
   type TemplateDetail,
   type TemplateCategory,
@@ -134,6 +136,10 @@ export function TemplatesPage() {
   const [selectedDetail, setSelectedDetail] = useState<TemplateDetail | null>(null);
   const [applying, setApplying] = useState(false);
   const [applyResult, setApplyResult] = useState<string | null>(null);
+  const [scrapeUrl, setScrapeUrl] = useState("");
+  const [scraping, setScraping] = useState(false);
+  const [scrapeStatus, setScrapeStatus] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const fetchTemplates = useCallback(async () => {
     setLoading(true);
@@ -165,6 +171,8 @@ export function TemplatesPage() {
       const detail = await templatesApi.get(id);
       setSelectedDetail(detail);
       setApplyResult(null);
+      setScrapeUrl("");
+      setScrapeStatus(null);
     } catch {
       // ignore
     }
@@ -183,6 +191,40 @@ export function TemplatesPage() {
       );
     } finally {
       setApplying(false);
+    }
+  };
+
+  const runScrape = async () => {
+    if (!selectedDetail || !scrapeUrl.trim()) return;
+    setScraping(true);
+    setScrapeStatus(null);
+    try {
+      // 1. Apply template as policy
+      const policyRes = await templatesApi.apply(selectedDetail.id);
+
+      // 2. Create task with the URL and policy
+      const task = await tasksApi.create({
+        name: `${selectedDetail.name} — ${new URL(scrapeUrl).hostname}`,
+        url: scrapeUrl.trim(),
+        policy_id: policyRes.policy_id,
+      });
+
+      // 3. Execute the task
+      await tasksApi.execute(task.id);
+
+      setScrapeStatus("Scrape started! Redirecting to task...");
+
+      // 4. Navigate to task detail page
+      setTimeout(() => {
+        setSelectedDetail(null);
+        navigate(`/tasks/${task.id}`);
+      }, 1000);
+    } catch (err) {
+      setScrapeStatus(
+        `Error: ${err instanceof Error ? err.message : "Failed to start scrape"}`
+      );
+    } finally {
+      setScraping(false);
     }
   };
 
@@ -492,7 +534,116 @@ export function TemplatesPage() {
               ))}
             </div>
 
-            {/* Apply button */}
+            {/* Run Scrape section */}
+            <div
+              style={{
+                background: "var(--color-surface)",
+                border: "1px solid var(--color-border)",
+                borderRadius: 12,
+                padding: 20,
+                marginBottom: 20,
+              }}
+            >
+              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>
+                Run Scrape with this Template
+              </div>
+              <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
+                <input
+                  type="url"
+                  placeholder={
+                    selectedDetail.config.example_urls[0] ??
+                    "Enter URL to scrape..."
+                  }
+                  value={scrapeUrl}
+                  onChange={(e) => setScrapeUrl(e.target.value)}
+                  style={{
+                    flex: 1,
+                    padding: "10px 14px",
+                    borderRadius: 8,
+                    border: "1px solid var(--color-border)",
+                    background: "var(--color-bg)",
+                    color: "var(--color-text)",
+                    fontSize: 14,
+                    outline: "none",
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && scrapeUrl.trim()) {
+                      runScrape();
+                    }
+                  }}
+                />
+                <button
+                  onClick={runScrape}
+                  disabled={scraping || !scrapeUrl.trim()}
+                  style={{
+                    padding: "10px 24px",
+                    borderRadius: 8,
+                    border: "none",
+                    background: "#10b981",
+                    color: "#fff",
+                    fontSize: 14,
+                    fontWeight: 600,
+                    cursor:
+                      scraping || !scrapeUrl.trim()
+                        ? "not-allowed"
+                        : "pointer",
+                    opacity: scraping || !scrapeUrl.trim() ? 0.6 : 1,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {scraping ? "Starting..." : "Scrape Now"}
+                </button>
+              </div>
+              {selectedDetail.config.example_urls.length > 0 && (
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                  <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
+                    Try:
+                  </span>
+                  {selectedDetail.config.example_urls.slice(0, 3).map((url) => (
+                    <button
+                      key={url}
+                      onClick={() => setScrapeUrl(url)}
+                      style={{
+                        padding: "2px 8px",
+                        borderRadius: 4,
+                        border: "1px solid var(--color-border)",
+                        background: "transparent",
+                        color: "var(--color-primary)",
+                        fontSize: 11,
+                        cursor: "pointer",
+                        maxWidth: 200,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {url.replace(/^https?:\/\//, "").substring(0, 40)}...
+                    </button>
+                  ))}
+                </div>
+              )}
+              {scrapeStatus && (
+                <div
+                  style={{
+                    marginTop: 10,
+                    padding: "8px 12px",
+                    borderRadius: 6,
+                    fontSize: 13,
+                    fontWeight: 500,
+                    background: scrapeStatus.startsWith("Error")
+                      ? "rgba(239,68,68,0.1)"
+                      : "rgba(16,185,129,0.1)",
+                    color: scrapeStatus.startsWith("Error")
+                      ? "#ef4444"
+                      : "#10b981",
+                  }}
+                >
+                  {scrapeStatus}
+                </div>
+              )}
+            </div>
+
+            {/* Apply as Policy button */}
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <button
                 onClick={applyTemplate}
@@ -500,16 +651,16 @@ export function TemplatesPage() {
                 style={{
                   padding: "10px 24px",
                   borderRadius: 8,
-                  border: "none",
-                  background: "var(--color-primary)",
-                  color: "#fff",
+                  border: "1px solid var(--color-border)",
+                  background: "var(--color-surface)",
+                  color: "var(--color-text)",
                   fontSize: 14,
                   fontWeight: 600,
                   cursor: applying ? "not-allowed" : "pointer",
                   opacity: applying ? 0.6 : 1,
                 }}
               >
-                {applying ? "Applying..." : "Apply as Policy"}
+                {applying ? "Applying..." : "Save as Policy"}
               </button>
               {applyResult && (
                 <span
