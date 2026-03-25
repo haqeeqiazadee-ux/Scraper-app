@@ -37,8 +37,10 @@ class SocialMediaProvider(BaseAIProvider):
             from packages.core.ai_providers.social.tiktok import TikTokExtractor
             from packages.core.ai_providers.social.instagram import InstagramExtractor
             from packages.core.ai_providers.social.facebook import FacebookExtractor
+            from packages.core.ai_providers.social.amazon import AmazonExtractor
 
             self._extractors = [
+                (AmazonExtractor.DOMAINS, AmazonExtractor()),
                 (YouTubeExtractor.DOMAINS, YouTubeExtractor()),
                 (TikTokExtractor.DOMAINS, TikTokExtractor()),
                 (InstagramExtractor.DOMAINS, InstagramExtractor()),
