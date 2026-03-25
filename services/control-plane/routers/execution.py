@@ -42,7 +42,8 @@ async def _execute_lane(lane: Lane, task_payload: dict) -> dict:
 
     Returns the worker result dict.  Handles worker lifecycle (close).
     If the worker raises an exception (e.g. Playwright not installed),
-    returns a synthetic failure result so the escalation loop can continue.
+    attempts Apify as a cloud fallback for templates with actor mappings,
+    then falls back to HTTP lane as a last resort.
     """
     try:
         if lane == Lane.HTTP:
@@ -53,21 +54,41 @@ async def _execute_lane(lane: Lane, task_payload: dict) -> dict:
             finally:
                 await worker.close()
 
-        elif lane == Lane.BROWSER:
-            from services.worker_browser.worker import BrowserLaneWorker
-            worker = BrowserLaneWorker()
+        elif lane in (Lane.BROWSER, Lane.HARD_TARGET):
+            # Try the native browser worker first
             try:
-                return await worker.process_task(task_payload)
-            finally:
-                await worker.close()
+                if lane == Lane.BROWSER:
+                    from services.worker_browser.worker import BrowserLaneWorker
+                    worker = BrowserLaneWorker()
+                else:
+                    from services.worker_hard_target.worker import HardTargetLaneWorker
+                    worker = HardTargetLaneWorker()
+                try:
+                    return await worker.process_task(task_payload)
+                finally:
+                    await worker.close()
+            except Exception as browser_exc:
+                playwright_missing = "Executable doesn't exist" in str(browser_exc) or "playwright" in str(browser_exc).lower()
+                if not playwright_missing:
+                    raise  # Re-raise non-Playwright errors
 
-        elif lane == Lane.HARD_TARGET:
-            from services.worker_hard_target.worker import HardTargetLaneWorker
-            worker = HardTargetLaneWorker()
-            try:
-                return await worker.process_task(task_payload)
-            finally:
-                await worker.close()
+                logger.warning("Playwright not available (%s), trying cloud fallbacks for task %s",
+                               lane.value, task_payload.get("task_id"))
+
+                # Fallback 1: Try Apify if template has an actor mapping
+                apify_result = await _try_apify_fallback(task_payload)
+                if apify_result is not None:
+                    return apify_result
+
+                # Fallback 2: Try HTTP lane (works for many sites without JS rendering)
+                logger.info("No Apify actor available, falling back to HTTP lane for task %s",
+                            task_payload.get("task_id"))
+                from services.worker_http.worker import HttpWorker
+                worker = HttpWorker()
+                try:
+                    return await worker.process_task(task_payload)
+                finally:
+                    await worker.close()
 
         else:
             # Fallback to HTTP for unknown lanes (API, etc.)
@@ -93,6 +114,97 @@ async def _execute_lane(lane: Lane, task_payload: dict) -> dict:
             "item_count": 0,
             "should_escalate": True,  # Allow escalation to next lane
         }
+
+
+async def _try_apify_fallback(task_payload: dict) -> dict | None:
+    """Try running the task through Apify if a matching actor exists.
+
+    Checks if the task's policy has a template_id with an Apify actor mapping.
+    Returns a worker-compatible result dict on success, None if not applicable.
+    """
+    import os
+
+    api_key = os.environ.get("APIFY_API_KEY", "")
+    if not api_key:
+        logger.info("APIFY_API_KEY not set, skipping Apify fallback")
+        return None
+
+    # Try to find template_id from the task's extraction config
+    # The template_id is stored in policy.extraction_rules when a template is applied
+    task_id = task_payload.get("task_id", "unknown")
+    url = task_payload.get("url", "")
+
+    # Look up the template_id from the task's policy in the database
+    template_id = await _get_template_id_for_task(task_id)
+    if not template_id:
+        logger.info("No template_id found for task %s, skipping Apify fallback", task_id)
+        return None
+
+    from packages.connectors.apify_adapter import ApifyAdapter, get_actor_for_template
+
+    actor_config = get_actor_for_template(template_id)
+    if not actor_config:
+        logger.info("No Apify actor mapping for template '%s', skipping", template_id)
+        return None
+
+    logger.info("Using Apify actor '%s' as cloud fallback for task %s (template=%s)",
+                actor_config.name, task_id, template_id)
+
+    adapter = ApifyAdapter(api_token=api_key)
+    try:
+        # Build actor input with the URL
+        actor_input = {**actor_config.default_input, "urls": [url]}
+        if "startUrls" not in actor_input:
+            actor_input["startUrls"] = [{"url": url}]
+
+        items = await adapter.run_actor(template_id, actor_input)
+
+        if items:
+            return {
+                "task_id": task_id,
+                "tenant_id": task_payload.get("tenant_id", "default"),
+                "url": url,
+                "lane": "apify",
+                "status": "success",
+                "status_code": 200,
+                "extracted_data": items,
+                "item_count": len(items),
+                "confidence": 0.8,
+                "extraction_method": f"apify:{actor_config.name}",
+                "duration_ms": 0,
+                "should_escalate": False,
+            }
+        else:
+            logger.warning("Apify actor returned no items for task %s", task_id)
+            return None
+    except Exception as exc:
+        logger.warning("Apify fallback failed for task %s: %s", task_id, exc)
+        return None
+    finally:
+        await adapter.close()
+
+
+async def _get_template_id_for_task(task_id: str) -> str | None:
+    """Look up the template_id from a task's policy extraction_rules."""
+    if task_id == "test":
+        return None
+    try:
+        db = get_database()
+        async with db.session() as session:
+            task_repo = TaskRepository(session)
+            # We need tenant_id but don't have it here — use a broad lookup
+            from sqlalchemy import select
+            from packages.core.storage.models import TaskModel, PolicyModel
+            stmt = select(PolicyModel.extraction_rules).join(
+                TaskModel, TaskModel.policy_id == PolicyModel.id
+            ).where(TaskModel.id == task_id)
+            result = await session.execute(stmt)
+            row = result.scalar_one_or_none()
+            if row and isinstance(row, dict):
+                return row.get("template_id")
+    except Exception as exc:
+        logger.warning("Failed to look up template_id for task %s: %s", task_id, exc)
+    return None
 
 
 def _task_model_to_contract(task_model) -> Task:
