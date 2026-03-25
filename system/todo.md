@@ -197,12 +197,12 @@ Research-driven upgrade based on analysis of top-tier scrapers (Crawlee, Camoufo
 - [ ] **STEALTH-008:** Mobile proxy tier support
 
 ### Infrastructure
-- [ ] **INFRA-001:** Sitemap.xml discovery for URL enumeration
-- [ ] **INFRA-002:** robots.txt compliance wiring (parser exists in legacy, not integrated)
+- [x] **INFRA-001:** Sitemap.xml discovery for URL enumeration
+- [x] **INFRA-002:** robots.txt compliance wiring (RobotsChecker with cache)
 - [ ] **INFRA-003:** Response caching with ETag/Last-Modified headers
-- [ ] **INFRA-004:** Circuit breaker for consistently-failing domains
-- [ ] **INFRA-005:** Load More button clicking in browser worker
-- [ ] **INFRA-006:** srcset image resolution (extract highest-res from srcset)
+- [x] **INFRA-004:** Circuit breaker for consistently-failing domains
+- [x] **INFRA-005:** Load More button clicking in browser worker
+- [x] **INFRA-006:** srcset image resolution (extract highest-res from srcset)
 
 ## Blocked
 (none)
@@ -216,5 +216,6 @@ Research-driven upgrade based on analysis of top-tier scrapers (Crawlee, Camoufo
 - **Stealth upgrade tasks:** 5/5 complete
 - **Extraction overhaul tasks:** 8/8 complete
 - **Operational upgrade tasks:** 5/5 complete
+- **Infrastructure tasks:** 5/6 complete (response caching deferred)
 - **Lessons learned:** 76
-- **Platform completeness:** Production-hardened (stealth + extraction + operations)
+- **Platform completeness:** Production-hardened (stealth + extraction + operations + infrastructure)

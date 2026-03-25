@@ -186,7 +186,9 @@ After completing any task:
 | `packages/core/human_behavior.py` | Bezier mouse curves, scroll simulation, idle jitter, warm-up nav |
 | `packages/connectors/http_collector.py` | curl_cffi HTTP client with TLS/JA3 browser impersonation |
 | `packages/connectors/hard_target_worker.py` | Camoufox stealth browser + Playwright fallback |
-| `packages/connectors/browser_worker.py` | Resource blocking, API interception, device profiles |
+| `packages/connectors/browser_worker.py` | Resource blocking, API interception, device profiles, Load More |
+| `packages/core/url_discovery.py` | Sitemap.xml parser + robots.txt compliance checker |
+| `packages/core/circuit_breaker.py` | Per-domain circuit breaker (CLOSED/OPEN/HALF_OPEN) |
 
 ## Legacy Code (scraper_pro/)
 
