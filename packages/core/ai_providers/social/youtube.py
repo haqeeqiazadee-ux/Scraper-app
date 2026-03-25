@@ -45,7 +45,8 @@ class YouTubeExtractor:
         path = urlparse(url).path.lower()
         query = parse_qs(urlparse(url).query)
 
-        if "/watch" in path or "youtu.be" in urlparse(url).hostname or "":
+        hostname = urlparse(url).hostname or ""
+        if "/watch" in path or "youtu.be" in hostname:
             return self._extract_video(html, url)
         elif "/shorts/" in path:
             return self._extract_video(html, url)  # Shorts use same data structure

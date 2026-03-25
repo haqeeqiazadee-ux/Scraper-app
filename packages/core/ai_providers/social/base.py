@@ -49,7 +49,8 @@ def parse_count(text: str | None) -> int | None:
     if not text:
         return None
 
-    text = text.strip().replace("\xa0", " ")
+    from html import unescape
+    text = unescape(text).strip().replace("\xa0", " ")
 
     # Try direct integer parse first
     cleaned = text.replace(",", "").replace(" ", "")

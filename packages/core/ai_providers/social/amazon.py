@@ -14,6 +14,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+from html import unescape
 from typing import Any, Optional
 from urllib.parse import urljoin, urlparse
 
@@ -34,6 +35,8 @@ class AmazonExtractor:
 
     def extract(self, html: str, url: str) -> list[dict]:
         """Route to the appropriate extraction method based on URL pattern."""
+        if not html or len(html) < 500:
+            return []
         path = urlparse(url).path.lower()
         query = urlparse(url).query.lower()
 
@@ -100,7 +103,7 @@ class AmazonExtractor:
         link_el = div.select_one("h2 a[href]")
         if link_el:
             href = link_el.get("href", "")
-            product["product_url"] = urljoin(base_url, href) if href else ""
+            product["product_url"] = urljoin(base_url, unescape(href)) if href else ""
 
         # Price — .a-price .a-offscreen (first one is current price)
         price_el = div.select_one(".a-price .a-offscreen")

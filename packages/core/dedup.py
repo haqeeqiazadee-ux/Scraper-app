@@ -77,13 +77,16 @@ class DedupEngine:
         name_b = str(b.get("name", "")).strip().lower()
         if name_a and name_b:
             similarity = SequenceMatcher(None, name_a, name_b).ratio()
-            if similarity >= 1.0:
+            if similarity >= 0.9999:
                 return True  # Exact name match — always a duplicate
             if similarity >= self._threshold:
-                # Near-match: only merge if URLs also match (or both lack URLs)
+                # Near-match: only merge if URLs also match
                 url_a = str(a.get("product_url", "")).strip().rstrip("/")
                 url_b = str(b.get("product_url", "")).strip().rstrip("/")
-                if not url_a or not url_b or url_a == url_b:
+                if url_a and url_b and url_a == url_b:
+                    return True
+                # Both lack URLs but names are very similar
+                if not url_a and not url_b and similarity >= 0.95:
                     return True
 
         return False

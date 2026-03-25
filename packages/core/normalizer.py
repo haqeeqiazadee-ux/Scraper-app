@@ -174,24 +174,43 @@ def clean_value(field_name: str, value: Any) -> Any:
 
 
 def clean_price(value: str) -> str:
-    """Extract numeric price from various formats."""
+    """Extract numeric price from various formats.
+
+    Handles: $19.99, £1,234.56, 29,99 €, 1.234,56 EUR, ¥19800, ₹1,23,456
+    """
     if not value:
         return ""
+    from html import unescape
+    value = unescape(value)
     # Remove currency symbols and whitespace, keep digits and decimal
     cleaned = PRICE_CLEAN.sub("", value)
-    # Remove leading/trailing dots
     cleaned = cleaned.strip(".")
-    # Handle comma: if followed by exactly 3 digits it's a thousands separator
-    if "," in cleaned and "." not in cleaned:
-        # Check if comma is thousands separator (e.g., 5,000 or 1,234,567)
-        if re.match(r'^\d{1,3}(,\d{3})+$', cleaned):
-            cleaned = cleaned.replace(",", "")
+
+    last_comma = cleaned.rfind(",")
+    last_dot = cleaned.rfind(".")
+
+    if last_comma > last_dot:
+        # Comma appears last — likely decimal separator (European: 1.234,56)
+        # or thousands separator (US: 1,234,567)
+        after_comma = cleaned[last_comma + 1:]
+        if len(after_comma) <= 2:
+            # Comma is decimal: 29,99 or 1.234,56
+            cleaned = cleaned.replace(".", "").replace(",", ".")
         else:
-            # Comma as decimal separator (e.g., 29,99)
-            cleaned = cleaned.replace(",", ".")
-    # Handle comma as thousands separator when both exist
-    elif "," in cleaned and "." in cleaned:
+            # Comma is thousands: 1,234,567
+            cleaned = cleaned.replace(",", "")
+    elif last_dot > last_comma:
+        # Dot appears last — standard decimal (US: 1,234.56)
         cleaned = cleaned.replace(",", "")
+    else:
+        # Only one separator or none
+        if "," in cleaned:
+            after_comma = cleaned[last_comma + 1:]
+            if len(after_comma) <= 2:
+                cleaned = cleaned.replace(",", ".")
+            else:
+                cleaned = cleaned.replace(",", "")
+
     return cleaned
 
 
