@@ -25,6 +25,7 @@ CURRENCY_SYMBOLS: dict[str, str] = {
     "\u00a5": "JPY", "JP\u00a5": "JPY",
     "CN\u00a5": "CNY", "RMB": "CNY",
     "\u20b9": "INR", "Rs": "INR", "Rs.": "INR",
+    "PKR": "PKR",
     "CA$": "CAD", "C$": "CAD",
     "A$": "AUD", "AU$": "AUD",
     "R$": "BRL",
@@ -53,6 +54,7 @@ DOMAIN_CURRENCY: dict[str, str] = {
     ".co.jp": "JPY", ".jp": "JPY",
     ".cn": "CNY",
     ".in": "INR", ".co.in": "INR",
+    ".pk": "PKR", ".com.pk": "PKR",
     ".ca": "CAD",
     ".com.au": "AUD", ".au": "AUD",
     ".com.br": "BRL", ".br": "BRL",
@@ -248,27 +250,46 @@ def detect_currency(price_str: str, url: str = "") -> str:
 
     UC-10.1.3 — Mixed currency formats normalized to consistent format.
     UC-10.2.2 — Missing currency inferred from domain/locale.
+
+    Domain takes priority for ambiguous symbols (e.g. "Rs" is INR in India
+    but PKR in Pakistan).
     """
     if not price_str:
         return ""
 
-    # 1. Check for explicit currency symbols in the price string
-    # Sort by length descending so "R$" matches before "$"
-    for symbol, code in sorted(CURRENCY_SYMBOLS.items(), key=lambda x: -len(x[0])):
-        if symbol in price_str:
-            return code
-
-    # 2. Check for 3-letter currency codes in the price string
-    code_match = re.search(r'\b([A-Z]{3})\b', price_str)
-    if code_match and code_match.group(1) in CURRENCY_SYMBOLS.values():
-        return code_match.group(1)
-
-    # 3. Infer from URL domain
+    # 0. Resolve domain currency first (needed to disambiguate symbols like "Rs")
+    domain_currency = ""
     if url:
         url_lower = url.lower()
         for domain_suffix, code in sorted(DOMAIN_CURRENCY.items(), key=lambda x: -len(x[0])):
             if domain_suffix in url_lower:
-                return code
+                domain_currency = code
+                break
+
+    # Symbols that are ambiguous across regions — domain overrides them
+    AMBIGUOUS_SYMBOLS = {"Rs", "Rs.", "R", "$", "kr"}
+
+    # 1. Check for explicit currency symbols in the price string
+    # Sort by length descending so "R$" matches before "$" and "Rs." before "Rs"
+    for symbol, code in sorted(CURRENCY_SYMBOLS.items(), key=lambda x: -len(x[0])):
+        if symbol in price_str:
+            # If symbol is ambiguous and we have a domain currency, trust the domain
+            if symbol in AMBIGUOUS_SYMBOLS and domain_currency:
+                return domain_currency
+            return code
+
+    # 2. Check for 3-letter currency codes in the price string (e.g. "PKR 1,500")
+    code_match = re.search(r'\b([A-Z]{3})\b', price_str)
+    if code_match:
+        matched_code = code_match.group(1)
+        # Accept any code from symbols map values OR from domain currency map values
+        all_codes = set(CURRENCY_SYMBOLS.values()) | set(DOMAIN_CURRENCY.values())
+        if matched_code in all_codes:
+            return matched_code
+
+    # 3. Fall back to domain currency
+    if domain_currency:
+        return domain_currency
 
     return ""
 

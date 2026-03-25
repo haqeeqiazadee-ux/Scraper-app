@@ -338,11 +338,53 @@ def extract_fields_from_card(element, url: str = "") -> dict:
     return result
 
 
+def _is_noise_item(item: dict) -> bool:
+    """Check if an extracted item is likely a navigation element or section header.
+
+    Returns True if the item should be filtered out. Items like "Trending Now",
+    "Top Brands", "Superdrugs" are noise — they have a name but no product signals.
+    """
+    name = (item.get("name") or "").strip()
+    if not name:
+        return True
+
+    # Very short names with no other fields are likely nav labels
+    has_price = bool(item.get("price"))
+    has_image = bool(item.get("image_url"))
+    has_rating = bool(item.get("rating"))
+    has_description = bool(item.get("description"))
+
+    # Must have at least ONE product signal beyond just a name
+    if not any([has_price, has_image, has_rating, has_description]):
+        return True
+
+    # Common section header / nav patterns
+    NOISE_NAMES = {
+        "trending", "trending now", "top brands", "new arrivals",
+        "best sellers", "bestsellers", "sale", "shop now", "view all",
+        "see all", "learn more", "read more", "load more", "show more",
+        "categories", "collections", "brands", "featured", "popular",
+        "home", "about", "contact", "login", "sign up", "sign in",
+        "cart", "wishlist", "account", "search", "menu", "close",
+    }
+    if name.lower() in NOISE_NAMES:
+        return True
+
+    # Names that are just 1-2 words with no price are likely section labels
+    if len(name.split()) <= 2 and not has_price and not has_rating:
+        # But allow if they have an image (could be a product card with short name)
+        if not has_image:
+            return True
+
+    return False
+
+
 def discover_items(html: str, url: str = "") -> list[dict]:
     """Main entry point: discover repeating product items on a page.
 
     Finds the highest-scoring repeating group (by product-likeness)
-    and extracts fields from each card.
+    and extracts fields from each card. Filters out navigation elements,
+    section headers, and other noise items.
     """
     groups = find_repeating_groups(html)
     if not groups:
@@ -355,7 +397,7 @@ def discover_items(html: str, url: str = "") -> list[dict]:
         items = []
         for card in group:
             fields = extract_fields_from_card(card, url)
-            if fields.get("name"):
+            if fields.get("name") and not _is_noise_item(fields):
                 items.append(fields)
 
         # Score: items with prices are worth more
@@ -366,7 +408,7 @@ def discover_items(html: str, url: str = "") -> list[dict]:
             best_items = items
 
     logger.debug(
-        "DOM discovery found %d items (url=%s)",
+        "DOM discovery found %d items (url=%s, filtered noise)",
         len(best_items), url,
     )
     return best_items
