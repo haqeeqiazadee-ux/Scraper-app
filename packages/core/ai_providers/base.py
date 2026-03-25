@@ -52,6 +52,9 @@ class AIProviderFactory:
         elif provider_type == "openai" and api_key:
             from packages.core.ai_providers.openai_provider import OpenAIProvider
             return OpenAIProvider(api_key=api_key, model=model or "gpt-4o-mini")
+        elif provider_type == "social":
+            from packages.core.ai_providers.social.dispatcher import SocialMediaProvider
+            return SocialMediaProvider()
         else:
             from packages.core.ai_providers.deterministic import DeterministicProvider
             return DeterministicProvider()

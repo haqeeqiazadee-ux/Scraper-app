@@ -1,16 +1,84 @@
 """
 Result Normalizer — maps heterogeneous extraction results to canonical schema.
 
-Handles field aliasing, type coercion, and data cleaning.
+Handles field aliasing, type coercion, data cleaning, and AI-enhanced
+normalization (currency, title repair, HTML artifact removal).
 """
 
 from __future__ import annotations
 
+import html as html_lib
 import logging
 import re
 from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Currency mapping — symbol / locale → ISO code
+# ---------------------------------------------------------------------------
+
+CURRENCY_SYMBOLS: dict[str, str] = {
+    "$": "USD", "US$": "USD",
+    "\u20ac": "EUR", "EUR": "EUR",
+    "\u00a3": "GBP", "GBP": "GBP",
+    "\u00a5": "JPY", "JP\u00a5": "JPY",
+    "CN\u00a5": "CNY", "RMB": "CNY",
+    "\u20b9": "INR", "Rs": "INR", "Rs.": "INR",
+    "CA$": "CAD", "C$": "CAD",
+    "A$": "AUD", "AU$": "AUD",
+    "R$": "BRL",
+    "\u20a9": "KRW",
+    "\u20bd": "RUB",
+    "CHF": "CHF",
+    "kr": "SEK",  # also NOK/DKK, but SEK as default
+    "z\u0142": "PLN",
+    "\u20ba": "TRY",
+    "R": "ZAR",
+    "MX$": "MXN",
+    "S$": "SGD",
+    "HK$": "HKD",
+    "NT$": "TWD",
+    "\u0e3f": "THB",
+    "\u20ab": "VND",
+    "RM": "MYR",
+    "\u20b1": "PHP",
+    "AED": "AED",
+    "SAR": "SAR",
+}
+
+DOMAIN_CURRENCY: dict[str, str] = {
+    ".co.uk": "GBP", ".uk": "GBP",
+    ".de": "EUR", ".fr": "EUR", ".it": "EUR", ".es": "EUR", ".nl": "EUR",
+    ".co.jp": "JPY", ".jp": "JPY",
+    ".cn": "CNY",
+    ".in": "INR", ".co.in": "INR",
+    ".ca": "CAD",
+    ".com.au": "AUD", ".au": "AUD",
+    ".com.br": "BRL", ".br": "BRL",
+    ".kr": "KRW",
+    ".ru": "RUB",
+    ".ch": "CHF",
+    ".se": "SEK",
+    ".pl": "PLN",
+    ".com.tr": "TRY",
+    ".za": "ZAR",
+    ".mx": "MXN", ".com.mx": "MXN",
+    ".sg": "SGD",
+    ".hk": "HKD",
+    ".tw": "TWD",
+    ".th": "THB",
+    ".vn": "VND",
+    ".my": "MYR",
+    ".ph": "PHP",
+    ".ae": "AED",
+    ".sa": "SAR",
+    ".com": "USD",  # default for .com
+}
+
+# HTML tag removal
+HTML_TAG_RE = re.compile(r'<[^>]+>')
+HTML_ENTITY_RE = re.compile(r'&[a-zA-Z]+;|&#\d+;|&#x[0-9a-fA-F]+;')
 
 # Field aliases: variant → canonical name
 FIELD_ALIASES: dict[str, str] = {
@@ -156,13 +224,145 @@ def clean_url(value: str) -> str:
     return value
 
 
+def detect_currency(price_str: str, url: str = "") -> str:
+    """Detect currency from price string or URL domain.
+
+    UC-10.1.3 — Mixed currency formats normalized to consistent format.
+    UC-10.2.2 — Missing currency inferred from domain/locale.
+    """
+    if not price_str:
+        return ""
+
+    # 1. Check for explicit currency symbols in the price string
+    # Sort by length descending so "R$" matches before "$"
+    for symbol, code in sorted(CURRENCY_SYMBOLS.items(), key=lambda x: -len(x[0])):
+        if symbol in price_str:
+            return code
+
+    # 2. Check for 3-letter currency codes in the price string
+    code_match = re.search(r'\b([A-Z]{3})\b', price_str)
+    if code_match and code_match.group(1) in CURRENCY_SYMBOLS.values():
+        return code_match.group(1)
+
+    # 3. Infer from URL domain
+    if url:
+        url_lower = url.lower()
+        for domain_suffix, code in sorted(DOMAIN_CURRENCY.items(), key=lambda x: -len(x[0])):
+            if domain_suffix in url_lower:
+                return code
+
+    return ""
+
+
+def strip_html_artifacts(text: str) -> str:
+    """Remove HTML tags and decode entities from text fields.
+
+    UC-10.2.3 — HTML artifacts in text fields cleaned.
+    """
+    if not text or not isinstance(text, str):
+        return text or ""
+
+    # Remove HTML tags
+    cleaned = HTML_TAG_RE.sub("", text)
+    # Decode HTML entities (&amp; → &, &#8221; → ", etc.)
+    cleaned = html_lib.unescape(cleaned)
+    # Collapse whitespace
+    cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+    return cleaned
+
+
+def repair_truncated_title(title: str) -> str:
+    """Repair obviously truncated titles.
+
+    UC-10.2.1 — Truncated product title repaired.
+    Detects trailing '...' or incomplete words and cleans up.
+    """
+    if not title:
+        return title
+
+    title = strip_html_artifacts(title)
+
+    # Remove trailing ellipsis and incomplete words after it
+    if title.endswith("...") or title.endswith("\u2026"):
+        title = title.rstrip(".\u2026").rstrip()
+        # Remove partial word (non-space chars at end that don't end a word)
+        title = re.sub(r'\s+\S{1,3}$', '', title)
+        if title and not title.endswith((".", "!", "?", ")", '"', "'")):
+            title = title.rstrip(",;:-")
+
+    return title.strip()
+
+
 class Normalizer:
-    """Stateless normalizer — convenience wrapper around module-level functions."""
+    """Normalizer with optional AI-enhanced features.
 
-    def normalize_batch(self, items: list[dict]) -> list[dict]:
+    Deterministic normalization always runs. When an AI provider is
+    attached, AI-powered repair (title, currency, HTML cleanup) is
+    available via ``normalize_with_ai``.
+    """
+
+    def __init__(self, ai_provider: Optional[Any] = None) -> None:
+        self._ai = ai_provider
+        self._token_usage = 0
+
+    @property
+    def token_usage(self) -> int:
+        """Total AI tokens consumed by this normalizer."""
+        if self._ai and hasattr(self._ai, "get_token_usage"):
+            return self._ai.get_token_usage()
+        return self._token_usage
+
+    def normalize_batch(self, items: list[dict], url: str = "") -> list[dict]:
         """Normalize a list of extracted items to canonical schema."""
-        return normalize_items(items)
+        return [self.normalize_one(item, url=url) for item in items]
 
-    def normalize_one(self, item: dict) -> dict:
-        """Normalize a single extracted item."""
-        return normalize_item(item)
+    def normalize_one(self, item: dict, url: str = "") -> dict:
+        """Normalize a single extracted item with full cleaning pipeline."""
+        result = normalize_item(item)
+
+        # Currency detection / normalization
+        if "currency" not in result or not result.get("currency"):
+            price_raw = item.get("price") or item.get("cost") or item.get("amount") or ""
+            detected = detect_currency(str(price_raw), url)
+            if detected:
+                result["currency"] = detected
+
+        # HTML artifact removal from text fields
+        for field in ("name", "description", "brand", "category"):
+            if field in result and isinstance(result[field], str):
+                result[field] = strip_html_artifacts(result[field])
+
+        # Title repair
+        if "name" in result:
+            result["name"] = repair_truncated_title(result["name"])
+
+        return result
+
+    async def normalize_with_ai(self, item: dict, url: str = "") -> dict:
+        """Normalize with deterministic pipeline + AI repair.
+
+        UC-10.5.3 — AI-only extraction confidence recorded.
+        """
+        # First, deterministic normalization
+        result = self.normalize_one(item, url=url)
+        confidence = 0.7  # base confidence for deterministic
+
+        # If AI is available, use it for fields that are still poor
+        if self._ai:
+            missing_fields = [f for f in ("name", "price", "currency")
+                              if not result.get(f)]
+            if missing_fields:
+                try:
+                    ai_result = await self._ai.normalize(
+                        item,
+                        {"fields": ["name", "price", "currency", "description"]},
+                    )
+                    for field in missing_fields:
+                        if ai_result.get(field):
+                            result[field] = ai_result[field]
+                    confidence = 0.9  # AI-enhanced confidence
+                except Exception as e:
+                    logger.warning(f"AI normalization failed: {e}")
+
+        result["_confidence"] = confidence
+        return result

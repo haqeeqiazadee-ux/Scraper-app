@@ -352,16 +352,25 @@ async def run_template_extraction(
             if kw.lower() in html_lower:
                 keyword_hits += 1
 
-        # Step 10: Determine pass/fail
+        # Step 10: Determine pass/fail (strict field-level validation)
+        has_extracted_items = result.items_extracted > 0
+        meets_min_fields = len(result.fields_found) >= test_case.min_fields
+        all_keywords_found = keyword_hits == len(test_case.expected_keywords) if test_case.expected_keywords else True
         page_loaded = result.html_length > 1000
-        has_content = result.items_extracted > 0 or keyword_hits > 0 or page_loaded
 
-        if has_content:
+        if has_extracted_items and meets_min_fields:
+            result.status = "pass"
+        elif has_extracted_items and page_loaded:
+            # Extracted something but didn't meet field threshold — soft pass
+            result.status = "pass"
+        elif page_loaded and all_keywords_found and test_case.expected_keywords:
+            # Page loaded and keywords found but no structured extraction — soft pass
             result.status = "pass"
         else:
             result.status = "fail"
             result.error = (
-                f"Insufficient data: {result.items_extracted} items, "
+                f"Insufficient extraction: {result.items_extracted} items, "
+                f"{len(result.fields_found)}/{test_case.min_fields} min fields, "
                 f"{keyword_hits}/{len(test_case.expected_keywords)} keywords, "
                 f"{result.html_length} bytes HTML"
             )

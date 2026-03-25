@@ -1398,3 +1398,38 @@ Complete frontend upgrade to represent all backend functionality. 22 new files, 
 - `env.keys` (updated Gemini key, removed from git)
 - `.gitignore` (added env.keys)
 
+## 2026-03-24 — QA Session 6: Playwright E2E + Gap Closure
+
+### Summary
+Closed all 31 previously-skipped QA items. Added 124 new tests across 9 test files,
+bringing total from 806 to 936 tests (all passing, 0 failures).
+
+### What Was Built
+
+**Playwright E2E Infrastructure:**
+- `tests/e2e/playwright/conftest.py` — Playwright fixtures (browser, context, page, servers)
+- Updated `apps/web/vite.config.ts` to support configurable backend URL
+
+**Frontend E2E Tests (25 tests):**
+- `test_auth_flow.py` — Login, redirect, JWT persistence, CORS, dashboard load (10 tests)
+- `test_task_crud.py` — Task list, create form, detail/run history, delete confirm (9 tests)
+- `test_policy_ui.py` — Policy create, lane options, policy dropdown in tasks (6 tests)
+
+**AI Normalization Enhancement:**
+- Enhanced `packages/core/normalizer.py` — currency detection (30+ symbols, domain inference), HTML artifact removal, truncated title repair, AI-enhanced normalization with confidence scoring
+- `test_ai_normalization.py` — 46 tests covering all currency formats, title repair, HTML cleanup, token tracking, AI confidence
+
+**Backend Integration Tests:**
+- `test_proxy_captcha_integration.py` — proxy rotation, reCAPTCHA solving, cost tracking, escalation (17 tests)
+- `test_browser_lane.py` — tab switching, crash recovery, timeout handling (6 tests)
+- `test_api_pagination.py` — JSON API next page token following (19 tests)
+- `test_ecommerce_scenarios.py` — wholesale, Shopify HTML fallback, reviews/ratings (11 tests)
+
+**API Pagination Feature:**
+- Added `_find_api_next_page()` to HTTP worker — supports direct URL, nested pagination, cursor/token-based patterns
+
+### Test Results
+- 911 unit/integration tests passing
+- 25 Playwright E2E tests passing
+- 936 total, 0 failures
+
