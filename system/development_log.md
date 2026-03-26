@@ -1648,3 +1648,92 @@ Covers: Shopify, WooCommerce, Magento, BigCommerce, PrestaShop, OpenCart, Bootst
 - All new validation and URL dedup smoke tests passing
 - 2 pre-existing price format failures in dom_discovery (not regression)
 
+---
+
+## 2026-03-26 — Infrastructure Upgrades (INFRA-001 through INFRA-006)
+
+### INFRA-001 + INFRA-002: URL Discovery (`url_discovery.py`)
+
+**SitemapParser:**
+- Async sitemap.xml discovery with index file nesting support (max 3 levels)
+- Tries 7 common sitemap locations: sitemap.xml, sitemap_index.xml, sitemap-index.xml, sitemap1.xml, product-sitemap.xml, wp-sitemap.xml, wp-sitemap-posts-product-1.xml
+- Also reads robots.txt for declared sitemap URLs
+- URL filtering by substring pattern (e.g. `/products/`)
+- Max 10K URLs, deduplication, curl_cffi or httpx fetcher
+
+**RobotsChecker:**
+- `can_fetch(url)` — checks robots.txt rules for a URL
+- `get_crawl_delay(url)` — returns domain-specific crawl delay
+- `get_sitemaps(url)` — returns declared sitemap URLs
+- 1-hour per-domain cache, graceful fallback if robots.txt unreachable
+
+### INFRA-004: Circuit Breaker (`circuit_breaker.py`)
+
+- Per-domain state machine: CLOSED → OPEN → HALF_OPEN → CLOSED
+- Configurable thresholds: failure_threshold=5, recovery_timeout=300s, success_threshold=2
+- `can_request()` returns False when circuit is OPEN (saves resources)
+- `record_success()` / `record_failure()` transition states automatically
+- URL/domain normalization, manual reset, stats reporting, open circuit listing
+
+### INFRA-005: Load More Button Clicking (`browser_worker.py`)
+
+- `click_load_more(max_clicks, item_selector)` auto-detects load-more buttons
+- 12 CSS selectors covering common patterns (data-action, class names, IDs)
+- 10 text patterns as fallback ("Load More", "Show More", "View More", etc.)
+- Scrolls button into view before clicking
+- Waits for networkidle + item count change between clicks
+- Configurable max_clicks and optional item counting
+
+### INFRA-006: srcset Image Resolution (`dom_discovery.py`)
+
+- `_parse_srcset()` — parses width descriptors (800w) and density (2x), sorts by resolution
+- `_extract_best_image()` — priority: `<picture> <source>` → `<img srcset>` → `<img src/data-src>`
+- Always picks highest resolution available
+- Rejects placeholder images (1x1, blank, spacer, placeholder, loading, spinner)
+- Integrated into `extract_fields_from_card()` replacing the old simple `img.src` extraction
+
+---
+
+## 2026-03-26 — Final Deferred Items (STEALTH-006/007/008 + INFRA-003)
+
+### STEALTH-006: AWS WAF Token Manager (`waf_token_manager.py`)
+
+- `AWSWAFTokenManager` class with per-domain token storage
+- 5-minute TTL matching Amazon's actual token expiry
+- Fingerprint consistency checking: if device profile changes, token is invalidated
+- Pre-emptive refresh detection via `needs_refresh(domain, buffer_seconds=60)`
+- `store_from_browser_cookies()` helper for Playwright browser contexts
+- `is_waf_domain()` detection for 20+ Amazon TLDs (com, co.uk, de, fr, etc.)
+- Token stats reporting per domain
+
+### STEALTH-007: UA Version Updater (`device_profiles.py`)
+
+- `update_browser_versions(chrome_version, firefox_version, safari_version)` — generates updated profiles with new browser versions while keeping all other fields (locale, timezone, viewport, screen, geo) consistent
+- `apply_version_update()` — modifies global DEVICE_PROFILES list in-place
+- Updates UA strings, browser_version, sec-ch-ua headers, and impersonate targets
+- Constants for latest versions: `LATEST_CHROME_VERSION`, `LATEST_FIREFOX_VERSION`, `LATEST_SAFARI_VERSION`
+- Call quarterly: `apply_version_update(chrome_version="133")`
+
+### STEALTH-008: Mobile Proxy Tier (`proxy_adapter.py`)
+
+- Added `proxy_type` field to Proxy dataclass: "datacenter" (default), "residential", "isp", "mobile"
+- `get_proxy()` now accepts `proxy_type` parameter for tier-based filtering
+- Graceful fallback: if no proxies of requested type exist, uses all available
+- Mobile proxies (4G/5G CGNAT IPs) have lowest detection risk for DataDome, PerimeterX
+- Selection logic: type filter applied before geo/region/strategy filters
+
+### INFRA-003: Response Cache (`response_cache.py`)
+
+- Two-tier architecture: in-memory LRU (500 items, OrderedDict) + disk persistence
+- `put()` stores response with auto-extracted ETag and Last-Modified from headers
+- `get()` returns cached body on hit, promotes disk entries to memory
+- `get_conditional_headers()` returns If-None-Match/If-Modified-Since for 304 handling
+- Respects Cache-Control directives: no-store, no-cache skip caching; max-age sets TTL
+- `invalidate()` removes single URL; `clear()` wipes all
+- Stats: hit count, miss count, hit rate, entry count
+
+### Test Results
+- 147 existing tests passing, 0 failures
+- All 4 new modules smoke-tested: WAF tokens (TTL, fingerprint, expiry), UA updater (Chrome 133, Firefox 134, Safari 18.0), mobile proxy filtering, response cache (put/get/conditional/no-store)
+- **All tracked tasks complete: zero remaining items**
+

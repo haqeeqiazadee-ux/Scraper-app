@@ -934,3 +934,33 @@
   3. `dedup.py` — `URLDedup` class with TTL, URL normalization, check_and_mark()
 - **Blockers found:** None
 - **Next action:** Update all system tracking files, then address remaining P2 items
+
+## Work Cycle 032 — 2026-03-26
+
+- **Timestamp:** 2026-03-26
+- **Active Task IDs:** INFRA-001 through INFRA-006
+- **What was read before action:** Full lifecycle audit results, legacy code (async_scraper.py sitemap, engine_v2.py RobotsChecker, ajax_handler.py load-more), dom_discovery.py image extraction
+- **Action taken:** Infrastructure upgrades — sitemap, robots.txt, circuit breaker, load-more, srcset
+- **Why:** Pro scraper audit revealed 5 infrastructure gaps: no URL discovery from sitemaps, no robots.txt compliance, no circuit breaker for failing domains, no load-more button handling, no srcset/picture image resolution
+- **Outputs produced:**
+  1. `packages/core/url_discovery.py` (NEW) — SitemapParser (async, index files, 7 common locations) + RobotsChecker (can_fetch, crawl_delay, sitemaps, 1-hour cache)
+  2. `packages/core/circuit_breaker.py` (NEW) — per-domain CLOSED/OPEN/HALF_OPEN with configurable thresholds
+  3. `packages/connectors/browser_worker.py` — click_load_more() with 12 CSS selectors + 10 text patterns
+  4. `packages/core/dom_discovery.py` — _parse_srcset(), _extract_best_image() with picture/srcset/placeholder rejection
+- **Blockers found:** None
+- **Next action:** Complete remaining STEALTH-006/007/008 and INFRA-003
+
+## Work Cycle 033 — 2026-03-26
+
+- **Timestamp:** 2026-03-26
+- **Active Task IDs:** STEALTH-006, STEALTH-007, STEALTH-008, INFRA-003
+- **What was read before action:** hard_target_worker.py, device_profiles.py, proxy_adapter.py
+- **Action taken:** Complete all remaining deferred items — zero task queue
+- **Why:** User requested all remaining items be implemented. All were free (no external costs).
+- **Outputs produced:**
+  1. `packages/core/waf_token_manager.py` (NEW) — AWS WAF token lifecycle: per-domain storage, 5-min TTL, fingerprint consistency, pre-emptive refresh, 20+ Amazon TLD detection
+  2. `packages/core/device_profiles.py` — update_browser_versions() and apply_version_update() for quarterly UA bumps across all 14 profiles
+  3. `packages/connectors/proxy_adapter.py` — proxy_type field (datacenter/residential/isp/mobile) + type-based filtering in get_proxy()
+  4. `packages/core/response_cache.py` (NEW) — two-tier cache (memory LRU 500 items + disk), ETag/If-None-Match, Last-Modified, Cache-Control respect
+- **Blockers found:** None
+- **Next action:** All tasks complete. Platform ready for deployment.

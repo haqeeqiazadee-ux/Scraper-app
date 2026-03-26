@@ -1316,3 +1316,49 @@
 - **Pass/Fail:** PASS
 - **Final Status:** COMPLETE
 
+---
+
+## INFRA-001 through INFRA-006: Infrastructure Upgrades
+
+- **Task IDs:** INFRA-001 (sitemap), INFRA-002 (robots.txt), INFRA-004 (circuit breaker), INFRA-005 (load more), INFRA-006 (srcset)
+- **Task Title:** Infrastructure upgrades for production scraping
+- **Start Time:** 2026-03-26
+- **End Time:** 2026-03-26
+- **Exact steps performed:**
+  1. Searched codebase for existing sitemap/robots/circuit breaker/load-more/srcset code
+  2. Found legacy implementations in scraper_pro/ (sitemap in async_scraper.py, robots in engine_v2.py, load-more in ajax_handler.py)
+  3. Created `packages/core/url_discovery.py` — ported and enhanced SitemapParser + RobotsChecker
+  4. Created `packages/core/circuit_breaker.py` — new per-domain state machine
+  5. Added `click_load_more()` to browser_worker.py — 12 CSS selectors + 10 text patterns
+  6. Added `_parse_srcset()` and `_extract_best_image()` to dom_discovery.py
+  7. Ran 141 tests — all passed
+  8. Ran smoke tests for circuit breaker (state transitions, recovery), srcset (parsing, resolution), image extraction (picture, placeholder rejection), URL discovery (instantiation)
+  9. Committed and pushed
+- **Files touched:** url_discovery.py (NEW), circuit_breaker.py (NEW), browser_worker.py, dom_discovery.py
+- **Validation evidence:** 141 tests passed, all smoke tests passed
+- **Pass/Fail:** PASS
+- **Final Status:** COMPLETE
+
+---
+
+## STEALTH-006/007/008 + INFRA-003: Final Deferred Items
+
+- **Task IDs:** STEALTH-006 (WAF tokens), STEALTH-007 (UA updater), STEALTH-008 (mobile proxies), INFRA-003 (response cache)
+- **Task Title:** Complete all remaining deferred items — zero task queue
+- **Start Time:** 2026-03-26
+- **End Time:** 2026-03-26
+- **Exact steps performed:**
+  1. Read hard_target_worker.py, device_profiles.py, proxy_adapter.py to understand integration points
+  2. Created `packages/core/waf_token_manager.py` — AWSWAFTokenManager with token storage, TTL, fingerprint binding
+  3. Added `update_browser_versions()` and `apply_version_update()` to device_profiles.py with version constants
+  4. Added `proxy_type` field to Proxy dataclass + type filtering in `get_proxy()` in proxy_adapter.py
+  5. Created `packages/core/response_cache.py` — two-tier cache with ETag/Last-Modified/Cache-Control support
+  6. Ran smoke tests: WAF token (store, expire, fingerprint mismatch, refresh detection), UA updater (Chrome 133, Firefox 134, Safari 18.0), mobile proxy (type filtering, fallback), response cache (put/get/conditional/no-store)
+  7. Ran 147 existing tests — all passed
+  8. Updated todo.md and CLAUDE.md
+  9. Committed and pushed
+- **Files touched:** waf_token_manager.py (NEW), response_cache.py (NEW), device_profiles.py, proxy_adapter.py, todo.md, CLAUDE.md
+- **Validation evidence:** All 4 smoke tests passed, 147 existing tests passed, 0 regressions
+- **Pass/Fail:** PASS
+- **Final Status:** COMPLETE — ALL TRACKED TASKS DONE
+

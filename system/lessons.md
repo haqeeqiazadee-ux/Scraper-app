@@ -167,3 +167,15 @@
 75. **Browser resource blocking saves 60-80% bandwidth** — Images, CSS, fonts, and tracking scripts are unnecessary for data extraction. Blocking them via `page.route()` dramatically speeds up page loads and reduces proxy bandwidth costs. This is a free performance win that every pro scraper uses.
 
 76. **API interception beats DOM parsing** — Modern SPAs (React/Next.js) fetch product data via internal APIs. The JSON payload from an XHR/fetch response is 10x cleaner than parsing the rendered DOM. Intercepting network responses should be tried before or alongside DOM extraction.
+
+77. **Sitemap.xml is the fastest URL discovery method** — Before crawling a site, always try `GET /sitemap.xml`. Most e-commerce sites have one, and it gives you every product URL without following links. Also check robots.txt for declared sitemap locations. WordPress uses `wp-sitemap.xml`, WooCommerce uses `wp-sitemap-posts-product-1.xml`.
+
+78. **Circuit breakers prevent resource waste** — A domain that returned 5 consecutive 403s will return a 6th. Without a circuit breaker, the scraper burns proxy bandwidth, CAPTCHA credits, and browser sessions on a site that's actively blocking it. Trip after 5 failures, wait 5 minutes, probe with one request before resuming.
+
+79. **AWS WAF tokens are fingerprint-bound** — The `aws-waf-token` cookie contains a hash of the browser fingerprint used when it was acquired. Changing your device profile (UA, viewport, etc.) mid-session invalidates the token and triggers re-verification. Always pair tokens with a consistent fingerprint.
+
+80. **UA strings must be updated quarterly** — Browser versions from 6 months ago are statistical anomalies that flag bots. Build a version updater that can bump all profiles in one call rather than editing 14 definitions manually. Keep constants (`LATEST_CHROME_VERSION`) at the top for easy updates.
+
+81. **Response caching saves more than bandwidth** — Caching with ETag/If-Modified-Since means the server returns 304 Not Modified (no body) instead of re-sending the full page. This cuts bandwidth, reduces proxy costs, and decreases the chance of triggering rate limits because the request is lighter.
+
+82. **srcset always has the highest-res image** — When an `<img>` has a `srcset` attribute, the largest width descriptor (e.g. `1600w`) is the full product image. The `src` is often a low-res placeholder. Always parse srcset and pick the highest resolution. Same applies to `<picture>` elements with `<source>` tags.
