@@ -307,18 +307,32 @@ class HttpWorker:
             extracted_data = self._dedup.deduplicate(extracted_data)
             dedup_applied = len(extracted_data) < original_count
 
-        # Step 5: Calculate confidence
+        # Step 5: Calculate confidence (data quality, not just field coverage)
         confidence = 0.0
         if extracted_data:
-            # Score based on how many fields were extracted
-            total_fields = 0
-            filled_fields = 0
+            item_scores = []
             for item in extracted_data:
-                for key, value in item.items():
-                    total_fields += 1
-                    if value and str(value).strip():
-                        filled_fields += 1
-            confidence = filled_fields / total_fields if total_fields > 0 else 0.0
+                score = 0.0
+                # Core product signals (weighted)
+                if item.get("name") and len(str(item["name"]).strip()) > 2:
+                    score += 0.3
+                if item.get("price"):
+                    score += 0.3
+                if item.get("image_url"):
+                    score += 0.15
+                if item.get("product_url") and item["product_url"] != url:
+                    score += 0.1
+                # Bonus for additional fields
+                if item.get("currency"):
+                    score += 0.05
+                if item.get("rating"):
+                    score += 0.05
+                if item.get("brand"):
+                    score += 0.025
+                if item.get("sku"):
+                    score += 0.025
+                item_scores.append(min(score, 1.0))
+            confidence = sum(item_scores) / len(item_scores) if item_scores else 0.0
 
         elapsed = int((time.time() - start_time) * 1000)
         extraction_method = "deterministic" if isinstance(self._ai, DeterministicProvider) else "ai"

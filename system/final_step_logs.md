@@ -1220,3 +1220,208 @@
 - **Pass/Fail:** PASS
 - **Final Status:** COMPLETE
 
+---
+
+## STEALTH-001 through STEALTH-005: Anti-Bot Evasion Overhaul
+
+- **Task IDs:** STEALTH-001 (curl_cffi), STEALTH-002 (device profiles), STEALTH-003 (Camoufox), STEALTH-004 (warm-up nav), STEALTH-005 (human behavior)
+- **Task Title:** Phase 6 — Stealth Upgrade
+- **Start Time:** 2026-03-25
+- **End Time:** 2026-03-25
+- **Exact steps performed:**
+  1. Researched top-tier scrapers via web search (Crawlee, Camoufox, Bright Data, ScrapFly, ZenRows, curl_cffi, nodriver)
+  2. Audited existing codebase (http_collector.py, hard_target_worker.py, browser_worker.py, proxy_adapter.py)
+  3. Identified 3 critical gaps: TLS fingerprinting, cross-signal inconsistency, JS-level stealth detectability
+  4. Created `packages/core/device_profiles.py` — 14 coherent profiles, 8 geos, browser-specific headers
+  5. Created `packages/core/human_behavior.py` — Bezier curves, log-normal delays, scroll sim, idle jitter, warm-up nav
+  6. Rewrote `packages/connectors/http_collector.py` — curl_cffi primary, httpx fallback, per-request profiles
+  7. Rewrote `packages/connectors/hard_target_worker.py` — Camoufox primary, Playwright fallback, Canvas/WebGL stealth
+  8. Updated `services/worker-hard-target/worker.py` — removed _page coupling
+  9. Added curl-cffi>=0.7, camoufox[geoip]>=0.4 to pyproject.toml
+  10. Created 3 new test files (48 tests), updated test_hard_target.py (28 tests)
+  11. Ran all 76 tests — 76 passed, 0 failed
+  12. Committed and pushed to claude/review-repo-status-csFgT
+- **Files touched:** device_profiles.py (NEW), human_behavior.py (NEW), http_collector.py, hard_target_worker.py, worker.py, pyproject.toml, test_device_profiles.py (NEW), test_human_behavior.py (NEW), test_stealth_http.py (NEW), test_hard_target.py
+- **Validation evidence:** 76 tests passed (23 profile + 16 behavior + 9 HTTP + 28 hard-target)
+- **Pass/Fail:** PASS
+- **Final Status:** COMPLETE
+
+---
+
+## EXTRACT-001 through EXTRACT-003: Extraction Quality Fixes
+
+- **Task IDs:** EXTRACT-001 (PKR currency), EXTRACT-002 (noise filtering), EXTRACT-003 (product signals)
+- **Task Title:** Fix extraction quality for superdrugs.pk and similar sites
+- **Start Time:** 2026-03-25
+- **End Time:** 2026-03-25
+- **Exact steps performed:**
+  1. Analyzed live scrape results from superdrugs.pk — 3/5 items were nav elements, currency was INR not PKR
+  2. Added .pk → PKR to DOMAIN_CURRENCY map in normalizer.py
+  3. Rewrote detect_currency() — domain checks first, then disambiguates ambiguous symbols
+  4. Created _is_noise_item() in dom_discovery.py — rejects nav labels, section headers
+  5. Added product signal threshold in deterministic.py CSS extraction — require price/image/rating
+  6. Ran 5 manual currency detection tests — all passed (PKR, INR, USD, PKR code, domain fallback)
+  7. Ran 90/92 existing tests — 2 pre-existing price format failures, 0 regressions
+  8. Committed and pushed
+- **Files touched:** normalizer.py, dom_discovery.py, deterministic.py
+- **Validation evidence:** 5 currency tests passed, noise filter tests passed, 90/92 existing tests (2 pre-existing)
+- **Pass/Fail:** PASS
+- **Final Status:** COMPLETE
+
+---
+
+## EXTRACT-004 through EXTRACT-008: Universal Extraction Overhaul
+
+- **Task IDs:** EXTRACT-004 (microdata), EXTRACT-005 (Open Graph), EXTRACT-006 (CSS selectors), EXTRACT-007 (basic fallback), EXTRACT-008 (confidence)
+- **Task Title:** Make extraction work on ANY website
+- **Start Time:** 2026-03-25
+- **End Time:** 2026-03-25
+- **Exact steps performed:**
+  1. Read full extraction pipeline (deterministic.py, dom_discovery.py, normalizer.py, all workers)
+  2. Researched universal extraction approaches (Diffbot, Zyte, Crawlee)
+  3. Added _extract_microdata() — parses schema.org Product in HTML attributes
+  4. Added _extract_opengraph() — parses og:type=product, og:price:amount meta tags
+  5. Expanded CSS card selectors from 12 → 50+ (Shopify, WooCommerce, Magento, BigCommerce, PrestaShop, OpenCart)
+  6. Rewrote _extract_basic() — validates product signals, returns None for non-product pages
+  7. Replaced confidence scoring in all 3 workers — weighted quality instead of field coverage
+  8. Lowered DOM discovery MIN_REPEATING_COUNT from 3 → 2
+  9. Ran 4 smoke tests: microdata, Open Graph, homepage (empty), PDP (1 item) — all passed
+  10. Ran 166 tests — 166 passed, 0 new failures
+  11. Committed and pushed
+- **Files touched:** deterministic.py, dom_discovery.py, worker-http/worker.py, worker-browser/worker.py, worker-hard-target/worker.py
+- **Validation evidence:** 4 extraction smoke tests passed, 166 tests passed
+- **Pass/Fail:** PASS
+- **Final Status:** COMPLETE
+
+---
+
+## OPS-001 through OPS-005: Pro-Level Operational Upgrades
+
+- **Task IDs:** OPS-001 (resource blocking), OPS-002 (API interception), OPS-003 (URL dedup), OPS-004 (data validation), OPS-005 (browser profiles)
+- **Task Title:** Production scraper engineering improvements
+- **Start Time:** 2026-03-25
+- **End Time:** 2026-03-25
+- **Exact steps performed:**
+  1. Audited full scraping lifecycle for operational gaps
+  2. Rewrote browser_worker.py — resource blocking via page.route(), API interception, device profiles
+  3. Added validate_item() to normalizer.py — rejects garbage data, clears placeholder images/URLs
+  4. Integrated validate_item() into normalize_batch() — auto-removes invalid items
+  5. Added URLDedup class to dedup.py — URL normalization, TTL, check_and_mark()
+  6. Ran validation tests: 7 rejection cases, 3 acceptance cases, placeholder clearing — all passed
+  7. Ran URL dedup tests: first visit, duplicate detection, normalization, seen count — all passed
+  8. Ran 122 existing tests — all passed
+  9. Committed and pushed
+- **Files touched:** browser_worker.py, normalizer.py, dedup.py
+- **Validation evidence:** All validation/dedup smoke tests passed, 122 existing tests passed
+- **Pass/Fail:** PASS
+- **Final Status:** COMPLETE
+
+---
+
+## INFRA-001 through INFRA-006: Infrastructure Upgrades
+
+- **Task IDs:** INFRA-001 (sitemap), INFRA-002 (robots.txt), INFRA-004 (circuit breaker), INFRA-005 (load more), INFRA-006 (srcset)
+- **Task Title:** Infrastructure upgrades for production scraping
+- **Start Time:** 2026-03-26
+- **End Time:** 2026-03-26
+- **Exact steps performed:**
+  1. Searched codebase for existing sitemap/robots/circuit breaker/load-more/srcset code
+  2. Found legacy implementations in scraper_pro/ (sitemap in async_scraper.py, robots in engine_v2.py, load-more in ajax_handler.py)
+  3. Created `packages/core/url_discovery.py` — ported and enhanced SitemapParser + RobotsChecker
+  4. Created `packages/core/circuit_breaker.py` — new per-domain state machine
+  5. Added `click_load_more()` to browser_worker.py — 12 CSS selectors + 10 text patterns
+  6. Added `_parse_srcset()` and `_extract_best_image()` to dom_discovery.py
+  7. Ran 141 tests — all passed
+  8. Ran smoke tests for circuit breaker (state transitions, recovery), srcset (parsing, resolution), image extraction (picture, placeholder rejection), URL discovery (instantiation)
+  9. Committed and pushed
+- **Files touched:** url_discovery.py (NEW), circuit_breaker.py (NEW), browser_worker.py, dom_discovery.py
+- **Validation evidence:** 141 tests passed, all smoke tests passed
+- **Pass/Fail:** PASS
+- **Final Status:** COMPLETE
+
+---
+
+## STEALTH-006/007/008 + INFRA-003: Final Deferred Items
+
+- **Task IDs:** STEALTH-006 (WAF tokens), STEALTH-007 (UA updater), STEALTH-008 (mobile proxies), INFRA-003 (response cache)
+- **Task Title:** Complete all remaining deferred items — zero task queue
+- **Start Time:** 2026-03-26
+- **End Time:** 2026-03-26
+- **Exact steps performed:**
+  1. Read hard_target_worker.py, device_profiles.py, proxy_adapter.py to understand integration points
+  2. Created `packages/core/waf_token_manager.py` — AWSWAFTokenManager with token storage, TTL, fingerprint binding
+  3. Added `update_browser_versions()` and `apply_version_update()` to device_profiles.py with version constants
+  4. Added `proxy_type` field to Proxy dataclass + type filtering in `get_proxy()` in proxy_adapter.py
+  5. Created `packages/core/response_cache.py` — two-tier cache with ETag/Last-Modified/Cache-Control support
+  6. Ran smoke tests: WAF token (store, expire, fingerprint mismatch, refresh detection), UA updater (Chrome 133, Firefox 134, Safari 18.0), mobile proxy (type filtering, fallback), response cache (put/get/conditional/no-store)
+  7. Ran 147 existing tests — all passed
+  8. Updated todo.md and CLAUDE.md
+  9. Committed and pushed
+- **Files touched:** waf_token_manager.py (NEW), response_cache.py (NEW), device_profiles.py, proxy_adapter.py, todo.md, CLAUDE.md
+- **Validation evidence:** All 4 smoke tests passed, 147 existing tests passed, 0 regressions
+- **Pass/Fail:** PASS
+- **Final Status:** COMPLETE — ALL TRACKED TASKS DONE
+
+---
+
+## KEEPA-001 through KEEPA-004: Keepa API Integration
+
+- **Task IDs:** KEEPA-001 (connector), KEEPA-002 (router), KEEPA-003 (transformation), KEEPA-004 (tests)
+- **Task Title:** Integrate Keepa API for Amazon product data
+- **Start Time:** 2026-03-26
+- **End Time:** 2026-03-26
+- **Exact steps performed:**
+  1. Installed keepa v1.4.4 via pip and inspected all source files (keepa_async.py, keepa_sync.py, constants.py, query_keys.py, models/)
+  2. Launched 4 research agents for API docs, pricing, endpoints, comparisons
+  3. Read PyPI listing, GitHub README, fetched raw source files
+  4. Mapped all Keepa methods (query, product_finder, deals, best_sellers, seller_query, category_lookup, search_for_categories, download_graph_image) to our platform architecture
+  5. Read existing Amazon code (amazon.py extractor, router.py, waf_token_manager.py, api_adapter.py)
+  6. Created `packages/connectors/keepa_connector.py` — KeepaConnector with full API surface, data transformation, ASIN extraction, domain detection
+  7. Updated `packages/core/router.py` — Amazon smart routing: /dp/ → API (Keepa), search/deals → browser
+  8. Added AMAZON_DOMAINS set and _is_amazon_product_url() helper
+  9. Removed Amazon from BROWSER_REQUIRED_DOMAINS (now handled separately)
+  10. Updated `packages/connectors/__init__.py` to export KeepaConnector
+  11. Added keepa>=1.4 to pyproject.toml dependencies
+  12. Added KEEPA_API_KEY to .env.example
+  13. Created `tests/unit/test_keepa_connector.py` — 30 tests covering ASIN extraction, domain detection, URL classification, router routing, data transformation, connector protocol
+  14. Ran all 30 tests — all passed
+  15. Ran existing router tests — all passed (0 regressions)
+  16. Committed and pushed
+- **Files touched:** keepa_connector.py (NEW), router.py, __init__.py, pyproject.toml, .env.example, test_keepa_connector.py (NEW)
+- **Validation evidence:** 30 new tests passed, 4 existing router tests passed, 0 regressions
+- **Pass/Fail:** PASS
+- **Final Status:** COMPLETE
+
+---
+
+## KEEPA-005/006: Keepa Hardening + Priority Routing
+
+- **Task IDs:** KEEPA-005 (hardening), KEEPA-006 (priority routing)
+- **Start/End:** 2026-03-26
+- **Steps:** Audit found 10 gaps → fixed all: price fallback, offer extraction, 7 params, 8 domains, category_lookup, error classification. Changed router so ALL Amazon queries go through Keepa first. fetch() now handles search/deals/bestsellers via Keepa methods.
+- **Files:** keepa_connector.py, router.py, test_keepa_connector.py
+- **Validation:** 58 tests passed
+- **Pass/Fail:** PASS
+
+---
+
+## SHEETS-001/002: Google Sheets Cache Layer
+
+- **Task IDs:** SHEETS-001 (connector), SHEETS-002 (cache integration)
+- **Start/End:** 2026-03-26
+- **Steps:** Built GoogleSheetsConnector with gspread + service account auth, read/write/search/batch, staleness detection. Built KeepaSheetCache wrapper. Wired into KeepaConnector.fetch(). 14 new tests.
+- **Files:** google_sheets_connector.py (NEW), keepa_connector.py, __init__.py, pyproject.toml, .env.example, test_google_sheets.py (NEW)
+- **Validation:** 44 tests passed (14 new + 30 Keepa)
+- **Pass/Fail:** PASS
+
+---
+
+## GMAPS-001/002/003: Google Maps Business Scraper
+
+- **Task IDs:** GMAPS-001 (connector), GMAPS-002 (extraction), GMAPS-003 (sheets output)
+- **Start/End:** 2026-03-26
+- **Steps:** Built GoogleMapsConnector with 3-tier fallback (Places API → SerpAPI → browser). 19 tests covering init, transformation, parsing, fallback logic, metrics.
+- **Files:** google_maps_connector.py (NEW, 580 lines), __init__.py, .env.example, test_google_maps.py (NEW)
+- **Validation:** 19 tests passed
+- **Pass/Fail:** PASS
+

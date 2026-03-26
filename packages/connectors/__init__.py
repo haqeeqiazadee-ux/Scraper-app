@@ -11,6 +11,9 @@ from packages.connectors.hard_target_worker import HardTargetWorker
 from packages.connectors.proxy_adapter import ProxyAdapter
 from packages.connectors.captcha_adapter import CaptchaAdapter
 from packages.connectors.api_adapter import ApiAdapter
+from packages.connectors.keepa_connector import KeepaConnector
+from packages.connectors.google_sheets_connector import GoogleSheetsConnector, KeepaSheetCache
+from packages.connectors.google_maps_connector import GoogleMapsConnector
 
 __all__ = [
     "HttpCollector",
@@ -19,4 +22,8 @@ __all__ = [
     "ProxyAdapter",
     "CaptchaAdapter",
     "ApiAdapter",
+    "KeepaConnector",
+    "GoogleSheetsConnector",
+    "KeepaSheetCache",
+    "GoogleMapsConnector",
 ]

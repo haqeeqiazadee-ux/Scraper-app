@@ -20,7 +20,8 @@ from urllib.parse import urljoin
 logger = logging.getLogger(__name__)
 
 # Minimum number of similar siblings to consider a repeating group
-MIN_REPEATING_COUNT = 3
+# Lowered from 3 to 2 — pages with only 2 products shouldn't fail silently
+MIN_REPEATING_COUNT = 2
 
 # Tags that are never data containers
 SKIP_TAGS = frozenset({
@@ -45,6 +46,93 @@ PRICE_PATTERN = re.compile(
 HAS_PRICE = re.compile(
     r"[\$£€¥₹₽₩]|(?:Rs|USD|EUR|GBP|PKR|price|Price)\s*[\d,.]"
 )
+
+
+def _parse_srcset(srcset: str) -> list[tuple[str, int]]:
+    """Parse srcset attribute and return [(url, width)] sorted by width descending."""
+    entries = []
+    for part in srcset.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        tokens = part.split()
+        if len(tokens) >= 2:
+            url = tokens[0]
+            descriptor = tokens[1]
+            # Parse width descriptor (e.g. "800w") or pixel density (e.g. "2x")
+            if descriptor.endswith("w"):
+                try:
+                    width = int(descriptor[:-1])
+                    entries.append((url, width))
+                except ValueError:
+                    entries.append((url, 0))
+            elif descriptor.endswith("x"):
+                try:
+                    density = float(descriptor[:-1])
+                    entries.append((url, int(density * 1000)))  # Normalize density to comparable scale
+                except ValueError:
+                    entries.append((url, 0))
+        elif len(tokens) == 1:
+            entries.append((tokens[0], 0))
+    # Sort by width descending — largest image first
+    entries.sort(key=lambda x: x[1], reverse=True)
+    return entries
+
+
+def _extract_best_image(element, url: str = "") -> Optional[str]:
+    """Extract the best image URL from an element, handling srcset and <picture>.
+
+    Priority:
+    1. <picture> <source> with highest resolution
+    2. <img srcset> highest resolution entry
+    3. <img src> or data-src / data-lazy-src
+    """
+    # Placeholder patterns to reject
+    REJECT_PATTERNS = ("sprite", "icon", "pixel", "1x1", "blank", "spacer", "placeholder", "loading")
+
+    def _is_valid(src: str) -> bool:
+        if not src:
+            return False
+        src_lower = src.lower()
+        return not any(p in src_lower for p in REJECT_PATTERNS)
+
+    def _resolve(src: str) -> str:
+        if url and not src.startswith(("http://", "https://", "data:")):
+            return urljoin(url, src)
+        return src
+
+    # Try <picture> element first
+    picture = element.select_one("picture")
+    if picture:
+        # Check <source> elements for highest-res
+        for source in picture.select("source"):
+            srcset = source.get("srcset", "")
+            if srcset:
+                entries = _parse_srcset(srcset)
+                if entries:
+                    resolved = _resolve(entries[0][0])
+                    if _is_valid(resolved):
+                        return resolved
+
+    # Try <img> with srcset
+    img_el = element.select_one("img")
+    if img_el:
+        srcset = img_el.get("srcset", "")
+        if srcset:
+            entries = _parse_srcset(srcset)
+            if entries:
+                resolved = _resolve(entries[0][0])
+                if _is_valid(resolved):
+                    return resolved
+
+        # Fall back to src / data-src / data-lazy-src
+        src = img_el.get("src") or img_el.get("data-src") or img_el.get("data-lazy-src", "")
+        if src:
+            resolved = _resolve(src)
+            if _is_valid(resolved) and resolved.startswith(("http://", "https://", "data:")):
+                return resolved
+
+    return None
 
 
 def _tag_signature(element) -> str:
@@ -307,15 +395,10 @@ def extract_fields_from_card(element, url: str = "") -> dict:
             if price_match:
                 result["price"] = price_match.group(0)
 
-        # --- Image ---
-        img_el = element.select_one("img")
-        if img_el:
-            src = img_el.get("src") or img_el.get("data-src") or img_el.get("data-lazy-src", "")
-            if src and "sprite" not in src and "icon" not in src and "pixel" not in src:
-                if url and not src.startswith(("http://", "https://", "data:")):
-                    src = urljoin(url, src)
-                if src.startswith(("http://", "https://", "data:")):
-                    result["image_url"] = src
+        # --- Image (with srcset and <picture> support) ---
+        best_img = _extract_best_image(element, url)
+        if best_img:
+            result["image_url"] = best_img
 
         # --- Rating ---
         rating_el = element.select_one(
@@ -338,11 +421,53 @@ def extract_fields_from_card(element, url: str = "") -> dict:
     return result
 
 
+def _is_noise_item(item: dict) -> bool:
+    """Check if an extracted item is likely a navigation element or section header.
+
+    Returns True if the item should be filtered out. Items like "Trending Now",
+    "Top Brands", "Superdrugs" are noise — they have a name but no product signals.
+    """
+    name = (item.get("name") or "").strip()
+    if not name:
+        return True
+
+    # Very short names with no other fields are likely nav labels
+    has_price = bool(item.get("price"))
+    has_image = bool(item.get("image_url"))
+    has_rating = bool(item.get("rating"))
+    has_description = bool(item.get("description"))
+
+    # Must have at least ONE product signal beyond just a name
+    if not any([has_price, has_image, has_rating, has_description]):
+        return True
+
+    # Common section header / nav patterns
+    NOISE_NAMES = {
+        "trending", "trending now", "top brands", "new arrivals",
+        "best sellers", "bestsellers", "sale", "shop now", "view all",
+        "see all", "learn more", "read more", "load more", "show more",
+        "categories", "collections", "brands", "featured", "popular",
+        "home", "about", "contact", "login", "sign up", "sign in",
+        "cart", "wishlist", "account", "search", "menu", "close",
+    }
+    if name.lower() in NOISE_NAMES:
+        return True
+
+    # Names that are just 1-2 words with no price are likely section labels
+    if len(name.split()) <= 2 and not has_price and not has_rating:
+        # But allow if they have an image (could be a product card with short name)
+        if not has_image:
+            return True
+
+    return False
+
+
 def discover_items(html: str, url: str = "") -> list[dict]:
     """Main entry point: discover repeating product items on a page.
 
     Finds the highest-scoring repeating group (by product-likeness)
-    and extracts fields from each card.
+    and extracts fields from each card. Filters out navigation elements,
+    section headers, and other noise items.
     """
     groups = find_repeating_groups(html)
     if not groups:
@@ -355,7 +480,7 @@ def discover_items(html: str, url: str = "") -> list[dict]:
         items = []
         for card in group:
             fields = extract_fields_from_card(card, url)
-            if fields.get("name"):
+            if fields.get("name") and not _is_noise_item(fields):
                 items.append(fields)
 
         # Score: items with prices are worth more
@@ -366,7 +491,7 @@ def discover_items(html: str, url: str = "") -> list[dict]:
             best_items = items
 
     logger.debug(
-        "DOM discovery found %d items (url=%s)",
+        "DOM discovery found %d items (url=%s, filtered noise)",
         len(best_items), url,
     )
     return best_items

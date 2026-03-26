@@ -130,79 +130,11 @@ class HardTargetLaneWorker:
                 "should_escalate": False,
             }
 
-        # Step 2: Smart post-fetch — wait for JS, scroll, detect CAPTCHA
-        page = self._hard_target._page
+        # Step 2: Use rendered HTML from response
+        # CAPTCHA detection, JS wait, scroll, and content rendering are now
+        # handled inside HardTargetWorker.fetch() with full behavioral simulation
+        # (warm-up navigation, Bezier mouse curves, idle jitter, human scroll).
         html = response.html or response.text
-        scrolled = False
-        waited = False
-
-        if page:
-            # Check for CAPTCHA
-            for selector in _CAPTCHA_SELECTORS:
-                try:
-                    el = await page.query_selector(selector)
-                    if el:
-                        elapsed = int((time.time() - start_time) * 1000)
-                        logger.warning("CAPTCHA detected in hard-target",
-                                       extra={"task_id": task_id, "selector": selector})
-                        return {
-                            "task_id": task_id, "run_id": run_id, "tenant_id": tenant_id,
-                            "url": url, "lane": "hard_target", "connector": "hard_target_worker",
-                            "status": "failed", "status_code": response.status_code,
-                            "error": f"CAPTCHA detected ({selector})",
-                            "duration_ms": elapsed, "extracted_data": [], "item_count": 0,
-                            "should_escalate": False,
-                        }
-                except Exception:
-                    pass
-
-            # Wait for content selectors
-            if task.get("wait_selector"):
-                try:
-                    await page.wait_for_selector(task["wait_selector"], timeout=10000)
-                    waited = True
-                except Exception:
-                    pass
-
-            if not waited:
-                for selector in _CONTENT_SELECTORS:
-                    try:
-                        await page.wait_for_selector(selector, timeout=8000)
-                        waited = True
-                        logger.info("Hard-target content detected: %s", selector,
-                                    extra={"task_id": task_id})
-                        break
-                    except Exception:
-                        continue
-
-            # Extra wait for JS to finish filling containers
-            try:
-                await page.wait_for_timeout(3000)
-            except Exception:
-                pass
-
-            # Smart scroll
-            max_scrolls = task.get("max_scrolls", 5)
-            try:
-                prev_height = await page.evaluate("document.body.scrollHeight")
-                for _ in range(max_scrolls):
-                    await page.evaluate("window.scrollBy(0, window.innerHeight)")
-                    await page.wait_for_timeout(1500)
-                    new_height = await page.evaluate("document.body.scrollHeight")
-                    if new_height == prev_height:
-                        break
-                    prev_height = new_height
-                    scrolled = True
-                await page.evaluate("window.scrollTo(0, 0)")
-                await page.wait_for_timeout(500)
-            except Exception:
-                pass
-
-            # Get final rendered HTML
-            try:
-                html = await page.content()
-            except Exception:
-                pass
 
         # Step 3: Extract data
         extract_kwargs: dict = {}
@@ -224,16 +156,30 @@ class HardTargetLaneWorker:
             extracted_data = self._dedup.deduplicate(extracted_data)
             dedup_applied = len(extracted_data) < original_count
 
-        # Step 6: Confidence
+        # Step 6: Confidence (data quality, not just field coverage)
         confidence = 0.0
         if extracted_data:
-            total_fields = sum(len(item) for item in extracted_data)
-            filled_fields = sum(
-                1 for item in extracted_data
-                for v in item.values()
-                if v and str(v).strip()
-            )
-            confidence = filled_fields / total_fields if total_fields > 0 else 0.0
+            item_scores = []
+            for item in extracted_data:
+                score = 0.0
+                if item.get("name") and len(str(item["name"]).strip()) > 2:
+                    score += 0.3
+                if item.get("price"):
+                    score += 0.3
+                if item.get("image_url"):
+                    score += 0.15
+                if item.get("product_url") and item["product_url"] != url:
+                    score += 0.1
+                if item.get("currency"):
+                    score += 0.05
+                if item.get("rating"):
+                    score += 0.05
+                if item.get("brand"):
+                    score += 0.025
+                if item.get("sku"):
+                    score += 0.025
+                item_scores.append(min(score, 1.0))
+            confidence = sum(item_scores) / len(item_scores) if item_scores else 0.0
 
         elapsed = int((time.time() - start_time) * 1000)
         method = "deterministic" if isinstance(self._ai, DeterministicProvider) else "ai"
@@ -241,7 +187,7 @@ class HardTargetLaneWorker:
         logger.info("Hard-target task completed", extra={
             "task_id": task_id, "url": url,
             "items": len(extracted_data), "confidence": f"{confidence:.2f}",
-            "duration_ms": elapsed, "scrolled": scrolled, "waited": waited,
+            "duration_ms": elapsed,
         })
 
         return {

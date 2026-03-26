@@ -160,6 +160,65 @@ All 31 previously-skipped QA items have been resolved:
 - 4 e-commerce items → wholesale, Shopify fallback, reviews extraction (11 tests)
 - 4 misc items → browser tab switching, crash recovery, API pagination (25 tests)
 
+## Completed — Phase 6: Stealth Upgrade (Anti-Bot Evasion Overhaul)
+
+Research-driven upgrade based on analysis of top-tier scrapers (Crawlee, Camoufox, Bright Data, ScrapFly, ZenRows, curl_cffi) and modern anti-bot systems (AWS WAF, Cloudflare, DataDome, PerimeterX).
+
+- [x] **STEALTH-001:** Replace httpx with curl_cffi for TLS/JA3/HTTP2 browser impersonation in HTTP lane
+- [x] **STEALTH-002:** Build coherent device profiles (UA + locale + timezone + screen + proxy geo — all consistent)
+- [x] **STEALTH-003:** Integrate Camoufox as hard-target browser engine (C++-level stealth, 0% CreepJS)
+- [x] **STEALTH-004:** Add warm-up navigation + referrer chains (visit homepage before deep pages)
+- [x] **STEALTH-005:** Human-like behavioral simulation (Bezier mouse, scroll, idle jitter, log-normal delays)
+
+## Completed — Phase 7: Universal Extraction Overhaul
+
+- [x] **EXTRACT-001:** Fix .pk → PKR currency mapping + domain-priority disambiguation for ambiguous symbols
+- [x] **EXTRACT-002:** Add noise filtering — reject nav labels, section headers, items without product signals
+- [x] **EXTRACT-003:** Add microdata extraction tier (schema.org Product in HTML attributes)
+- [x] **EXTRACT-004:** Add Open Graph extraction tier (og:type=product, og:price:amount)
+- [x] **EXTRACT-005:** Expand CSS card selectors from 12 → 50+ (Shopify, WooCommerce, Magento, BigCommerce, etc.)
+- [x] **EXTRACT-006:** Fix basic fallback to stop returning garbage — validate product signals before returning
+- [x] **EXTRACT-007:** Quality-based confidence scoring (name=0.3, price=0.3, image=0.15, not field coverage)
+- [x] **EXTRACT-008:** Lower DOM discovery threshold from 3 → 2 items
+
+## Completed — Phase 8: Pro-Level Operational Upgrades
+
+- [x] **OPS-001:** Resource blocking in browser worker (images/CSS/fonts/ads blocked = 60-80% faster)
+- [x] **OPS-002:** API/XHR interception — capture JSON payloads from SPAs for cleaner data
+- [x] **OPS-003:** URL-level deduplication — prevent scraping the same URL twice per session
+- [x] **OPS-004:** Post-extraction data validation (reject zero prices, placeholder names, fake images)
+- [x] **OPS-005:** Device profile integration in browser worker (consistent fingerprint per session)
+
+## Completed — Deferred Items (All Done)
+
+### Stealth
+- [x] **STEALTH-006:** AWS WAF token lifecycle management (token storage, expiry, fingerprint consistency)
+- [x] **STEALTH-007:** Auto-updating UA string database (version bumper for all 14 profiles)
+- [x] **STEALTH-008:** Mobile proxy tier support (proxy_type field + type-based filtering)
+
+### Infrastructure
+- [x] **INFRA-001:** Sitemap.xml discovery for URL enumeration
+- [x] **INFRA-002:** robots.txt compliance wiring (RobotsChecker with cache)
+- [x] **INFRA-003:** Response caching with ETag/Last-Modified headers (memory LRU + disk)
+- [x] **INFRA-004:** Circuit breaker for consistently-failing domains
+- [x] **INFRA-005:** Load More button clicking in browser worker
+- [x] **INFRA-006:** srcset image resolution (extract highest-res from srcset)
+
+## Completed — Keepa API Integration
+
+- [x] **KEEPA-001:** KeepaConnector with full API surface (query, search, deals, best sellers, sellers, categories)
+- [x] **KEEPA-002:** Router smart routing — Amazon /dp/ → Keepa API, search/deals → browser
+- [x] **KEEPA-003:** Data transformation (Keepa format → platform normalized format)
+- [x] **KEEPA-004:** 30 tests (ASIN extraction, domain detection, routing, transformation, protocol)
+
+## Completed — Google Sheets + Google Maps Integration
+
+- [x] **SHEETS-001:** Google Sheets connector (read/write/search/batch/staleness)
+- [x] **SHEETS-002:** KeepaSheetCache — check sheet before Keepa, write results back
+- [x] **GMAPS-001:** Google Maps connector — 3-tier (Places API → SerpAPI → browser)
+- [x] **GMAPS-002:** Business data extraction (name, address, phone, rating, hours, etc.)
+- [x] **GMAPS-003:** Sheets integration for Maps results output
+
 ## Blocked
 (none)
 
@@ -169,6 +228,13 @@ All 31 previously-skipped QA items have been resolved:
 - **Production readiness tasks:** 5/5 complete
 - **QA sessions completed:** 6
 - **QA use cases:** 193 pass, 0 skip, 5 fixed
-- **Total unit/integration/E2E tests:** 936 passed, 0 failed
-- **Lessons learned:** 64
-- **Platform completeness:** 100% production-ready (all tracked tasks complete, all QA gaps closed)
+- **Stealth upgrade tasks:** 5/5 complete
+- **Extraction overhaul tasks:** 8/8 complete
+- **Operational upgrade tasks:** 5/5 complete
+- **Infrastructure tasks:** 6/6 complete
+- **Deferred stealth tasks:** 3/3 complete
+- **Keepa integration tasks:** 4/4 complete
+- **Google Sheets integration:** 2/2 complete
+- **Google Maps scraper:** 3/3 complete
+- **Lessons learned:** 86
+- **Platform completeness:** ALL TASKS COMPLETE

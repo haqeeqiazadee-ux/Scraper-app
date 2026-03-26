@@ -149,3 +149,41 @@
 66. **OpenAI chat completions need low temperature for extraction** — Setting `temperature=0.1` with a system prompt enforcing "JSON only" responses produces reliable, parseable extraction results. Higher temperatures cause markdown wrapping, explanatory text, and inconsistent JSON structure.
 
 67. **Lazy client initialization is essential for multi-provider chains** — Creating API clients only on first use (not at import time) prevents failures when one provider's SDK is missing. The factory can safely reference all providers without requiring all SDKs installed.
+
+68. **TLS fingerprinting is the #1 detection layer** — Anti-bot systems (Cloudflare, Akamai, DataDome) check JA3/JA4 TLS fingerprints BEFORE seeing any HTTP data. Python's httpx/requests produce OpenSSL fingerprints instantly identifiable as non-browser. curl_cffi impersonates real browser TLS handshakes and is the standard solution. Standard HTTPS proxies do NOT change your TLS fingerprint — it's end-to-end.
+
+69. **All fingerprint signals must tell a coherent story** — Random spoofing of individual attributes (UA, timezone, locale, screen) creates cross-signal inconsistencies that are trivially detectable. A German locale with a US IP, French timezone, and mobile screen on a desktop UA is an instant flag. Use complete "device profiles" from real-world combinations.
+
+70. **JS-level stealth patches are detectable** — `Object.defineProperty(navigator, 'webdriver', ...)` can be detected by checking prototype chains, property descriptors, stack traces, and error message strings. Camoufox solves this by modifying Firefox at the C++ source level, making patches invisible to any JavaScript inspection. This is the only approach that consistently passes CreepJS and BrowserScan.
+
+71. **Currency symbols are ambiguous across countries** — "Rs" means INR in India but PKR in Pakistan. "$" means USD in America but CAD in Canada. Domain-based disambiguation must take priority over symbol matching. Always resolve the domain first, then use it to disambiguate symbols.
+
+72. **"Just having a name" doesn't make something a product** — Navigation elements (`<a>` tags with text like "Trending Now", "Top Brands") pass through extraction as "products" because they have a name field. Real products need at least one additional signal: price, image, rating, or description. Name-only items are noise.
+
+73. **Confidence should measure data quality, not field coverage** — Measuring `filled_fields / total_fields` gives 100% confidence to a garbage item with `{name: "Shop Now", product_url: "https://..."}`. Weighted quality scoring (name=0.3, price=0.3, image=0.15) correctly reflects that an item missing price is low quality.
+
+74. **The basic fallback is the most dangerous extraction method** — It runs when everything else fails, and if it returns garbage, the system reports "success" with high confidence. A basic fallback that returns `<title>` + first price in HTML is actively harmful. The fallback must validate that the page is actually a product page (h1 + price element + add-to-cart) before returning anything.
+
+75. **Browser resource blocking saves 60-80% bandwidth** — Images, CSS, fonts, and tracking scripts are unnecessary for data extraction. Blocking them via `page.route()` dramatically speeds up page loads and reduces proxy bandwidth costs. This is a free performance win that every pro scraper uses.
+
+76. **API interception beats DOM parsing** — Modern SPAs (React/Next.js) fetch product data via internal APIs. The JSON payload from an XHR/fetch response is 10x cleaner than parsing the rendered DOM. Intercepting network responses should be tried before or alongside DOM extraction.
+
+77. **Sitemap.xml is the fastest URL discovery method** — Before crawling a site, always try `GET /sitemap.xml`. Most e-commerce sites have one, and it gives you every product URL without following links. Also check robots.txt for declared sitemap locations. WordPress uses `wp-sitemap.xml`, WooCommerce uses `wp-sitemap-posts-product-1.xml`.
+
+78. **Circuit breakers prevent resource waste** — A domain that returned 5 consecutive 403s will return a 6th. Without a circuit breaker, the scraper burns proxy bandwidth, CAPTCHA credits, and browser sessions on a site that's actively blocking it. Trip after 5 failures, wait 5 minutes, probe with one request before resuming.
+
+79. **AWS WAF tokens are fingerprint-bound** — The `aws-waf-token` cookie contains a hash of the browser fingerprint used when it was acquired. Changing your device profile (UA, viewport, etc.) mid-session invalidates the token and triggers re-verification. Always pair tokens with a consistent fingerprint.
+
+80. **UA strings must be updated quarterly** — Browser versions from 6 months ago are statistical anomalies that flag bots. Build a version updater that can bump all profiles in one call rather than editing 14 definitions manually. Keep constants (`LATEST_CHROME_VERSION`) at the top for easy updates.
+
+81. **Response caching saves more than bandwidth** — Caching with ETag/If-Modified-Since means the server returns 304 Not Modified (no body) instead of re-sending the full page. This cuts bandwidth, reduces proxy costs, and decreases the chance of triggering rate limits because the request is lighter.
+
+82. **srcset always has the highest-res image** — When an `<img>` has a `srcset` attribute, the largest width descriptor (e.g. `1600w`) is the full product image. The `src` is often a low-res placeholder. Always parse srcset and pick the highest resolution. Same applies to `<picture>` elements with `<source>` tags.
+
+83. **APIs beat scraping when they exist** — Keepa's API returns richer Amazon data (price history, sales rank, buy box, offers, stock levels, monthly sold) than any scraper could extract from HTML, at ~$0.001/token vs ~$0.10+ per browser session. Always check if a data API exists before building a scraper. The API is faster, cheaper, more reliable, and doesn't trigger anti-bot systems.
+
+84. **Smart routing by URL pattern saves resources** — Not all Amazon URLs need the same treatment. Product pages (`/dp/ASIN`) have a clear ASIN → use Keepa API. Search pages (`/s?k=`) have no ASIN → need browser rendering. Routing by URL pattern avoids wasting expensive browser sessions on pages that have a cheaper API path.
+
+85. **Google Sheets as a cache layer saves API costs** — Store API results in a shared Google Sheet. Next time the same data is requested, read from Sheet (free) instead of calling the API again. With 24-hour staleness, you pay for each product only once per day regardless of how many times it's queried.
+
+86. **Multi-tier API fallback is more reliable than any single source** — Google Maps data can come from Places API (reliable, costs money), SerpAPI (cheaper, third-party), or direct browser scraping (free, fragile). Building all three with automatic fallthrough means the system works regardless of which service is available or affordable.

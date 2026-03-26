@@ -32,6 +32,7 @@ class Proxy:
     password: Optional[str] = None
     geo: Optional[str] = None
     region: Optional[str] = None
+    proxy_type: str = "datacenter"  # datacenter, residential, isp, mobile
     total_requests: int = 0
     successful_requests: int = 0
     failed_requests: int = 0
@@ -323,6 +324,7 @@ class ProxyAdapter:
         region: Optional[str] = None,
         domain: Optional[str] = None,
         sticky: bool = False,
+        proxy_type: Optional[str] = None,
     ) -> Optional[Proxy]:
         """Get next proxy based on rotation strategy.
 
@@ -332,6 +334,9 @@ class ProxyAdapter:
             domain: Target domain — used together with *sticky*.
             sticky: When True, reuse the same proxy for *domain* within
                     the configured sticky session duration.
+            proxy_type: Filter by proxy tier — "datacenter", "residential",
+                        "isp", or "mobile". Mobile proxies have the lowest
+                        detection risk but highest cost. Use for hardest targets.
         """
         now = time.time()
 
@@ -347,6 +352,11 @@ class ProxyAdapter:
 
         # Build candidate list
         available = [p for p in self._proxies if p.is_available]
+        if proxy_type:
+            typed = [p for p in available if p.proxy_type == proxy_type]
+            if typed:
+                available = typed
+            # If no proxies of requested type, fall through to all available
         if geo:
             available = [p for p in available if p.geo and p.geo.upper() == geo.upper()]
         if region:

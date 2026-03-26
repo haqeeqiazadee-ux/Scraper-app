@@ -857,3 +857,170 @@
   6. Confirmed Gemini 403 is network-level block (generativelanguage.googleapis.com blocked in sandbox), not key issue
 - **Blockers found:** Gemini API unreachable from sandbox environment (network firewall). OpenAI works fine.
 - **Next action:** Deploy platform to Supabase + Railway, polish frontend, finalize docs
+
+## Work Cycle 027 — 2026-03-25
+
+- **Timestamp:** 2026-03-25
+- **Active Task IDs:** STEALTH-001 through STEALTH-005
+- **What was read before action:** All connector source files (http_collector.py, hard_target_worker.py, browser_worker.py, proxy_adapter.py, captcha_adapter.py), core/router.py, core/interfaces.py, worker-http/worker.py, pyproject.toml. Research: web search on top-tier scraper techniques (Crawlee, Camoufox, Bright Data, ScrapFly, ZenRows, curl_cffi, nodriver), anti-bot detection methods (JA3/JA4 TLS fingerprinting, HTTP/2 fingerprinting, header order, browser fingerprinting, behavioral analysis), Amazon-specific detection (AWS WAF, aws-waf-token).
+- **Action taken:** Phase 6 — Stealth Upgrade (Anti-Bot Evasion Overhaul)
+- **Why:** Real-world testing against hard targets (Amazon, Cloudflare-protected sites) revealed detection at multiple layers that our current implementation doesn't address. Research showed 3 critical gaps: TLS fingerprinting (httpx has Python/OpenSSL JA3), cross-signal inconsistency (random UA+timezone+locale combinations are detectable), and JS-level stealth patches (detectable via prototype chain inspection).
+- **Outputs produced:**
+  1. STEALTH-001: curl_cffi integration replacing httpx — fixes TLS/JA3, HTTP/2, and header order in one shot
+  2. STEALTH-002: Coherent device profile system — bundles UA, locale, timezone, screen, proxy geo into consistent personas
+  3. STEALTH-003: Camoufox integration for hard-target lane — C++-level stealth patches invisible to JS detection
+  4. STEALTH-004: Warm-up navigation + referrer chains — visit homepage before deep pages
+  5. STEALTH-005: Human behavioral simulation — Bezier mouse curves, variable scroll velocity, idle jitter, log-normal delays
+- **Blockers found:** (recording as work progresses)
+- **Next action:** Execute implementation plan in order
+
+## Work Cycle 028 — 2026-03-25
+
+- **Timestamp:** 2026-03-25
+- **Active Task IDs:** STEALTH-001 through STEALTH-005 (implementation)
+- **What was read before action:** All files read in cycle 027
+- **Action taken:** Implemented all 5 stealth upgrades
+- **Why:** Execute the research-driven plan from cycle 027
+- **Outputs produced:**
+  1. `packages/core/device_profiles.py` (NEW) — 14 coherent device profiles across 8 geos, browser-specific header generation
+  2. `packages/core/human_behavior.py` (NEW) — Bezier mouse curves, log-normal delays, scroll simulation, idle jitter, warm-up navigation
+  3. `packages/connectors/http_collector.py` (REWRITTEN) — curl_cffi with Chrome TLS/JA3/HTTP2 impersonation, httpx fallback
+  4. `packages/connectors/hard_target_worker.py` (REWRITTEN) — Camoufox primary, Playwright fallback, Canvas/WebGL stealth, behavioral simulation
+  5. `services/worker-hard-target/worker.py` — removed tight coupling to `_page` internal state
+  6. `pyproject.toml` — added curl-cffi>=0.7, camoufox[geoip]>=0.4
+  7. 3 new test files: test_device_profiles.py (23), test_human_behavior.py (16), test_stealth_http.py (9)
+  8. Updated test_hard_target.py — 28 tests adapted for new API
+- **Blockers found:** None
+- **Next action:** Fix extraction quality issues
+
+## Work Cycle 029 — 2026-03-25
+
+- **Timestamp:** 2026-03-25
+- **Active Task IDs:** EXTRACT-001, EXTRACT-002, EXTRACT-003
+- **What was read before action:** Live scrape results from superdrugs.pk showing 3/5 items were navigation elements, wrong currency (INR instead of PKR), 100% false confidence
+- **Action taken:** Extraction quality fixes (currency + noise filtering)
+- **Why:** User reported that extracted data from superdrugs.pk included navigation headers ("Trending Now", "Top Brands") as products, and currency was wrong (.pk domain → INR instead of PKR)
+- **Outputs produced:**
+  1. `packages/core/normalizer.py` — added .pk → PKR mapping, domain-priority disambiguation for ambiguous symbols (Rs, $, R, kr)
+  2. `packages/core/dom_discovery.py` — added `_is_noise_item()` filter for nav labels, section headers
+  3. `packages/core/ai_providers/deterministic.py` — product signal threshold (require price/image/rating, not just name)
+- **Blockers found:** None
+- **Next action:** Universal extraction overhaul (not just superdrugs.pk)
+
+## Work Cycle 030 — 2026-03-25
+
+- **Timestamp:** 2026-03-25
+- **Active Task IDs:** EXTRACT-004 through EXTRACT-008
+- **What was read before action:** Full extraction pipeline analysis (deterministic.py, dom_discovery.py, normalizer.py, dedup.py, all 3 worker files). Research on universal extraction (Diffbot, Zyte, Crawlee approaches).
+- **Action taken:** Universal extraction overhaul — make extraction work on ANY site
+- **Why:** The extraction pipeline only worked reliably on sites with JSON-LD or 12 specific CSS classes. Basic fallback returned garbage (site title + random price) with 100% confidence. Confidence scoring measured field coverage, not data quality.
+- **Outputs produced:**
+  1. `deterministic.py` — 2 new extraction tiers (microdata, Open Graph), 50+ CSS card selectors (was 12), validated basic fallback
+  2. `dom_discovery.py` — lowered min threshold from 3 to 2 items
+  3. All 3 workers — quality-based confidence scoring (name=0.3, price=0.3, image=0.15, url=0.1, extras=0.15)
+- **Blockers found:** None
+- **Next action:** Pro-level operational improvements
+
+## Work Cycle 031 — 2026-03-25
+
+- **Timestamp:** 2026-03-25
+- **Active Task IDs:** OPS-001 through OPS-004
+- **What was read before action:** Full lifecycle audit — browser_worker.py, dedup.py, normalizer.py, all worker files. Identified gaps: no resource blocking, no API interception, no URL dedup, no data validation.
+- **Action taken:** Pro-level scraper upgrades
+- **Why:** Thinking like a production scraper engineer — the platform was wasting browser sessions on unnecessary resources, had no data quality gates, and would scrape the same URL twice without knowing it.
+- **Outputs produced:**
+  1. `browser_worker.py` (REWRITTEN) — resource blocking (images/CSS/fonts/ads), API/XHR interception, device profiles
+  2. `normalizer.py` — `validate_item()` function, integrated into `normalize_batch()`
+  3. `dedup.py` — `URLDedup` class with TTL, URL normalization, check_and_mark()
+- **Blockers found:** None
+- **Next action:** Update all system tracking files, then address remaining P2 items
+
+## Work Cycle 032 — 2026-03-26
+
+- **Timestamp:** 2026-03-26
+- **Active Task IDs:** INFRA-001 through INFRA-006
+- **What was read before action:** Full lifecycle audit results, legacy code (async_scraper.py sitemap, engine_v2.py RobotsChecker, ajax_handler.py load-more), dom_discovery.py image extraction
+- **Action taken:** Infrastructure upgrades — sitemap, robots.txt, circuit breaker, load-more, srcset
+- **Why:** Pro scraper audit revealed 5 infrastructure gaps: no URL discovery from sitemaps, no robots.txt compliance, no circuit breaker for failing domains, no load-more button handling, no srcset/picture image resolution
+- **Outputs produced:**
+  1. `packages/core/url_discovery.py` (NEW) — SitemapParser (async, index files, 7 common locations) + RobotsChecker (can_fetch, crawl_delay, sitemaps, 1-hour cache)
+  2. `packages/core/circuit_breaker.py` (NEW) — per-domain CLOSED/OPEN/HALF_OPEN with configurable thresholds
+  3. `packages/connectors/browser_worker.py` — click_load_more() with 12 CSS selectors + 10 text patterns
+  4. `packages/core/dom_discovery.py` — _parse_srcset(), _extract_best_image() with picture/srcset/placeholder rejection
+- **Blockers found:** None
+- **Next action:** Complete remaining STEALTH-006/007/008 and INFRA-003
+
+## Work Cycle 033 — 2026-03-26
+
+- **Timestamp:** 2026-03-26
+- **Active Task IDs:** STEALTH-006, STEALTH-007, STEALTH-008, INFRA-003
+- **What was read before action:** hard_target_worker.py, device_profiles.py, proxy_adapter.py
+- **Action taken:** Complete all remaining deferred items — zero task queue
+- **Why:** User requested all remaining items be implemented. All were free (no external costs).
+- **Outputs produced:**
+  1. `packages/core/waf_token_manager.py` (NEW) — AWS WAF token lifecycle: per-domain storage, 5-min TTL, fingerprint consistency, pre-emptive refresh, 20+ Amazon TLD detection
+  2. `packages/core/device_profiles.py` — update_browser_versions() and apply_version_update() for quarterly UA bumps across all 14 profiles
+  3. `packages/connectors/proxy_adapter.py` — proxy_type field (datacenter/residential/isp/mobile) + type-based filtering in get_proxy()
+  4. `packages/core/response_cache.py` (NEW) — two-tier cache (memory LRU 500 items + disk), ETag/If-None-Match, Last-Modified, Cache-Control respect
+- **Blockers found:** None
+- **Next action:** Keepa API integration for Amazon data
+
+## Work Cycle 034 — 2026-03-26
+
+- **Timestamp:** 2026-03-26
+- **Active Task IDs:** KEEPA-001
+- **What was read before action:** Keepa Python library source code (installed v1.4.4 — keepa_async.py, keepa_sync.py, constants.py, query_keys.py, models/domain.py, models/product_params.py), PyPI listing, GitHub README, 4 background research agents on Keepa API docs/pricing/endpoints. Also read: packages/connectors/api_adapter.py, packages/core/router.py, packages/core/ai_providers/social/amazon.py, packages/core/waf_token_manager.py
+- **Action taken:** Keepa API integration — replaces browser scraping for Amazon product pages
+- **Why:** Amazon product pages require browser rendering + AWS WAF bypass, costing ~$0.10+ per page (proxy + CAPTCHA + bandwidth). Keepa API returns richer data (price history, sales rank, buy box, offers, rating history, stock levels) for ~$0.001/token with zero anti-bot risk.
+- **Outputs produced:**
+  1. `packages/connectors/keepa_connector.py` (NEW, 520 lines) — Full KeepaConnector class with: query_products(), search_products(), find_deals(), best_sellers(), seller_info(), search_categories(), fetch() protocol method, data transformation (Keepa format → our normalized format)
+  2. `packages/core/router.py` — Amazon smart routing: product pages (/dp/ASIN) → API lane (Keepa), search/deals → browser lane. All 11 Amazon marketplaces supported.
+  3. `packages/connectors/__init__.py` — Export KeepaConnector
+  4. `pyproject.toml` — Added keepa>=1.4 dependency
+  5. `.env.example` — Added KEEPA_API_KEY
+  6. `tests/unit/test_keepa_connector.py` (NEW, 30 tests) — ASIN extraction, domain detection, routing, data transformation, protocol compliance
+- **Blockers found:** None
+- **Next action:** Update system tracking files
+
+## Work Cycle 035 — 2026-03-26
+
+- **Timestamp:** 2026-03-26
+- **Active Task IDs:** KEEPA-005, KEEPA-006
+- **What was read before action:** Keepa connector audit report (all gaps identified), keepa_async.py source
+- **Action taken:** Keepa connector hardening + priority routing
+- **Why:** Audit revealed critical gaps: wrong price fallback order, paying for offers but not extracting, 7 missing params, 8 missing Amazon domains
+- **Outputs produced:**
+  1. Fixed price fallback: BUY_BOX → NEW → AMAZON → NEW_FBA (was AMAZON first)
+  2. Added offer extraction (_extract_offers), 7 missing params, domain validation
+  3. ALL Amazon URLs now route to Keepa first (not just /dp/ pages)
+  4. fetch() handles search, deals, best sellers via Keepa product_finder/deals/bestsellers
+- **Blockers found:** None
+- **Next action:** Google Sheets cache + Google Maps
+
+## Work Cycle 036 — 2026-03-26
+
+- **Timestamp:** 2026-03-26
+- **Active Task IDs:** SHEETS-001
+- **What was read before action:** KeepaConnector.fetch(), Google Sheets API
+- **Action taken:** Google Sheets cache layer for Keepa
+- **Why:** Avoid paying Keepa for the same product data twice — cache in Google Sheet, query sheet first
+- **Outputs produced:**
+  1. `packages/connectors/google_sheets_connector.py` (NEW) — GoogleSheetsConnector + KeepaSheetCache
+  2. Wired into KeepaConnector.fetch() — checks sheet before Keepa for product + search routes
+  3. 14 new tests (staleness, row conversion, cache hit/miss/partial, stats)
+- **Blockers found:** None
+- **Next action:** Google Maps scraper
+
+## Work Cycle 037 — 2026-03-26
+
+- **Timestamp:** 2026-03-26
+- **Active Task IDs:** GMAPS-001
+- **What was read before action:** Google Places API (New) docs, SerpAPI Google Maps API, direct scraping approaches. Research agent returned full endpoint/pricing/field reference.
+- **Action taken:** Google Maps business scraper with 3-tier approach
+- **Why:** User needs to scrape business data from Google Maps by keyword (e.g., "restaurants in Dubai")
+- **Outputs produced:**
+  1. `packages/connectors/google_maps_connector.py` (NEW, 580 lines) — GoogleMapsConnector with Places API, SerpAPI, and browser scraping tiers
+  2. Updated __init__.py exports, .env.example with GOOGLE_MAPS_API_KEY and SERPAPI_KEY
+  3. `tests/unit/test_google_maps.py` (NEW, 19 tests) — init, transformation, parsing, fallback, metrics
+- **Blockers found:** `googlemaps` pip package fails to build — used direct REST API calls instead (better: async, no extra dependency)
+- **Next action:** Full E2E test sweep

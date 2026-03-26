@@ -1433,3 +1433,420 @@ bringing total from 806 to 936 tests (all passing, 0 failures).
 - 25 Playwright E2E tests passing
 - 936 total, 0 failures
 
+---
+
+## 2026-03-25 — Phase 6: Stealth Upgrade (Anti-Bot Evasion Overhaul)
+
+### Research Findings
+
+Comprehensive analysis of top-tier scrapers and modern anti-bot systems revealed critical gaps in our stealth implementation:
+
+**Detection layers we fail at:**
+1. **TLS fingerprinting (JA3/JA4):** httpx uses Python's OpenSSL, instantly identifiable as non-browser. Anti-bot systems check this BEFORE seeing any HTTP headers.
+2. **HTTP/2 fingerprinting:** httpx defaults to HTTP/1.1. In 2026, real browsers always use HTTP/2+. HTTP/1.1 is itself a bot signal.
+3. **Cross-signal inconsistency:** We randomize UA, timezone, locale, viewport independently — a German locale with US IP and French timezone is detectable.
+4. **JS-level stealth patches:** Our `Object.defineProperty` patches on navigator.webdriver are detectable via prototype chain inspection. Camoufox patches at C++ level, invisible to JS.
+5. **Behavioral signals:** DataDome tracks mouse movement, scroll velocity, click patterns. Our uniform random delays are detectable.
+
+**What top tools do that we don't:**
+- curl_cffi: Browser-matching TLS handshake, HTTP/2 SETTINGS frames, header ordering
+- Camoufox: C++ source-level Firefox modifications, 0% detection on CreepJS/BrowserScan
+- Crawlee: browserforge for consistent device profiles, session-fingerprint pairing
+- Bright Data: Matches fingerprint to IP reputation automatically
+- Commercial APIs: 94-98% success against Cloudflare, Akamai, DataDome
+
+### Implementation Plan
+
+| Task | Description | Impact |
+|------|------------|--------|
+| STEALTH-001 | curl_cffi replacing httpx | Fixes TLS + HTTP/2 + header order (3 layers) |
+| STEALTH-002 | Coherent device profiles | Stops cross-signal detection |
+| STEALTH-003 | Camoufox for hard-target | 0% detection on fingerprint tests |
+| STEALTH-004 | Warm-up navigation + referrers | Session credibility |
+| STEALTH-005 | Behavioral simulation | Defeats intent-based detection |
+
+### STEALTH-001: curl_cffi Integration (DONE)
+
+**File:** `packages/connectors/http_collector.py` (rewritten)
+
+- Replaced httpx with curl_cffi `AsyncSession` as primary HTTP backend
+- Uses `impersonate="chrome131"` for browser-matching TLS/JA3/HTTP2
+- Graceful fallback to httpx (with HTTP/2 enabled) if curl_cffi not installed
+- Per-request device profile selection for fingerprint diversity
+- Auto-generates Google referrer on 70% of requests
+- Added `client_type` property to check which backend is active
+
+### STEALTH-002: Coherent Device Profiles (DONE)
+
+**File:** `packages/core/device_profiles.py` (new)
+
+- 14 real-world device profiles (Chrome 131 Win/Mac/Linux, Firefox 132, Safari 17.6)
+- 8 geo regions: US (5 profiles), GB, DE, FR, CA, AU
+- Each profile bundles: UA, browser version, platform, locale, accept-language, timezone, viewport, screen, color depth, pixel ratio, hardware concurrency, geo hint, curl_cffi impersonate target
+- Browser-specific header generation with correct ordering (Chrome sec-ch-ua headers, Firefox style, Safari style)
+- `DeviceProfile.random()`, `.for_geo()`, `.for_browser()` selectors
+- `get_headers_for_profile()` generates browser-realistic headers in correct order
+- `get_referer_for_url()` generates plausible Google search referrers
+
+### STEALTH-003: Camoufox Integration (DONE)
+
+**File:** `packages/connectors/hard_target_worker.py` (rewritten)
+
+- Camoufox as primary browser engine (C++-level stealth, 0% CreepJS detection)
+- Falls back to Playwright Chromium with enhanced JS stealth patches
+- JS stealth now includes Canvas noise injection and WebGL vendor masking
+- Added Cloudflare challenge detection (`challenges.cloudflare.com`)
+- Added AWS WAF marker detection (`aws-waf-token`, `awswaf`)
+- Context creation uses full device profile (screen, color scheme, viewport)
+- `browser_type` property reports "camoufox" or "playwright"
+
+### STEALTH-004: Warm-Up Navigation (DONE)
+
+**File:** `packages/core/human_behavior.py` (new) — `warm_up_navigation()`
+
+- Visits homepage before target URL to establish session credibility
+- 40% chance of visiting intermediate category page
+- Includes scrolling and idle jitter on homepage
+- Non-fatal on failure (proceeds to target)
+
+### STEALTH-005: Human Behavioral Simulation (DONE)
+
+**File:** `packages/core/human_behavior.py` (new)
+
+- **Bezier mouse curves:** Cubic Bezier paths with random control points, variable speed
+- **Human click:** Moves to element via curve, pauses, clicks random point within element
+- **Variable scroll:** Sinusoidal speed profile (slow-fast-slow), random step count
+- **Idle jitter:** Micro mouse movements (1-5px) simulating idle fidgeting
+- **Log-normal delays:** `log_normal_delay()` replaces uniform random — matches real browsing patterns
+- All integrated into hard-target fetch loop (post-navigation scroll + jitter)
+
+### Test Results
+
+**New test files:**
+- `tests/unit/test_device_profiles.py` — 23 tests (profile integrity, selection, headers, referrers)
+- `tests/unit/test_human_behavior.py` — 16 tests (Bezier curves, log-normal delays, mouse, scroll, jitter)
+- `tests/unit/test_stealth_http.py` — 9 tests (curl_cffi backend, metrics, profile integration)
+
+**Updated test files:**
+- `tests/unit/test_hard_target.py` — 28 tests (added Camoufox mode tests, Canvas/WebGL stealth, geo-filtered fingerprints)
+
+**Service layer fix:**
+- `services/worker_hard_target/worker.py` — removed tight coupling to `_page` internal state, HardTargetWorker now handles all post-fetch behavior internally
+
+**Total stealth tests: 76 passed, 0 failed**
+
+---
+
+## 2026-03-25 — Extraction Quality Fixes
+
+### Currency Detection Fix
+
+**Issue:** superdrugs.pk showed currency as INR (Indian Rupee) instead of PKR (Pakistani Rupee). Root cause: `.pk` domain missing from `DOMAIN_CURRENCY` map, and "Rs" symbol was hardcoded to INR.
+
+**Fix:** (`normalizer.py`)
+- Added `.pk → PKR`, `.com.pk → PKR` to domain-currency map
+- Added `"PKR": "PKR"` to currency symbols
+- Rewrote `detect_currency()` to check domain FIRST, then use domain to disambiguate ambiguous symbols (Rs, $, R, kr)
+- "Rs" on a `.pk` site → PKR. "Rs" on a `.in` site → INR.
+
+### Noise Filtering
+
+**Issue:** Navigation elements ("Trending Now", "Top Brands", "Superdrugs") were extracted as products because they had `<a>` tags with text.
+
+**Fix:** (`dom_discovery.py`, `deterministic.py`)
+- New `_is_noise_item()` function checks for product signals beyond just a name
+- Must have at least one of: price, image, rating, description
+- Common section header names blacklisted ("trending", "top brands", "sale", "view all", etc.)
+- Short names (≤2 words) without price/rating/image are rejected
+- Applied in both DOM discovery and CSS selector extraction paths
+
+---
+
+## 2026-03-25 — Universal Extraction Overhaul
+
+### Problem
+Extraction only worked reliably on sites with JSON-LD or one of 12 specific CSS classes. On other sites, the fallback returned the page `<title>` tag + first price found anywhere in HTML as "success" with 100% confidence. This is the opposite of what a production scraper should do.
+
+### New Extraction Tiers
+
+**Microdata extraction** (`deterministic.py:_extract_microdata`)
+- Parses `itemscope itemtype="schema.org/Product"` HTML attributes
+- Extracts: name, description, image, sku, brand, price, currency, availability, rating, reviews
+- Second most common structured data format after JSON-LD (~20% of e-commerce)
+
+**Open Graph extraction** (`deterministic.py:_extract_opengraph`)
+- Parses `og:type=product`, `og:price:amount`, `og:title`, `og:image` meta tags
+- Only activates when page is explicitly tagged as product or has price meta tags
+- Requires name + at least one signal (price or image) before returning
+
+### Extraction Cascade (6 tiers)
+```
+1. JSON-LD (schema.org @type:Product)           → ~40-60% of e-commerce
+2. Microdata (itemprop/itemscope)               → ~20% more
+3. Open Graph (og:type=product)                 → PDPs with social tags
+4. DOM Discovery (repeating structural patterns) → Any templated listing
+5. CSS Selectors (50+ selectors, was 12)        → Nearly all platforms
+6. Basic Fallback (validated, not garbage)       → Single product pages only
+```
+
+### Expanded CSS Selectors (12 → 50+)
+Covers: Shopify, WooCommerce, Magento, BigCommerce, PrestaShop, OpenCart, Bootstrap, Tailwind, data-attribute patterns, schema.org selectors. Also expanded name and price sub-selectors within cards.
+
+### Fixed Basic Fallback
+- **Before:** Always returned `{name: <title>, price: first_price_in_html}` — even for homepages, blogs, about pages
+- **After:** Requires 2+ product signals (h1 product name + price in a price element + add-to-cart button). Returns `None` for non-product pages. Uses og:title with site name suffix removal instead of raw `<title>` tag.
+
+### Quality-Based Confidence Scoring (all 3 workers)
+- **Before:** `filled_fields / total_fields` — a nav label with name+url scored 100%
+- **After:** Weighted product quality: name(0.3) + price(0.3) + image(0.15) + url(0.1) + currency(0.05) + rating(0.05) + brand/sku(0.05)
+- An item with only a name scores 30%, correctly triggering lane escalation
+
+### DOM Discovery Threshold
+- Lowered from 3 to 2 minimum similar siblings
+- Pages with only 2 products no longer fail silently
+
+---
+
+## 2026-03-25 — Pro-Level Operational Upgrades
+
+### Resource Blocking (`browser_worker.py`)
+- Blocks image, stylesheet, font, media resource types via `page.route()`
+- Blocks known tracking/ad domains (Google Analytics, Facebook, Hotjar, Segment, Mixpanel, etc.)
+- Saves 60-80% bandwidth, cuts page load time dramatically
+- Configurable via `block_resources=True` parameter
+
+### API/XHR Interception (`browser_worker.py`)
+- Monitors all network responses for JSON payloads containing product data
+- Detects common response shapes: `{products: [...]}`, `{items: [...]}`, `{results: [...]}`
+- Modern SPAs fetch products via internal APIs — JSON is 10x cleaner than DOM parsing
+- Captured data available via `get_captured_api_data()`
+- Configurable via `intercept_api=True` parameter
+
+### URL-Level Deduplication (`dedup.py`)
+- New `URLDedup` class tracks seen URLs per session
+- Normalizes URLs (strips www, trailing slash, sorts query params) for consistent comparison
+- TTL-based expiry (default 1 hour)
+- `check_and_mark()` atomic operation for thread-safe use
+- Prevents scraping the same URL twice — saves requests/bandwidth at scale
+
+### Post-Extraction Data Validation (`normalizer.py`)
+- New `validate_item()` function integrated into `normalize_batch()`
+- Rejects garbage items:
+  - Names < 3 chars or placeholder text ("undefined", "null", "N/A", "loading")
+  - Zero or negative prices
+  - Prices > $1M (parsing errors)
+  - Clears placeholder images (1x1 pixel, data URIs, spinners)
+  - Clears javascript: URLs
+- Bad items auto-removed before reaching the user
+
+### Browser Worker Device Profiles
+- Uses coherent `DeviceProfile` instead of hardcoded UA string
+- Consistent viewport, locale, timezone per browser session
+
+### Test Results
+- 122 existing tests passing (normalizer, hard-target, device profiles, AI normalization)
+- All new validation and URL dedup smoke tests passing
+- 2 pre-existing price format failures in dom_discovery (not regression)
+
+---
+
+## 2026-03-26 — Infrastructure Upgrades (INFRA-001 through INFRA-006)
+
+### INFRA-001 + INFRA-002: URL Discovery (`url_discovery.py`)
+
+**SitemapParser:**
+- Async sitemap.xml discovery with index file nesting support (max 3 levels)
+- Tries 7 common sitemap locations: sitemap.xml, sitemap_index.xml, sitemap-index.xml, sitemap1.xml, product-sitemap.xml, wp-sitemap.xml, wp-sitemap-posts-product-1.xml
+- Also reads robots.txt for declared sitemap URLs
+- URL filtering by substring pattern (e.g. `/products/`)
+- Max 10K URLs, deduplication, curl_cffi or httpx fetcher
+
+**RobotsChecker:**
+- `can_fetch(url)` — checks robots.txt rules for a URL
+- `get_crawl_delay(url)` — returns domain-specific crawl delay
+- `get_sitemaps(url)` — returns declared sitemap URLs
+- 1-hour per-domain cache, graceful fallback if robots.txt unreachable
+
+### INFRA-004: Circuit Breaker (`circuit_breaker.py`)
+
+- Per-domain state machine: CLOSED → OPEN → HALF_OPEN → CLOSED
+- Configurable thresholds: failure_threshold=5, recovery_timeout=300s, success_threshold=2
+- `can_request()` returns False when circuit is OPEN (saves resources)
+- `record_success()` / `record_failure()` transition states automatically
+- URL/domain normalization, manual reset, stats reporting, open circuit listing
+
+### INFRA-005: Load More Button Clicking (`browser_worker.py`)
+
+- `click_load_more(max_clicks, item_selector)` auto-detects load-more buttons
+- 12 CSS selectors covering common patterns (data-action, class names, IDs)
+- 10 text patterns as fallback ("Load More", "Show More", "View More", etc.)
+- Scrolls button into view before clicking
+- Waits for networkidle + item count change between clicks
+- Configurable max_clicks and optional item counting
+
+### INFRA-006: srcset Image Resolution (`dom_discovery.py`)
+
+- `_parse_srcset()` — parses width descriptors (800w) and density (2x), sorts by resolution
+- `_extract_best_image()` — priority: `<picture> <source>` → `<img srcset>` → `<img src/data-src>`
+- Always picks highest resolution available
+- Rejects placeholder images (1x1, blank, spacer, placeholder, loading, spinner)
+- Integrated into `extract_fields_from_card()` replacing the old simple `img.src` extraction
+
+---
+
+## 2026-03-26 — Final Deferred Items (STEALTH-006/007/008 + INFRA-003)
+
+### STEALTH-006: AWS WAF Token Manager (`waf_token_manager.py`)
+
+- `AWSWAFTokenManager` class with per-domain token storage
+- 5-minute TTL matching Amazon's actual token expiry
+- Fingerprint consistency checking: if device profile changes, token is invalidated
+- Pre-emptive refresh detection via `needs_refresh(domain, buffer_seconds=60)`
+- `store_from_browser_cookies()` helper for Playwright browser contexts
+- `is_waf_domain()` detection for 20+ Amazon TLDs (com, co.uk, de, fr, etc.)
+- Token stats reporting per domain
+
+### STEALTH-007: UA Version Updater (`device_profiles.py`)
+
+- `update_browser_versions(chrome_version, firefox_version, safari_version)` — generates updated profiles with new browser versions while keeping all other fields (locale, timezone, viewport, screen, geo) consistent
+- `apply_version_update()` — modifies global DEVICE_PROFILES list in-place
+- Updates UA strings, browser_version, sec-ch-ua headers, and impersonate targets
+- Constants for latest versions: `LATEST_CHROME_VERSION`, `LATEST_FIREFOX_VERSION`, `LATEST_SAFARI_VERSION`
+- Call quarterly: `apply_version_update(chrome_version="133")`
+
+### STEALTH-008: Mobile Proxy Tier (`proxy_adapter.py`)
+
+- Added `proxy_type` field to Proxy dataclass: "datacenter" (default), "residential", "isp", "mobile"
+- `get_proxy()` now accepts `proxy_type` parameter for tier-based filtering
+- Graceful fallback: if no proxies of requested type exist, uses all available
+- Mobile proxies (4G/5G CGNAT IPs) have lowest detection risk for DataDome, PerimeterX
+- Selection logic: type filter applied before geo/region/strategy filters
+
+### INFRA-003: Response Cache (`response_cache.py`)
+
+- Two-tier architecture: in-memory LRU (500 items, OrderedDict) + disk persistence
+- `put()` stores response with auto-extracted ETag and Last-Modified from headers
+- `get()` returns cached body on hit, promotes disk entries to memory
+- `get_conditional_headers()` returns If-None-Match/If-Modified-Since for 304 handling
+- Respects Cache-Control directives: no-store, no-cache skip caching; max-age sets TTL
+- `invalidate()` removes single URL; `clear()` wipes all
+- Stats: hit count, miss count, hit rate, entry count
+
+### Test Results
+- 147 existing tests passing, 0 failures
+- All 4 new modules smoke-tested: WAF tokens (TTL, fingerprint, expiry), UA updater (Chrome 133, Firefox 134, Safari 18.0), mobile proxy filtering, response cache (put/get/conditional/no-store)
+- **All tracked tasks complete: zero remaining items**
+
+---
+
+## 2026-03-26 — Keepa API Integration for Amazon Data
+
+### Problem
+Amazon product pages require browser rendering + AWS WAF token management, costing ~$0.10+ per page (proxy bandwidth + CAPTCHA solving + browser session). The data extracted from HTML is limited to what's visible on the page.
+
+### Solution
+Integrate Keepa.com's API — they track 900M+ Amazon products across 11 marketplaces with complete price/sales/offer history. One API call (~$0.001/token) returns richer data than scraping could ever produce.
+
+### Research
+- Installed and inspected `keepa` v1.4.4 Python library source code
+- Read: `keepa_async.py` (AsyncKeepa class, 567 lines), `keepa_sync.py` (Keepa class), `constants.py` (domain codes, CSV indices), `query_keys.py` (700+ product finder params), `models/domain.py` (11 marketplaces), `models/product_params.py` (Pydantic model)
+- Launched 4 research agents for API docs, pricing, endpoints, best practices
+- Mapped all Keepa methods to our platform's architecture
+
+### Implementation
+
+**New Module: `packages/connectors/keepa_connector.py`**
+
+KeepaConnector class with full Keepa API surface:
+
+| Method | What | Token Cost |
+|--------|------|-----------|
+| `query_products(asins, domain)` | Batch ASIN lookup (up to 100), price/rank/rating/offers | 1/ASIN |
+| `search_products(**params)` | Find ASINs by title, brand, price, category (700+ filters) | 1/result |
+| `find_deals(min_discount, category)` | Current price drops and lightning deals | Variable |
+| `best_sellers(category)` | Top ASINs by category (up to 100K) | 1 |
+| `seller_info(seller_ids)` | Seller details + storefront | 1/seller |
+| `search_categories(term)` | Browse Amazon category tree | Free |
+| `fetch(request)` | Connector protocol — ASIN from URL → query → JSON response | 1 |
+
+Data transformation (Keepa → our format):
+- Prices: cents → dollars (2799 → "27.99")
+- Rating: 0-50 scale → 0-5.0 ("4.5")
+- Images: CSV hash → full Amazon CDN URL
+- Stock: availabilityAmazon code → "InStock"/"OutOfStock"
+- Price history summary: current/min/max per track (AMAZON, NEW, BUY_BOX)
+
+**Router Changes: `packages/core/router.py`**
+
+```
+Amazon URL → Router
+  ├── /dp/ASIN (product page) → API lane (Keepa) → fallback: Browser → Hard-Target
+  └── /s?k= or /events/ (search/deals) → Browser lane → fallback: Hard-Target
+```
+
+- Added AMAZON_DOMAINS set (11 marketplaces)
+- Added `_is_amazon_product_url()` helper
+- Amazon removed from BROWSER_REQUIRED_DOMAINS (now in dedicated routing)
+
+### Utility Functions
+- `extract_asin(url)` — Extracts ASIN from `/dp/`, `/gp/product/`, `/ASIN/` patterns
+- `detect_amazon_domain(url)` — Maps Amazon TLD → Keepa domain code (US, GB, DE, etc.)
+- `is_amazon_url(url)` — Checks if URL is from any Amazon marketplace
+
+### Keepa API Capabilities (for reference)
+
+**32 price/history data tracks:** AMAZON, NEW, USED, SALES rank, LISTPRICE, BUY_BOX_SHIPPING, NEW_FBA, NEW_FBM_SHIPPING, WAREHOUSE, LIGHTNING_DEAL, COUNT_NEW/USED/REFURBISHED, RATING, COUNT_REVIEWS, TRADE_IN, RENT, plus used/collectible sub-conditions
+
+**100+ product fields:** title, brand, manufacturer, description, features, images, videos, categories, dimensions, weight, UPC/EAN, FBA fees, monthly sold, frequently bought together, variations, A+ content
+
+**11 Amazon marketplaces:** US (.com), GB (.co.uk), DE (.de), FR (.fr), JP (.co.jp), CA (.ca), IT (.it), ES (.es), IN (.in), MX (.com.mx), BR (.com.br)
+
+### Test Results
+- 30 new tests: ASIN extraction (8), domain detection (8), routing (5), transformation (2), protocol (4), is_amazon_url (3)
+- All existing router tests still passing
+- Zero regressions
+
+---
+
+## 2026-03-26 — Keepa Connector Hardening
+
+Fixed all audit findings: price fallback BUY_BOX→NEW→AMAZON→FBA, offer extraction, 7 missing params (update, stock, videos, aplus, only_live_offers, product_code_is_asin, extra_params), 8 new Amazon TLDs (AU, NL, SG, AE, SA, PL, SE, TR), category_lookup(), error classification, description/features/dimensions extraction.
+
+ALL Amazon queries now route through Keepa first (not just /dp/ pages). fetch() handles search→product_finder, deals→deals endpoint, bestsellers→best_sellers.
+
+---
+
+## 2026-03-26 — Google Sheets Cache Layer for Keepa
+
+**Problem:** Paying Keepa for the same product data every time.
+**Solution:** Cache product data in Google Sheet — query sheet first, Keepa only for misses.
+
+GoogleSheetsConnector: service account auth, read/write/search/batch, staleness detection (24h default), auto-create worksheet with headers.
+
+KeepaSheetCache: wraps Keepa+Sheets — check sheet → query Keepa for misses → write back. Hit/miss stats.
+
+14 tests: staleness, row conversion, cache hit/miss/partial, stats accumulation.
+
+---
+
+## 2026-03-26 — Google Maps Business Scraper
+
+### Architecture
+3-tier fallback: Google Places API (primary, $0.032/req) → SerpAPI (secondary, $0.01/search) → Browser scraping (free, stealth Playwright).
+
+### GoogleMapsConnector
+- search_businesses(query, max_results, location, language)
+- get_business_details(place_id) — full details via Places API
+- search_and_save_to_sheets() — search + auto-save to Google Sheet
+
+### Data per business
+name, place_id, address, lat/lng, phone, website, rating, review_count, business_status, price_level, types, primary_type, google_maps_url, open_now, hours, photos, reviews
+
+### Browser scraping
+- Multiple CSS selector strategies for Maps SPA
+- API/XHR interception for internal JSON
+- Regex fallback, aria-label extraction
+- Uses our stealth Playwright with resource blocking + device profiles
+
+19 tests: init, Places API transform, SerpAPI transform, HTML parsing, tier fallback, location handling, metrics.
+

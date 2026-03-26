@@ -2,17 +2,76 @@
 Deduplication Engine — detect and merge duplicate records.
 
 Uses fuzzy matching on product name + URL, and exact matching on SKU/GTIN.
+Includes URL-level dedup to prevent scraping the same URL twice.
 """
 
 from __future__ import annotations
 
 import logging
+import time
 from difflib import SequenceMatcher
 from typing import Optional
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_SIMILARITY_THRESHOLD = 0.85
+
+
+class URLDedup:
+    """Track seen URLs to avoid scraping the same URL twice.
+
+    Used at the task/session level to prevent wasted requests.
+    Pro scrapers never hit the same URL twice in the same job.
+    """
+
+    def __init__(self, ttl_seconds: int = 3600) -> None:
+        self._seen: dict[str, float] = {}  # normalized_url -> timestamp
+        self._ttl = ttl_seconds
+
+    def _normalize_url(self, url: str) -> str:
+        """Normalize a URL for dedup comparison."""
+        from urllib.parse import urlparse, urlunparse, parse_qs, urlencode
+        parsed = urlparse(url.lower().strip())
+        # Remove fragment, trailing slash, www prefix
+        netloc = parsed.netloc.replace("www.", "")
+        path = parsed.path.rstrip("/") or "/"
+        # Sort query params for consistent comparison
+        params = parse_qs(parsed.query, keep_blank_values=True)
+        sorted_query = urlencode(sorted(params.items()), doseq=True)
+        return urlunparse((parsed.scheme, netloc, path, "", sorted_query, ""))
+
+    def is_seen(self, url: str) -> bool:
+        """Check if a URL has already been scraped."""
+        self._evict_expired()
+        normalized = self._normalize_url(url)
+        return normalized in self._seen
+
+    def mark_seen(self, url: str) -> None:
+        """Mark a URL as scraped."""
+        normalized = self._normalize_url(url)
+        self._seen[normalized] = time.time()
+
+    def check_and_mark(self, url: str) -> bool:
+        """Check if seen, and mark if not. Returns True if already seen."""
+        if self.is_seen(url):
+            return True
+        self.mark_seen(url)
+        return False
+
+    def _evict_expired(self) -> None:
+        """Remove URLs older than TTL."""
+        now = time.time()
+        cutoff = now - self._ttl
+        expired = [url for url, ts in self._seen.items() if ts < cutoff]
+        for url in expired:
+            del self._seen[url]
+
+    @property
+    def seen_count(self) -> int:
+        return len(self._seen)
+
+    def clear(self) -> None:
+        self._seen.clear()
 
 
 class DedupEngine:

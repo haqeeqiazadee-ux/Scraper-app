@@ -1,8 +1,10 @@
 """
 Hard-Target Worker — stealth browser connector for anti-bot protected sites.
 
-Combines Playwright stealth settings, residential proxy rotation, fingerprint
-randomisation, CAPTCHA detection/escalation, and exponential-backoff retries.
+Uses Camoufox (C++-level Firefox stealth) when available, falls back to
+Playwright Chromium with JS stealth patches. Integrates coherent device
+profiles, warm-up navigation, human behavioral simulation, CAPTCHA solving,
+and residential proxy rotation.
 
 This connector is the last resort in the escalation chain:
 HTTP -> Browser -> Hard-Target
@@ -13,44 +15,32 @@ from __future__ import annotations
 import asyncio
 import logging
 import random
-import time
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
 from packages.connectors.captcha_adapter import CaptchaAdapter, CaptchaType
 from packages.connectors.proxy_adapter import ProxyAdapter
+from packages.core.device_profiles import DeviceProfile, get_headers_for_profile
+from packages.core.human_behavior import (
+    human_click,
+    human_delay,
+    human_scroll,
+    idle_jitter,
+    warm_up_navigation,
+)
 from packages.core.interfaces import ConnectorMetrics, FetchRequest, FetchResponse
 
 logger = logging.getLogger(__name__)
 
 
-# ---- Fingerprint configuration pools ------------------------------------
+# Check for Camoufox availability
+_HAS_CAMOUFOX = False
+try:
+    import camoufox  # noqa: F401
+    _HAS_CAMOUFOX = True
+except ImportError:
+    logger.info("camoufox not installed — falling back to Playwright Chromium with JS stealth patches")
 
-USER_AGENTS = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:123.0) Gecko/20100101 Firefox/123.0",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15",
-]
-
-VIEWPORTS = [
-    {"width": 1920, "height": 1080},
-    {"width": 1366, "height": 768},
-    {"width": 1536, "height": 864},
-    {"width": 1440, "height": 900},
-    {"width": 1280, "height": 720},
-]
-
-TIMEZONES = [
-    "America/New_York",
-    "America/Chicago",
-    "America/Los_Angeles",
-    "Europe/London",
-    "Europe/Berlin",
-]
-
-LOCALES = ["en-US", "en-GB", "en-CA", "de-DE", "fr-FR"]
 
 # CAPTCHA marker strings commonly found in challenge pages
 CAPTCHA_MARKERS = [
@@ -63,6 +53,8 @@ CAPTCHA_MARKERS = [
     "cf-challenge",
     "challenge-platform",
     "arkose",
+    "aws-waf-token",
+    "awswaf",
 ]
 
 # CSS selectors that indicate a CAPTCHA is present on the page
@@ -73,29 +65,39 @@ CAPTCHA_SELECTORS = [
     ".h-captcha",
     "#captcha",
     "[data-sitekey]",
+    "iframe[src*='challenges.cloudflare.com']",
 ]
 
 
 @dataclass
 class Fingerprint:
-    """Randomised browser fingerprint for a single session."""
+    """Browser fingerprint derived from a coherent device profile."""
 
+    profile: DeviceProfile
     user_agent: str
     viewport: dict[str, int]
     timezone: str
     locale: str
 
     @classmethod
-    def random(cls) -> Fingerprint:
+    def from_profile(cls, profile: DeviceProfile) -> Fingerprint:
         return cls(
-            user_agent=random.choice(USER_AGENTS),
-            viewport=random.choice(VIEWPORTS),
-            timezone=random.choice(TIMEZONES),
-            locale=random.choice(LOCALES),
+            profile=profile,
+            user_agent=profile.user_agent,
+            viewport=profile.viewport,
+            timezone=profile.timezone,
+            locale=profile.locale,
         )
 
+    @classmethod
+    def random(cls, geo: Optional[str] = None) -> Fingerprint:
+        profile = DeviceProfile.random(geo=geo)
+        return cls.from_profile(profile)
 
-# ---- Stealth JavaScript snippets ----------------------------------------
+
+# ---- Stealth JavaScript snippets (fallback for Playwright Chromium) --------
+# These are ONLY used when Camoufox is not available. Camoufox handles stealth
+# at the C++ level, making these unnecessary and actually counterproductive.
 
 STEALTH_SCRIPTS: list[str] = [
     # Remove webdriver flag
@@ -114,6 +116,28 @@ STEALTH_SCRIPTS: list[str] = [
         parameters.name === 'notifications'
             ? Promise.resolve({state: Notification.permission})
             : originalQuery(parameters);""",
+    # Canvas fingerprint noise (add subtle random noise to canvas reads)
+    """const _toDataURL = HTMLCanvasElement.prototype.toDataURL;
+    HTMLCanvasElement.prototype.toDataURL = function(type) {
+        if (type === 'image/png') {
+            const ctx = this.getContext('2d');
+            if (ctx) {
+                const imageData = ctx.getImageData(0, 0, this.width, this.height);
+                for (let i = 0; i < imageData.data.length; i += 4) {
+                    imageData.data[i] = imageData.data[i] ^ (Math.random() > 0.99 ? 1 : 0);
+                }
+                ctx.putImageData(imageData, 0, 0);
+            }
+        }
+        return _toDataURL.apply(this, arguments);
+    };""",
+    # WebGL vendor/renderer masking
+    """const getParameter = WebGLRenderingContext.prototype.getParameter;
+    WebGLRenderingContext.prototype.getParameter = function(parameter) {
+        if (parameter === 37445) return 'Intel Inc.';
+        if (parameter === 37446) return 'Intel Iris OpenGL Engine';
+        return getParameter.apply(this, arguments);
+    };""",
 ]
 
 
@@ -121,15 +145,14 @@ class HardTargetWorker:
     """Stealth browser connector for sites with aggressive anti-bot measures.
 
     Combines:
-    - Playwright with stealth JS patches (webdriver flag, navigator overrides)
+    - Camoufox (C++-level stealth) or Playwright + JS patches (fallback)
+    - Coherent device profiles (all fingerprint signals consistent)
+    - Warm-up navigation (homepage visit before target)
+    - Human behavioral simulation (Bezier mouse, scroll, idle jitter)
     - Residential proxy rotation via ProxyAdapter
-    - Random human-like delays between actions
     - Cookie/session persistence across requests
-    - Multiple JS rendering wait strategies (networkidle, selector-based)
-    - Screenshot capture on failure for debugging
     - CAPTCHA detection and escalation to CaptchaAdapter
-    - Retry with exponential backoff
-    - Fingerprint randomisation (viewport, user-agent, timezone, locale)
+    - Retry with exponential backoff (log-normal delays)
     """
 
     def __init__(
@@ -142,6 +165,8 @@ class HardTargetWorker:
         backoff_max: float = 60.0,
         human_delay_range: tuple[float, float] = (0.5, 2.5),
         executable_path: Optional[str] = None,
+        enable_warm_up: bool = True,
+        use_camoufox: bool = True,
     ) -> None:
         self._proxy_adapter = proxy_adapter
         self._captcha_adapter = captcha_adapter
@@ -151,51 +176,111 @@ class HardTargetWorker:
         self._backoff_max = backoff_max
         self._human_delay_range = human_delay_range
         self._executable_path = executable_path
+        self._enable_warm_up = enable_warm_up
+        self._use_camoufox = use_camoufox and _HAS_CAMOUFOX
         self._metrics = ConnectorMetrics()
 
-        # Lazy-initialised Playwright resources
+        # Lazy-initialised browser resources
         self._playwright: Any = None
         self._browser: Any = None
+        self._browser_type: str = ""  # "camoufox" or "playwright"
 
         # Session persistence: domain -> cookies
         self._cookie_jar: dict[str, list[dict[str, Any]]] = {}
 
     # ---- lifecycle -------------------------------------------------------
 
-    async def _ensure_browser(self) -> None:
-        """Lazy-initialise the Playwright browser instance."""
-        if self._browser is None:
-            from playwright.async_api import async_playwright
+    async def _ensure_browser(self, profile: DeviceProfile) -> None:
+        """Lazy-initialise the browser instance."""
+        if self._browser is not None:
+            return
 
-            self._playwright = await async_playwright().start()
-            launch_args: dict[str, Any] = {
-                "headless": self._headless,
-                "args": [
-                    "--disable-blink-features=AutomationControlled",
-                    "--no-sandbox",
-                ],
-            }
-            if self._executable_path:
-                launch_args["executable_path"] = self._executable_path
-            self._browser = await self._playwright.chromium.launch(**launch_args)
+        if self._use_camoufox:
+            await self._launch_camoufox(profile)
+        else:
+            await self._launch_playwright(profile)
+
+    async def _launch_camoufox(self, profile: DeviceProfile) -> None:
+        """Launch Camoufox with C++-level stealth — no JS patches needed."""
+        from camoufox.async_api import AsyncCamoufox
+
+        self._camoufox_cm = AsyncCamoufox(
+            headless=self._headless,
+            geoip=True,  # Auto-match locale/timezone to IP
+        )
+        self._browser = await self._camoufox_cm.__aenter__()
+        self._browser_type = "camoufox"
+        logger.info("Launched Camoufox (C++-level stealth, headless=%s)", self._headless)
+
+    async def _launch_playwright(self, profile: DeviceProfile) -> None:
+        """Fallback: launch Playwright Chromium with JS stealth patches."""
+        from playwright.async_api import async_playwright
+
+        self._playwright = await async_playwright().start()
+        launch_args: dict[str, Any] = {
+            "headless": self._headless,
+            "args": [
+                "--disable-blink-features=AutomationControlled",
+                "--no-sandbox",
+                "--disable-dev-shm-usage",
+                "--disable-infobars",
+                "--window-size=1920,1080",
+            ],
+        }
+        if self._executable_path:
+            launch_args["executable_path"] = self._executable_path
+        self._browser = await self._playwright.chromium.launch(**launch_args)
+        self._browser_type = "playwright"
+        logger.info("Launched Playwright Chromium fallback (JS stealth patches)")
 
     async def close(self) -> None:
-        """Release browser and Playwright resources."""
-        if self._browser:
+        """Release browser resources."""
+        if self._browser_type == "camoufox" and hasattr(self, "_camoufox_cm"):
+            try:
+                await self._camoufox_cm.__aexit__(None, None, None)
+            except Exception:
+                pass
+            self._browser = None
+        elif self._browser:
             await self._browser.close()
             self._browser = None
         if self._playwright:
             await self._playwright.stop()
             self._playwright = None
 
-    # ---- fingerprint & stealth -------------------------------------------
+    # ---- context creation ------------------------------------------------
 
-    def _generate_fingerprint(self) -> Fingerprint:
-        """Create a randomised browser fingerprint."""
-        return Fingerprint.random()
+    async def _create_context(self, fingerprint: Fingerprint, proxy_url: Optional[str] = None) -> Any:
+        """Create a browser context with the given fingerprint."""
+        context_opts: dict[str, Any] = {
+            "user_agent": fingerprint.user_agent,
+            "viewport": fingerprint.viewport,
+            "locale": fingerprint.locale,
+            "timezone_id": fingerprint.timezone,
+            "ignore_https_errors": True,
+            "screen": fingerprint.profile.screen,
+            "color_scheme": "light",
+        }
+        if proxy_url:
+            context_opts["proxy"] = {"server": proxy_url}
+
+        if self._browser_type == "camoufox":
+            # Camoufox: fingerprint is handled at C++ level, but we still
+            # set context-level options for viewport/locale/timezone
+            context = await self._browser.new_context(**context_opts)
+        else:
+            # Playwright: need context options
+            context = await self._browser.new_context(**context_opts)
+
+        return context
+
+    # ---- stealth ---------------------------------------------------------
 
     async def _apply_stealth(self, page: Any) -> None:
-        """Inject stealth JS patches into a page before navigation."""
+        """Inject stealth JS patches — ONLY for Playwright fallback."""
+        if self._browser_type == "camoufox":
+            return  # Camoufox handles stealth at C++ level
+
         for script in STEALTH_SCRIPTS:
             await page.add_init_script(script)
 
@@ -207,13 +292,6 @@ class HardTargetWorker:
             return None
         proxy = self._proxy_adapter.get_proxy(domain=domain, sticky=True)
         return proxy.url if proxy else None
-
-    # ---- human-like delays -----------------------------------------------
-
-    async def _human_delay(self) -> None:
-        """Sleep for a random duration to mimic human behaviour."""
-        delay = random.uniform(*self._human_delay_range)
-        await asyncio.sleep(delay)
 
     # ---- CAPTCHA detection -----------------------------------------------
 
@@ -239,21 +317,16 @@ class HardTargetWorker:
         return False
 
     async def _handle_captcha(self, page: Any, url: str) -> bool:
-        """Attempt to solve a detected CAPTCHA via CaptchaAdapter.
-
-        Returns True if the CAPTCHA was solved and the page should be re-evaluated.
-        """
+        """Attempt to solve a detected CAPTCHA via CaptchaAdapter."""
         if self._captcha_adapter is None or self._captcha_adapter.solver_count == 0:
             logger.warning("CAPTCHA detected but no solver configured")
             return False
 
-        # Try to find a site key on the page
         site_key = await self._extract_site_key(page)
         if not site_key:
             logger.warning("CAPTCHA detected but site key not found")
             return False
 
-        # Determine CAPTCHA type
         captcha_type = await self._determine_captcha_type(page)
 
         solution = await self._captcha_adapter.solve(
@@ -263,7 +336,6 @@ class HardTargetWorker:
         )
 
         if solution.success:
-            # Inject solution into the page
             await page.evaluate(
                 f"document.getElementById('g-recaptcha-response').innerHTML = '{solution.solution}';"
             )
@@ -294,6 +366,8 @@ class HardTargetWorker:
                 return CaptchaType.HCAPTCHA
             if "recaptcha/api" in html or "g-recaptcha" in html:
                 return CaptchaType.RECAPTCHA_V2
+            if "challenges.cloudflare.com" in html:
+                return CaptchaType.HCAPTCHA  # Turnstile uses hCaptcha-like flow
         except Exception:
             pass
         return CaptchaType.RECAPTCHA_V2
@@ -340,8 +414,13 @@ class HardTargetWorker:
     # ---- core fetch with retry -------------------------------------------
 
     async def fetch(self, request: FetchRequest) -> FetchResponse:
-        """Fetch a URL with stealth settings and exponential-backoff retries."""
-        await self._ensure_browser()
+        """Fetch a URL with full stealth stack and exponential-backoff retries."""
+        # Determine geo from proxy adapter or URL domain
+        domain = self._domain_from_url(request.url)
+        geo = request.metadata.get("geo")
+
+        fingerprint = Fingerprint.random(geo=geo)
+        await self._ensure_browser(fingerprint.profile)
         assert self._browser is not None
         self._metrics.total_requests += 1
 
@@ -349,20 +428,11 @@ class HardTargetWorker:
         last_screenshot: bytes = b""
 
         for attempt in range(1, self._max_retries + 1):
-            fingerprint = self._generate_fingerprint()
-            proxy_url = self._get_proxy_url(domain=self._domain_from_url(request.url))
+            # Fresh fingerprint each attempt (but coherent within itself)
+            fingerprint = Fingerprint.random(geo=geo)
+            proxy_url = self._get_proxy_url(domain=domain)
 
-            context_opts: dict[str, Any] = {
-                "user_agent": fingerprint.user_agent,
-                "viewport": fingerprint.viewport,
-                "locale": fingerprint.locale,
-                "timezone_id": fingerprint.timezone,
-                "ignore_https_errors": True,
-            }
-            if proxy_url:
-                context_opts["proxy"] = {"server": proxy_url}
-
-            context = await self._browser.new_context(**context_opts)
+            context = await self._create_context(fingerprint, proxy_url)
             page = None
             try:
                 page = await context.new_page()
@@ -379,9 +449,13 @@ class HardTargetWorker:
                     ]
                     await context.add_cookies(cookie_list)
 
-                # Human-like pre-navigation delay (skip first attempt for speed)
+                # Warm-up navigation on first attempt (visit homepage first)
+                if attempt == 1 and self._enable_warm_up:
+                    await warm_up_navigation(page, request.url)
+
+                # Human-like pre-navigation delay (log-normal, not uniform)
                 if attempt > 1:
-                    await self._human_delay()
+                    await human_delay(median=2.0, sigma=0.5)
 
                 # Navigate with wait strategy
                 wait_until = request.metadata.get("wait_until", "networkidle")
@@ -400,15 +474,16 @@ class HardTargetWorker:
                     except Exception:
                         logger.debug("Wait selector %s timed out", wait_selector)
 
-                # Post-navigation human delay
-                await self._human_delay()
+                # Human behavioral simulation post-navigation
+                await idle_jitter(page, duration=random.uniform(0.3, 1.0))
+                await human_scroll(page, distance=random.randint(200, 600))
+                await human_delay(median=1.0, sigma=0.3)
 
                 # CAPTCHA detection
                 if await self._detect_captcha(page):
                     solved = await self._handle_captcha(page, request.url)
                     if solved:
-                        # Re-navigate after CAPTCHA solution
-                        await self._human_delay()
+                        await human_delay(median=1.5, sigma=0.3)
                         response = await page.goto(
                             request.url,
                             timeout=request.timeout_ms,
@@ -417,10 +492,8 @@ class HardTargetWorker:
                     else:
                         last_error = "CAPTCHA detected and solving failed"
                         last_screenshot = await self._capture_failure_screenshot(page)
-                        # Save cookies even on failure (for session continuity)
                         await self._save_cookies(context, request.url)
                         await context.close()
-                        # Apply backoff before retry
                         if attempt < self._max_retries:
                             backoff = min(
                                 self._backoff_base ** attempt + random.uniform(0, 1),
@@ -452,7 +525,7 @@ class HardTargetWorker:
 
                 # Mark proxy success
                 if self._proxy_adapter and proxy_url:
-                    proxy_obj = self._proxy_adapter.get_proxy(domain=self._domain_from_url(request.url), sticky=True)
+                    proxy_obj = self._proxy_adapter.get_proxy(domain=domain, sticky=True)
                     if proxy_obj:
                         self._proxy_adapter.mark_success(proxy_obj)
 
@@ -472,13 +545,13 @@ class HardTargetWorker:
 
                 # Mark proxy failure
                 if self._proxy_adapter and proxy_url:
-                    proxy_obj = self._proxy_adapter.get_proxy(domain=self._domain_from_url(request.url), sticky=True)
+                    proxy_obj = self._proxy_adapter.get_proxy(domain=domain, sticky=True)
                     if proxy_obj:
                         self._proxy_adapter.mark_failure(proxy_obj)
 
                 logger.warning(
                     "Hard-target fetch attempt failed",
-                    extra={"url": request.url, "attempt": attempt, "error": last_error},
+                    extra={"url": request.url, "attempt": attempt, "error": last_error, "engine": self._browser_type},
                 )
 
                 if attempt < self._max_retries:
@@ -516,7 +589,8 @@ class HardTargetWorker:
     async def health_check(self) -> bool:
         """Check if the browser can be launched."""
         try:
-            await self._ensure_browser()
+            profile = DeviceProfile.random()
+            await self._ensure_browser(profile)
             return self._browser is not None
         except Exception:
             return False
@@ -524,3 +598,8 @@ class HardTargetWorker:
     def get_metrics(self) -> ConnectorMetrics:
         """Return current connector metrics."""
         return self._metrics
+
+    @property
+    def browser_type(self) -> str:
+        """Return which browser engine is active."""
+        return self._browser_type
