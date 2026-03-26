@@ -69,6 +69,9 @@ AMAZON_DOMAINS: set[str] = {
     "amazon.com", "amazon.co.uk", "amazon.de", "amazon.fr",
     "amazon.co.jp", "amazon.ca", "amazon.it", "amazon.es",
     "amazon.in", "amazon.com.mx", "amazon.com.br",
+    # Additional Amazon TLDs (not all supported by Keepa — fall back to browser)
+    "amazon.com.au", "amazon.nl", "amazon.sg", "amazon.ae",
+    "amazon.sa", "amazon.pl", "amazon.se", "amazon.com.tr",
 }
 
 # Domains known to require hard-target (aggressive anti-bot protection)

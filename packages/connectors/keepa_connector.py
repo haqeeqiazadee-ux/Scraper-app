@@ -29,7 +29,7 @@ from packages.core.interfaces import ConnectorMetrics, FetchRequest, FetchRespon
 
 logger = logging.getLogger(__name__)
 
-# Amazon TLD to Keepa domain code mapping
+# Amazon TLD to Keepa domain code mapping (all supported marketplaces)
 AMAZON_TLD_TO_DOMAIN: dict[str, str] = {
     "amazon.com": "US",
     "amazon.co.uk": "GB",
@@ -42,6 +42,16 @@ AMAZON_TLD_TO_DOMAIN: dict[str, str] = {
     "amazon.in": "IN",
     "amazon.com.mx": "MX",
     "amazon.com.br": "BR",
+    # These Amazon domains exist but Keepa doesn't support them yet —
+    # they'll fall back to browser scraping via the router
+    "amazon.com.au": "US",  # Fallback: not in Keepa
+    "amazon.nl": "US",
+    "amazon.sg": "US",
+    "amazon.ae": "US",
+    "amazon.sa": "US",
+    "amazon.pl": "US",
+    "amazon.se": "US",
+    "amazon.com.tr": "US",
 }
 
 # Keepa domain code to currency
@@ -50,6 +60,9 @@ DOMAIN_CURRENCY: dict[str, str] = {
     "JP": "JPY", "CA": "CAD", "IT": "EUR", "ES": "EUR",
     "IN": "INR", "MX": "MXN", "BR": "BRL",
 }
+
+# Keepa-supported domain codes (for validation)
+KEEPA_SUPPORTED_DOMAINS = {"US", "GB", "DE", "FR", "JP", "CA", "IT", "ES", "IN", "MX", "BR"}
 
 # ASIN regex
 ASIN_PATTERN = re.compile(r"\b([A-Z0-9]{10})\b")
@@ -137,25 +150,44 @@ class KeepaConnector:
         include_offers: bool = False,
         include_buybox: bool = False,
         include_rating: bool = True,
+        include_stock: bool = False,
+        include_videos: bool = False,
+        include_aplus: bool = False,
         stats_days: int = 90,
         history_days: Optional[int] = 30,
+        update: Optional[int] = None,
+        only_live_offers: Optional[bool] = None,
+        product_code_is_asin: bool = True,
+        extra_params: Optional[dict] = None,
     ) -> list[dict]:
-        """Query product data by ASIN(s).
+        """Query product data by ASIN(s) or product codes.
 
         Args:
-            asins: List of ASINs (max 100 per batch).
+            asins: List of ASINs/UPCs/EANs (max 100 per batch).
             domain: Keepa domain code (US, GB, DE, etc.).
-            include_offers: Include marketplace offers (+tokens).
+            include_offers: Include marketplace offers (+tokens). Enables offer extraction.
             include_buybox: Include buy box data (+2 tokens/product).
             include_rating: Include rating/review history (free).
+            include_stock: Include stock levels for offers (requires include_offers).
+            include_videos: Include video metadata (free).
+            include_aplus: Include A+ content (free).
             stats_days: Stats period in days (free).
             history_days: Limit history to last N days (None=all).
+            update: Force data refresh if older than X hours. 0=live (+1 token).
+            only_live_offers: Only include live offers (reduces response size).
+            product_code_is_asin: True for ASIN, False for UPC/EAN/ISBN-13.
+            extra_params: Additional API parameters for future features.
 
         Returns:
             List of product dicts with our normalized format.
         """
         api = await self._ensure_api()
         self._metrics.total_requests += 1
+
+        # Validate domain
+        if domain not in KEEPA_SUPPORTED_DOMAINS:
+            logger.warning("Domain %s not supported by Keepa, falling back to US", domain)
+            domain = "US"
 
         try:
             raw_products = await api.query(
@@ -166,11 +198,18 @@ class KeepaConnector:
                 offers=20 if include_offers else None,
                 buybox=include_buybox,
                 rating=include_rating,
+                stock=include_stock,
                 days=history_days,
+                update=update,
+                only_live_offers=only_live_offers,
+                videos=include_videos,
+                aplus=include_aplus,
+                product_code_is_asin=product_code_is_asin,
                 to_datetime=True,
                 out_of_stock_as_nan=True,
                 progress_bar=False,
                 wait=True,
+                extra_params=extra_params or {},
             )
 
             self._metrics.successful_requests += 1
@@ -179,7 +218,7 @@ class KeepaConnector:
             # Transform Keepa's format to our platform's normalized format
             products = []
             for raw in raw_products:
-                product = self._transform_product(raw, currency, domain)
+                product = self._transform_product(raw, currency, domain, include_offers)
                 if product:
                     products.append(product)
 
@@ -192,10 +231,21 @@ class KeepaConnector:
         except Exception as e:
             self._metrics.failed_requests += 1
             self._metrics.last_error = str(e)
-            logger.warning("Keepa query failed: %s", e)
+            error_str = str(e)
+
+            # Distinguish transient vs permanent errors for upstream retry decisions
+            if "NOT_ENOUGH_TOKEN" in error_str or "429" in error_str:
+                logger.warning("Keepa rate limited (tokens exhausted): %s", e)
+            elif "PAYMENT_REQUIRED" in error_str or "402" in error_str:
+                logger.error("Keepa payment required — check subscription: %s", e)
+            elif "REQUEST_REJECTED" in error_str or "400" in error_str:
+                logger.error("Keepa rejected request (bad params): %s", e)
+            else:
+                logger.warning("Keepa query failed (may be transient): %s", e)
+
             return []
 
-    def _transform_product(self, raw: dict, currency: str, domain: str) -> Optional[dict]:
+    def _transform_product(self, raw: dict, currency: str, domain: str, include_offers: bool = False) -> Optional[dict]:
         """Transform a Keepa product dict into our platform's normalized format."""
         if not raw or not raw.get("title"):
             return None
@@ -209,8 +259,14 @@ class KeepaConnector:
             "source": "keepa_api",
         }
 
-        # Product URL
-        domain_tld = {v: k for k, v in AMAZON_TLD_TO_DOMAIN.items()}.get(domain, "amazon.com")
+        # Product URL — use primary TLD for each Keepa domain code
+        DOMAIN_TO_PRIMARY_TLD = {
+            "US": "amazon.com", "GB": "amazon.co.uk", "DE": "amazon.de",
+            "FR": "amazon.fr", "JP": "amazon.co.jp", "CA": "amazon.ca",
+            "IT": "amazon.it", "ES": "amazon.es", "IN": "amazon.in",
+            "MX": "amazon.com.mx", "BR": "amazon.com.br",
+        }
+        domain_tld = DOMAIN_TO_PRIMARY_TLD.get(domain, "amazon.com")
         product["product_url"] = f"https://www.{domain_tld}/dp/{raw.get('asin', '')}"
 
         # Images
@@ -221,19 +277,40 @@ class KeepaConnector:
                 product["image_url"] = f"https://images-na.ssl-images-amazon.com/images/I/{first_image}"
 
         # Current prices from data tracks
+        # Priority: BUY_BOX (what customer actually pays) → NEW (lowest 3P) → AMAZON (Amazon's price)
         data = raw.get("data", {})
-        price = self._get_current_price(data, "AMAZON")
-        if not price:
-            price = self._get_current_price(data, "BUY_BOX_SHIPPING")
+        price = self._get_current_price(data, "BUY_BOX_SHIPPING")
         if not price:
             price = self._get_current_price(data, "NEW")
+        if not price:
+            price = self._get_current_price(data, "AMAZON")
+        if not price:
+            price = self._get_current_price(data, "NEW_FBA")
         if price and price > 0:
             product["price"] = f"{price / 100:.2f}"  # Keepa stores prices in cents
+
+        # Amazon's own price (may differ from buy box / lowest new)
+        amazon_price = self._get_current_price(data, "AMAZON")
+        if amazon_price and amazon_price > 0:
+            product["amazon_price"] = f"{amazon_price / 100:.2f}"
 
         # Original/list price
         list_price = self._get_current_price(data, "LISTPRICE")
         if list_price and list_price > 0:
             product["original_price"] = f"{list_price / 100:.2f}"
+
+        # Additional price tracks (used, refurbished, warehouse)
+        for track, field in [
+            ("USED", "used_price"),
+            ("REFURBISHED", "refurbished_price"),
+            ("WAREHOUSE", "warehouse_price"),
+            ("NEW_FBA", "fba_price"),
+            ("NEW_FBM_SHIPPING", "fbm_price"),
+            ("COLLECTIBLE", "collectible_price"),
+        ]:
+            track_price = self._get_current_price(data, track)
+            if track_price and track_price > 0:
+                product[field] = f"{track_price / 100:.2f}"
 
         # Rating (Keepa stores 0-50, we use 0-5)
         rating = self._get_current_value(data, "RATING")
@@ -285,6 +362,24 @@ class KeepaConnector:
             product["fba_fees"] = raw["fbaFees"]
         if raw.get("monthlySold"):
             product["monthly_sold"] = raw["monthlySold"]
+
+        # Description and features
+        if raw.get("description"):
+            product["description"] = raw["description"]
+        if raw.get("features"):
+            product["features"] = raw["features"]
+
+        # Physical dimensions
+        for dim_key in ["itemWeight", "itemHeight", "itemLength", "itemWidth",
+                        "packageWeight", "packageHeight", "packageLength", "packageWidth"]:
+            if raw.get(dim_key):
+                product[dim_key] = raw[dim_key]
+
+        # Offer data (when include_offers=True)
+        if include_offers and raw.get("offers"):
+            product["offers"] = self._extract_offers(raw["offers"], raw.get("liveOffersOrder"))
+        if raw.get("buyBoxSellerIdHistory"):
+            product["buybox_seller_history"] = True
 
         # Price history summary (last 30/90/180 day trends)
         product["price_history"] = self._build_price_summary(data)
@@ -339,9 +434,10 @@ class KeepaConnector:
         return summary
 
     def _build_price_summary(self, data: dict) -> dict:
-        """Build a human-readable price history summary."""
+        """Build a human-readable price history summary across all tracks."""
         summary = {}
-        for track in ["AMAZON", "NEW", "BUY_BOX_SHIPPING"]:
+        for track in ["AMAZON", "NEW", "BUY_BOX_SHIPPING", "USED", "NEW_FBA",
+                       "WAREHOUSE", "REFURBISHED", "COLLECTIBLE"]:
             prices = data.get(track)
             if prices is not None:
                 try:
@@ -356,6 +452,63 @@ class KeepaConnector:
                 except Exception:
                     pass
         return summary
+
+    def _extract_offers(self, offers: list, live_order: Optional[list] = None) -> list[dict]:
+        """Extract marketplace offer details from Keepa offer data."""
+        result = []
+        live_indices = set(live_order) if live_order else set()
+
+        for i, offer in enumerate(offers):
+            if not isinstance(offer, dict):
+                continue
+            o: dict[str, Any] = {
+                "seller_id": offer.get("sellerId", ""),
+                "condition": offer.get("condition", ""),
+                "is_fba": offer.get("isFulfilledByAmazon", False),
+                "is_prime": offer.get("isPrimeEligible", False),
+                "is_live": i in live_indices,
+            }
+            # Current price
+            price_ship = offer.get("priceShippingIfApplicable")
+            if price_ship and price_ship > 0:
+                o["price"] = f"{price_ship / 100:.2f}"
+            # Stock
+            stock = offer.get("stockLevel")
+            if stock is not None:
+                o["stock"] = stock
+            result.append(o)
+
+        return result
+
+    # ---- Category Lookup --------------------------------------------------
+
+    async def category_lookup(
+        self,
+        category_id: int = 0,
+        domain: str = "US",
+        include_parents: bool = False,
+    ) -> dict:
+        """Look up Amazon category tree by ID.
+
+        Args:
+            category_id: Category node ID. Use 0 for all root categories.
+            domain: Keepa domain code.
+            include_parents: Include parent categories in response.
+
+        Returns:
+            Dict of category objects keyed by category ID.
+        """
+        api = await self._ensure_api()
+        try:
+            return await api.category_lookup(
+                category_id=category_id,
+                domain=domain,
+                include_parents=int(include_parents),
+                wait=True,
+            )
+        except Exception as e:
+            logger.warning("Keepa category_lookup failed: %s", e)
+            return {}
 
     # ---- Product Search ---------------------------------------------------
 
