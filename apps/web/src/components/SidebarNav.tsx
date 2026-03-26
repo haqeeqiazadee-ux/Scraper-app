@@ -117,6 +117,25 @@ function IconTemplate() {
   );
 }
 
+function IconAmazon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 2L3 5v8a1.5 1.5 0 001.5 1.5h7A1.5 1.5 0 0013 13V5l-2-3z" />
+      <line x1="3" y1="5" x2="13" y2="5" />
+      <path d="M10.5 7.5a2.5 2.5 0 01-5 0" />
+    </svg>
+  );
+}
+
+function IconMap() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M13 7c0 4.5-5 7.5-5 7.5S3 11.5 3 7a5 5 0 0110 0z" />
+      <circle cx="8" cy="7" r="1.5" />
+    </svg>
+  );
+}
+
 /* ── Nav groups ── */
 
 interface NavItem {
@@ -146,6 +165,8 @@ const NAV_GROUPS: NavGroup[] = [
       { to: "/templates",     label: "Templates",     Icon: IconTemplate },
       { to: "/route-tester",  label: "Route Tester",  Icon: IconCompass },
       { to: "/scrape-test",   label: "Scrape Tester", Icon: IconDatabase },
+      { to: "/amazon",        label: "Amazon / Keepa", Icon: IconAmazon },
+      { to: "/google-maps",   label: "Google Maps",   Icon: IconMap },
       { to: "/schedules",     label: "Schedules",     Icon: IconClock },
     ],
   },
