@@ -43,15 +43,32 @@ class RouteDecision:
 
 
 # Domains known to require browser rendering
+# Note: Amazon domains are handled separately via AMAZON_DOMAINS (Keepa API for product pages)
 BROWSER_REQUIRED_DOMAINS: set[str] = {
-    "amazon.com", "amazon.co.uk", "amazon.de",
     "instagram.com", "tiktok.com", "twitter.com",
 }
+
+
+def _is_amazon_product_url(url: str) -> bool:
+    """Check if an Amazon URL is a product detail page (vs search/deals/category).
+
+    Product pages contain /dp/ASIN or /gp/product/ASIN patterns.
+    These go through Keepa API. Everything else goes through browser.
+    """
+    import re
+    return bool(re.search(r"/(?:dp|gp/product|ASIN)/[A-Z0-9]{10}", url))
 
 # Domains with known APIs
 API_AVAILABLE_DOMAINS: dict[str, str] = {
     "shopify.com": "shopify_api",
     "myshopify.com": "shopify_api",
+}
+
+# Amazon domains — routed to Keepa API for product pages, browser for search/deals
+AMAZON_DOMAINS: set[str] = {
+    "amazon.com", "amazon.co.uk", "amazon.de", "amazon.fr",
+    "amazon.co.jp", "amazon.ca", "amazon.it", "amazon.es",
+    "amazon.in", "amazon.com.mx", "amazon.com.br",
 }
 
 # Domains known to require hard-target (aggressive anti-bot protection)
@@ -137,7 +154,23 @@ class ExecutionRouter:
                 confidence=0.8,
             )
 
-        # 4. Check if domain requires hard-target (exact or suffix match)
+        # 4. Amazon smart routing — Keepa API for product pages, browser for search/deals
+        if self._match_domain(domain, {d: True for d in AMAZON_DOMAINS}):
+            raw_url = str(task.url)
+            if _is_amazon_product_url(raw_url):
+                return RouteDecision(
+                    lane=Lane.API,
+                    reason=f"Amazon product page → Keepa API (ASIN detected)",
+                    fallback_lanes=[Lane.BROWSER, Lane.HARD_TARGET],
+                )
+            else:
+                return RouteDecision(
+                    lane=Lane.BROWSER,
+                    reason=f"Amazon search/deals page → browser rendering",
+                    fallback_lanes=[Lane.HARD_TARGET],
+                )
+
+        # 5. Check if domain requires hard-target (exact or suffix match)
         if self._match_domain(domain, {d: True for d in HARD_TARGET_DOMAINS}):
             return RouteDecision(
                 lane=Lane.HARD_TARGET,
@@ -145,7 +178,7 @@ class ExecutionRouter:
                 fallback_lanes=[],
             )
 
-        # 5. Check if domain requires browser (exact or suffix match)
+        # 6. Check if domain requires browser (exact or suffix match)
         if self._match_domain(domain, {d: True for d in BROWSER_REQUIRED_DOMAINS}):
             return RouteDecision(
                 lane=Lane.BROWSER,
