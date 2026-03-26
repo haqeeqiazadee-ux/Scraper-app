@@ -1024,3 +1024,48 @@
   3. `tests/unit/test_google_maps.py` (NEW, 19 tests) — init, transformation, parsing, fallback, metrics
 - **Blockers found:** `googlemaps` pip package fails to build — used direct REST API calls instead (better: async, no extra dependency)
 - **Next action:** Full E2E test sweep
+
+## Work Cycle 038 — 2026-03-26
+
+- **Timestamp:** 2026-03-26
+- **Active Task IDs:** E2E-001, FRONTEND-001
+- **What was read before action:** All test files, all new module files
+- **Action taken:** Full E2E test sweep (229 unit + 15 smoke) + system tracking update
+- **Outputs produced:**
+  1. 229 unit tests passed across 10 test files
+  2. 15 smoke tests passed across all new modules
+  3. All 6 system tracking files updated
+- **Blockers found:** None
+- **Next action:** Frontend redesign
+
+## Work Cycle 039 — 2026-03-26
+
+- **Timestamp:** 2026-03-26
+- **Active Task IDs:** FRONTEND-001, FRONTEND-002, FRONTEND-003
+- **What was read before action:** Full frontend audit (App.tsx, Login.tsx, SidebarNav.tsx, all pages, all components, globals.css, api/client.ts, hooks, contexts)
+- **Action taken:** Frontend redesign — new pages + updated login + sidebar nav
+- **Outputs produced:**
+  1. `apps/web/src/pages/Login.tsx` — redesigned split layout (gradient branding + form)
+  2. `apps/web/src/pages/AmazonPage.tsx` (NEW) — ASIN search, product card, domain selector, price history
+  3. `apps/web/src/pages/GoogleMapsPage.tsx` (NEW) — business search, results grid, ratings
+  4. `apps/web/src/components/SidebarNav.tsx` — added Amazon/Keepa + Google Maps nav items
+  5. `apps/web/src/App.tsx` — added /amazon and /google-maps routes
+- **Blockers found:** None
+- **Next action:** Live Keepa + Google Sheets integration testing
+
+## Work Cycle 040 — 2026-03-26
+
+- **Timestamp:** 2026-03-26
+- **Active Task IDs:** LIVE-001
+- **What was read before action:** Keepa connector, Google Sheets connector, .env
+- **Action taken:** Live Keepa API test + Google Sheets integration setup
+- **Outputs produced:**
+  1. Keepa API key saved to .env — verified LIVE (300 tokens, 5/min refill, real product data)
+  2. Google OAuth credentials saved to .env
+  3. Service account JSON key saved (service_account.json, gitignored)
+  4. Google Sheets API + Drive API confirmed enabled on yousell-489607 project
+  5. Live Keepa test: WD 1TB HDD (B0088PUEPK) — $75.00, 4.5/5, 68K reviews
+  6. .env.example updated with Google OAuth placeholders
+  7. .gitignore updated to exclude service_account.json
+- **Blockers found:** sheets.googleapis.com blocked by sandbox network firewall (same as Gemini). Will work on Railway/Render/local deployment.
+- **Next action:** Deploy to production environment for full Sheets integration test

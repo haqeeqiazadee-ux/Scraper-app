@@ -175,7 +175,7 @@ After completing any task:
 | `system/todo.md` | Current task queue |
 | `system/execution_trace.md` | Decision audit trail |
 | `system/development_log.md` | Engineering log |
-| `system/lessons.md` | What we've learned (86 lessons) |
+| `system/lessons.md` | What we've learned (88 lessons) |
 | `system/final_step_logs.md` | Per-task execution evidence |
 
 ## Key New Modules (Phase 6-8)

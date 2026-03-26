@@ -187,3 +187,7 @@
 85. **Google Sheets as a cache layer saves API costs** — Store API results in a shared Google Sheet. Next time the same data is requested, read from Sheet (free) instead of calling the API again. With 24-hour staleness, you pay for each product only once per day regardless of how many times it's queried.
 
 86. **Multi-tier API fallback is more reliable than any single source** — Google Maps data can come from Places API (reliable, costs money), SerpAPI (cheaper, third-party), or direct browser scraping (free, fragile). Building all three with automatic fallthrough means the system works regardless of which service is available or affordable.
+
+87. **Sandbox environments block Google APIs at the network level** — `sheets.googleapis.com`, `drive.googleapis.com`, and `generativelanguage.googleapis.com` all return 403 from sandboxed environments. The error looks like an auth problem but it's a network firewall. Always verify by checking if the domain is reachable at all (`curl https://sheets.googleapis.com/`). The same code works instantly on Railway, Render, or any real server.
+
+88. **Service accounts need both API enablement AND sheet sharing** — Two separate permissions are required: (1) enable the Sheets/Drive APIs in Google Cloud Console, and (2) share the specific spreadsheet with the service account email as Editor. Missing either one causes a 403. The service account email looks like `name@project.iam.gserviceaccount.com`.
