@@ -79,3 +79,5 @@ artifacts/
 # Coverage
 coverage/
 .nyc_output/
+service_account.json
+service_account.json
