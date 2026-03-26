@@ -120,25 +120,27 @@ class TestRouterAmazonRouting:
         assert decision.lane == Lane.API
         assert "Keepa" in decision.reason or "ASIN" in decision.reason
 
-    def test_amazon_search_url_routes_to_browser(self) -> None:
-        """Amazon search URLs route to browser lane."""
+    def test_amazon_search_url_routes_to_api(self) -> None:
+        """Amazon search URLs route to Keepa API (priority for ALL Amazon queries)."""
         from packages.contracts.task import Task
         from packages.core.router import ExecutionRouter, Lane
 
         router = ExecutionRouter()
         task = Task(tenant_id="t1", url="https://www.amazon.com/s?k=wireless+mouse")
         decision = router.route(task)
-        assert decision.lane == Lane.BROWSER
+        assert decision.lane == Lane.API
+        assert Lane.BROWSER in decision.fallback_lanes
 
-    def test_amazon_deals_url_routes_to_browser(self) -> None:
-        """Amazon deals URLs route to browser lane."""
+    def test_amazon_deals_url_routes_to_api(self) -> None:
+        """Amazon deals URLs route to Keepa API first."""
         from packages.contracts.task import Task
         from packages.core.router import ExecutionRouter, Lane
 
         router = ExecutionRouter()
         task = Task(tenant_id="t1", url="https://www.amazon.com/events/deals")
         decision = router.route(task)
-        assert decision.lane == Lane.BROWSER
+        assert decision.lane == Lane.API
+        assert Lane.BROWSER in decision.fallback_lanes
 
     def test_amazon_product_has_browser_fallback(self) -> None:
         """Amazon product pages fall back to browser if Keepa fails."""
@@ -235,13 +237,13 @@ class TestKeepaConnectorProtocol:
         assert metrics.successful_requests == 0
 
     @pytest.mark.asyncio
-    async def test_fetch_without_asin_returns_400(self) -> None:
-        """fetch() with non-product URL returns 400."""
+    async def test_fetch_non_amazon_returns_404(self) -> None:
+        """fetch() with non-Amazon URL returns 404 (no Keepa data)."""
         connector = KeepaConnector(api_key="test")
-        request = FetchRequest(url="https://www.amazon.com/s?k=test")
+        # A URL with no ASIN and no search keyword will fail gracefully
+        request = FetchRequest(url="https://www.amazon.com/")
         response = await connector.fetch(request)
-        assert response.status_code == 400
-        assert "ASIN" in response.error
+        assert response.status_code == 404
 
     @pytest.mark.asyncio
     async def test_close_clears_api(self) -> None:

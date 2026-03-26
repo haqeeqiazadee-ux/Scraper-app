@@ -664,36 +664,89 @@ class KeepaConnector:
     # ---- Connector Protocol -----------------------------------------------
 
     async def fetch(self, request: FetchRequest) -> FetchResponse:
-        """Implement Connector protocol — route Amazon URLs through Keepa API.
+        """Implement Connector protocol — handle ALL Amazon URLs via Keepa API.
 
-        Extracts ASIN from the URL, queries Keepa, and returns the product
-        data as JSON in the response body.
+        Automatically detects URL type and routes to the right Keepa method:
+        - /dp/ASIN → query_products (single product lookup)
+        - /s?k=keyword → search_products (product finder by title)
+        - /gp/bestsellers/ → best_sellers (by category)
+        - /events/deals → find_deals
+        - Other → search_products with title extracted from URL
+
+        Returns product data as JSON in the response body.
+        Falls back with status 404 if no data found (triggers browser fallback).
         """
         import json
+        from urllib.parse import urlparse, parse_qs
 
         url = request.url
-        asin = extract_asin(url)
         domain = detect_amazon_domain(url)
+        parsed = urlparse(url)
+        path = parsed.path.lower()
+        query_params = parse_qs(parsed.query)
 
-        if not asin:
-            return FetchResponse(
-                url=url,
-                status_code=400,
-                error=f"Could not extract ASIN from URL: {url}",
+        products: list[dict] = []
+
+        # Route 1: Product detail page (/dp/ASIN, /gp/product/ASIN)
+        asin = extract_asin(url)
+        if asin:
+            products = await self.query_products(
+                asins=[asin],
+                domain=domain,
+                include_rating=True,
+                stats_days=90,
             )
 
-        products = await self.query_products(
-            asins=[asin],
-            domain=domain,
-            include_rating=True,
-            stats_days=90,
-        )
+        # Route 2: Search page (/s?k=keyword)
+        elif "/s" in path and ("k" in query_params or "field-keywords" in query_params):
+            keyword = (query_params.get("k") or query_params.get("field-keywords", [""]))[0]
+            if keyword:
+                asins = await self.search_products(
+                    domain=domain,
+                    n_products=20,
+                    title=keyword,
+                )
+                if asins:
+                    products = await self.query_products(
+                        asins=asins[:20],
+                        domain=domain,
+                        include_rating=True,
+                        stats_days=30,
+                        history_days=7,
+                    )
 
+        # Route 3: Best sellers (/gp/bestsellers/, /Best-Sellers)
+        elif "bestseller" in path or "best-seller" in path:
+            # Try to extract category from URL path
+            # e.g., /gp/bestsellers/electronics/
+            parts = [p for p in path.split("/") if p and p not in ("gp", "bestsellers", "best-sellers")]
+            if parts:
+                # Search for the category to get its ID
+                categories = await self.search_categories(parts[0], domain=domain)
+                if categories:
+                    cat_id = list(categories.keys())[0]
+                    asins = await self.best_sellers(category=cat_id, domain=domain)
+                    if asins:
+                        products = await self.query_products(
+                            asins=asins[:20],
+                            domain=domain,
+                            include_rating=True,
+                            stats_days=30,
+                        )
+
+        # Route 4: Deals (/events/deals, /deal, /gp/goldbox)
+        elif any(d in path for d in ("deal", "goldbox", "events")):
+            deals = await self.find_deals(domain=domain, min_discount_percent=10)
+            if deals:
+                # Deals return product objects directly
+                products = deals[:20] if isinstance(deals, list) else []
+
+        # No data found — return 404 so the router falls back to browser
         if not products:
             return FetchResponse(
                 url=url,
                 status_code=404,
-                error=f"No Keepa data found for ASIN {asin}",
+                error=f"No Keepa data for URL: {url}",
             )
 
         # Return product data as JSON response

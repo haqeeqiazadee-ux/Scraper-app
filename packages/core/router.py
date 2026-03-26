@@ -157,21 +157,16 @@ class ExecutionRouter:
                 confidence=0.8,
             )
 
-        # 4. Amazon smart routing — Keepa API for product pages, browser for search/deals
+        # 4. Amazon — ALL queries go through Keepa API first
+        # Keepa handles: product pages (by ASIN), search (product_finder),
+        # deals, best sellers, category browsing, seller lookup.
+        # Browser is fallback only if Keepa fails or returns no data.
         if self._match_domain(domain, {d: True for d in AMAZON_DOMAINS}):
-            raw_url = str(task.url)
-            if _is_amazon_product_url(raw_url):
-                return RouteDecision(
-                    lane=Lane.API,
-                    reason=f"Amazon product page → Keepa API (ASIN detected)",
-                    fallback_lanes=[Lane.BROWSER, Lane.HARD_TARGET],
-                )
-            else:
-                return RouteDecision(
-                    lane=Lane.BROWSER,
-                    reason=f"Amazon search/deals page → browser rendering",
-                    fallback_lanes=[Lane.HARD_TARGET],
-                )
+            return RouteDecision(
+                lane=Lane.API,
+                reason=f"Amazon → Keepa API (priority for all Amazon queries)",
+                fallback_lanes=[Lane.BROWSER, Lane.HARD_TARGET],
+            )
 
         # 5. Check if domain requires hard-target (exact or suffix match)
         if self._match_domain(domain, {d: True for d in HARD_TARGET_DOMAINS}):
