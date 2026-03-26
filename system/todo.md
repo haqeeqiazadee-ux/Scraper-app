@@ -189,17 +189,17 @@ Research-driven upgrade based on analysis of top-tier scrapers (Crawlee, Camoufo
 - [x] **OPS-004:** Post-extraction data validation (reject zero prices, placeholder names, fake images)
 - [x] **OPS-005:** Device profile integration in browser worker (consistent fingerprint per session)
 
-## Remaining — Deferred Items (P2)
+## Completed — Deferred Items (All Done)
 
 ### Stealth
-- [ ] **STEALTH-006:** AWS WAF token lifecycle management (Amazon-specific)
-- [ ] **STEALTH-007:** Auto-updating UA string database
-- [ ] **STEALTH-008:** Mobile proxy tier support
+- [x] **STEALTH-006:** AWS WAF token lifecycle management (token storage, expiry, fingerprint consistency)
+- [x] **STEALTH-007:** Auto-updating UA string database (version bumper for all 14 profiles)
+- [x] **STEALTH-008:** Mobile proxy tier support (proxy_type field + type-based filtering)
 
 ### Infrastructure
 - [x] **INFRA-001:** Sitemap.xml discovery for URL enumeration
 - [x] **INFRA-002:** robots.txt compliance wiring (RobotsChecker with cache)
-- [ ] **INFRA-003:** Response caching with ETag/Last-Modified headers
+- [x] **INFRA-003:** Response caching with ETag/Last-Modified headers (memory LRU + disk)
 - [x] **INFRA-004:** Circuit breaker for consistently-failing domains
 - [x] **INFRA-005:** Load More button clicking in browser worker
 - [x] **INFRA-006:** srcset image resolution (extract highest-res from srcset)
@@ -216,6 +216,7 @@ Research-driven upgrade based on analysis of top-tier scrapers (Crawlee, Camoufo
 - **Stealth upgrade tasks:** 5/5 complete
 - **Extraction overhaul tasks:** 8/8 complete
 - **Operational upgrade tasks:** 5/5 complete
-- **Infrastructure tasks:** 5/6 complete (response caching deferred)
+- **Infrastructure tasks:** 6/6 complete
+- **Deferred stealth tasks:** 3/3 complete
 - **Lessons learned:** 76
-- **Platform completeness:** Production-hardened (stealth + extraction + operations + infrastructure)
+- **Platform completeness:** ALL TASKS COMPLETE — zero remaining items

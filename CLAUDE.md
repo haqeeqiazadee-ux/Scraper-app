@@ -189,6 +189,8 @@ After completing any task:
 | `packages/connectors/browser_worker.py` | Resource blocking, API interception, device profiles, Load More |
 | `packages/core/url_discovery.py` | Sitemap.xml parser + robots.txt compliance checker |
 | `packages/core/circuit_breaker.py` | Per-domain circuit breaker (CLOSED/OPEN/HALF_OPEN) |
+| `packages/core/waf_token_manager.py` | AWS WAF token lifecycle (Amazon cookie management) |
+| `packages/core/response_cache.py` | Two-tier HTTP response cache (memory LRU + disk) |
 
 ## Legacy Code (scraper_pro/)
 

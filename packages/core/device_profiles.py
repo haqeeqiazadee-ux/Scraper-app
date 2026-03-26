@@ -325,6 +325,152 @@ DEVICE_PROFILES: list[DeviceProfile] = [
 ]
 
 
+# =============================================================================
+# UA Version Updater — bump all profiles to latest browser versions
+# =============================================================================
+
+# Current latest stable versions (update these quarterly)
+LATEST_CHROME_VERSION = "131"
+LATEST_FIREFOX_VERSION = "132"
+LATEST_SAFARI_VERSION = "17.6"
+
+# curl_cffi impersonate targets mapped to versions
+CHROME_IMPERSONATE_MAP = {
+    "131": "chrome131",
+    "130": "chrome130",
+    "124": "chrome124",
+    "120": "chrome120",
+}
+
+
+def update_browser_versions(
+    chrome_version: Optional[str] = None,
+    firefox_version: Optional[str] = None,
+    safari_version: Optional[str] = None,
+) -> list[DeviceProfile]:
+    """Generate updated profiles with new browser versions.
+
+    Bumps the UA strings, browser_version, sec-ch-ua headers, and
+    impersonate targets across all profiles while keeping everything
+    else (locale, timezone, viewport, screen, geo) consistent.
+
+    This is how you keep the UA database current without manually
+    editing 14 profile definitions. Call quarterly.
+
+    Args:
+        chrome_version: New Chrome major version (e.g. "133")
+        firefox_version: New Firefox major version (e.g. "134")
+        safari_version: New Safari version (e.g. "18.0")
+
+    Returns:
+        New list of updated DeviceProfile objects.
+    """
+    import re as _re
+
+    chrome_v = chrome_version or LATEST_CHROME_VERSION
+    firefox_v = firefox_version or LATEST_FIREFOX_VERSION
+    safari_v = safari_version or LATEST_SAFARI_VERSION
+
+    # Determine curl_cffi impersonate target
+    chrome_impersonate = CHROME_IMPERSONATE_MAP.get(chrome_v, f"chrome{chrome_v}")
+
+    updated: list[DeviceProfile] = []
+
+    for p in DEVICE_PROFILES:
+        if p.browser == "chrome":
+            # Update Chrome UA string
+            new_ua = _re.sub(
+                r"Chrome/\d+\.0\.0\.0",
+                f"Chrome/{chrome_v}.0.0.0",
+                p.user_agent,
+            )
+            updated.append(DeviceProfile(
+                user_agent=new_ua,
+                browser=p.browser,
+                browser_version=chrome_v,
+                platform=p.platform,
+                locale=p.locale,
+                accept_language=p.accept_language,
+                timezone=p.timezone,
+                viewport=p.viewport,
+                screen=p.screen,
+                color_depth=p.color_depth,
+                pixel_ratio=p.pixel_ratio,
+                hardware_concurrency=p.hardware_concurrency,
+                geo_hint=p.geo_hint,
+                impersonate_target=chrome_impersonate,
+            ))
+        elif p.browser == "firefox":
+            # Update Firefox UA string
+            new_ua = _re.sub(
+                r"Firefox/\d+\.0",
+                f"Firefox/{firefox_v}.0",
+                p.user_agent,
+            )
+            new_ua = _re.sub(
+                r"rv:\d+\.0",
+                f"rv:{firefox_v}.0",
+                new_ua,
+            )
+            updated.append(DeviceProfile(
+                user_agent=new_ua,
+                browser=p.browser,
+                browser_version=firefox_v,
+                platform=p.platform,
+                locale=p.locale,
+                accept_language=p.accept_language,
+                timezone=p.timezone,
+                viewport=p.viewport,
+                screen=p.screen,
+                color_depth=p.color_depth,
+                pixel_ratio=p.pixel_ratio,
+                hardware_concurrency=p.hardware_concurrency,
+                geo_hint=p.geo_hint,
+                impersonate_target=chrome_impersonate,  # curl_cffi doesn't support firefox
+            ))
+        elif p.browser == "safari":
+            # Update Safari UA string
+            new_ua = _re.sub(
+                r"Version/[\d.]+",
+                f"Version/{safari_v}",
+                p.user_agent,
+            )
+            updated.append(DeviceProfile(
+                user_agent=new_ua,
+                browser=p.browser,
+                browser_version=safari_v,
+                platform=p.platform,
+                locale=p.locale,
+                accept_language=p.accept_language,
+                timezone=p.timezone,
+                viewport=p.viewport,
+                screen=p.screen,
+                color_depth=p.color_depth,
+                pixel_ratio=p.pixel_ratio,
+                hardware_concurrency=p.hardware_concurrency,
+                geo_hint=p.geo_hint,
+                impersonate_target=f"safari{safari_v.replace('.', '_')}",
+            ))
+        else:
+            updated.append(p)
+
+    return updated
+
+
+def apply_version_update(
+    chrome_version: Optional[str] = None,
+    firefox_version: Optional[str] = None,
+    safari_version: Optional[str] = None,
+) -> None:
+    """Update the global DEVICE_PROFILES list in-place with new versions.
+
+    Call this at startup or periodically to keep UAs current:
+        apply_version_update(chrome_version="133", firefox_version="134")
+    """
+    global DEVICE_PROFILES
+    DEVICE_PROFILES[:] = update_browser_versions(chrome_version, firefox_version, safari_version)
+
+
 def get_headers_for_profile(profile: DeviceProfile) -> dict[str, str]:
     """Build browser-realistic HTTP headers from a device profile.
 
