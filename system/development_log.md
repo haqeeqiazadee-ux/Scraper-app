@@ -1850,3 +1850,52 @@ name, place_id, address, lat/lng, phone, website, rating, review_count, business
 
 19 tests: init, Places API transform, SerpAPI transform, HTML parsing, tier fallback, location handling, metrics.
 
+---
+
+## 2026-03-26 — Frontend Redesign
+
+### Login Page (redesigned)
+- Split layout: left panel = gradient branding (purple→blue) with "Scraper AI" title, 3 feature bullets (Amazon/Keepa, Google Maps, Universal Extraction); right panel = clean login/register form
+- Mobile responsive: stacks vertically on small screens
+- Glassmorphism logo, animated feature icons
+
+### Amazon/Keepa Page (NEW)
+- ASIN/URL search input + 11-marketplace domain selector (US, UK, DE, FR, JP, CA, IT, ES, IN, MX, BR)
+- Product card: image, name, brand, price (gradient), rating stars, review count, sales rank
+- Stats grid: new offers, used offers, FBA price, sales rank
+- Price history placeholder section
+- "Save to Google Sheet" button
+
+### Google Maps Page (NEW)
+- Business type input + location input + max results selector (10/20/50)
+- Business card grid: name, category badge, address, phone, website, star rating, review count, open/closed status
+- "View on Maps" links, "Export to Sheet" button
+- Demo businesses for placeholder state
+
+### Sidebar Navigation
+- Added "Amazon / Keepa" (shopping bag icon) + "Google Maps" (map pin icon) to TOOLS section
+
+### CSS Utilities Added
+- Gradient classes, accent cards, star ratings, business/product cards, badges, responsive grids, login split layout
+
+---
+
+## 2026-03-26 — Live API Integration Testing
+
+### Keepa API — LIVE
+- Key: verified working (300 tokens, 5 tokens/min refill)
+- Real product query: WD 1TB HDD (B0088PUEPK) — $75.00 New, 4.5/5, 68,544 reviews
+- 5 products batch query: WD, iPad Air, MacBook Pro, Echo Dot — all returned successfully
+- Token consumption: ~2 tokens per basic product query
+
+### Google Sheets — Credentials Valid, Sandbox Blocked
+- Service account: `scraper-sheets@yousell-489607.iam.gserviceaccount.com`
+- Both Sheets API and Drive API enabled on yousell-489607 project
+- `sheets.googleapis.com` blocked by sandbox network firewall
+- Same network block as Gemini API — will work on any real server (Railway, Render, local)
+
+### Environment Configuration
+- `.env`: Keepa key, Google OAuth credentials, Sheet ID, service account path
+- `service_account.json`: Google service account key (gitignored)
+- `.env.example`: All placeholder entries committed (no secrets)
+
