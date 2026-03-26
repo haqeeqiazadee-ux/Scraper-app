@@ -211,6 +211,14 @@ Research-driven upgrade based on analysis of top-tier scrapers (Crawlee, Camoufo
 - [x] **KEEPA-003:** Data transformation (Keepa format → platform normalized format)
 - [x] **KEEPA-004:** 30 tests (ASIN extraction, domain detection, routing, transformation, protocol)
 
+## Completed — Google Sheets + Google Maps Integration
+
+- [x] **SHEETS-001:** Google Sheets connector (read/write/search/batch/staleness)
+- [x] **SHEETS-002:** KeepaSheetCache — check sheet before Keepa, write results back
+- [x] **GMAPS-001:** Google Maps connector — 3-tier (Places API → SerpAPI → browser)
+- [x] **GMAPS-002:** Business data extraction (name, address, phone, rating, hours, etc.)
+- [x] **GMAPS-003:** Sheets integration for Maps results output
+
 ## Blocked
 (none)
 
@@ -226,5 +234,7 @@ Research-driven upgrade based on analysis of top-tier scrapers (Crawlee, Camoufo
 - **Infrastructure tasks:** 6/6 complete
 - **Deferred stealth tasks:** 3/3 complete
 - **Keepa integration tasks:** 4/4 complete
-- **Lessons learned:** 84
-- **Platform completeness:** ALL TASKS COMPLETE — zero remaining items
+- **Google Sheets integration:** 2/2 complete
+- **Google Maps scraper:** 3/3 complete
+- **Lessons learned:** 86
+- **Platform completeness:** ALL TASKS COMPLETE

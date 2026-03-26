@@ -183,3 +183,7 @@
 83. **APIs beat scraping when they exist** — Keepa's API returns richer Amazon data (price history, sales rank, buy box, offers, stock levels, monthly sold) than any scraper could extract from HTML, at ~$0.001/token vs ~$0.10+ per browser session. Always check if a data API exists before building a scraper. The API is faster, cheaper, more reliable, and doesn't trigger anti-bot systems.
 
 84. **Smart routing by URL pattern saves resources** — Not all Amazon URLs need the same treatment. Product pages (`/dp/ASIN`) have a clear ASIN → use Keepa API. Search pages (`/s?k=`) have no ASIN → need browser rendering. Routing by URL pattern avoids wasting expensive browser sessions on pages that have a cheaper API path.
+
+85. **Google Sheets as a cache layer saves API costs** — Store API results in a shared Google Sheet. Next time the same data is requested, read from Sheet (free) instead of calling the API again. With 24-hour staleness, you pay for each product only once per day regardless of how many times it's queried.
+
+86. **Multi-tier API fallback is more reliable than any single source** — Google Maps data can come from Places API (reliable, costs money), SerpAPI (cheaper, third-party), or direct browser scraping (free, fragile). Building all three with automatic fallthrough means the system works regardless of which service is available or affordable.

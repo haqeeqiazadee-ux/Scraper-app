@@ -981,3 +981,46 @@
   6. `tests/unit/test_keepa_connector.py` (NEW, 30 tests) — ASIN extraction, domain detection, routing, data transformation, protocol compliance
 - **Blockers found:** None
 - **Next action:** Update system tracking files
+
+## Work Cycle 035 — 2026-03-26
+
+- **Timestamp:** 2026-03-26
+- **Active Task IDs:** KEEPA-005, KEEPA-006
+- **What was read before action:** Keepa connector audit report (all gaps identified), keepa_async.py source
+- **Action taken:** Keepa connector hardening + priority routing
+- **Why:** Audit revealed critical gaps: wrong price fallback order, paying for offers but not extracting, 7 missing params, 8 missing Amazon domains
+- **Outputs produced:**
+  1. Fixed price fallback: BUY_BOX → NEW → AMAZON → NEW_FBA (was AMAZON first)
+  2. Added offer extraction (_extract_offers), 7 missing params, domain validation
+  3. ALL Amazon URLs now route to Keepa first (not just /dp/ pages)
+  4. fetch() handles search, deals, best sellers via Keepa product_finder/deals/bestsellers
+- **Blockers found:** None
+- **Next action:** Google Sheets cache + Google Maps
+
+## Work Cycle 036 — 2026-03-26
+
+- **Timestamp:** 2026-03-26
+- **Active Task IDs:** SHEETS-001
+- **What was read before action:** KeepaConnector.fetch(), Google Sheets API
+- **Action taken:** Google Sheets cache layer for Keepa
+- **Why:** Avoid paying Keepa for the same product data twice — cache in Google Sheet, query sheet first
+- **Outputs produced:**
+  1. `packages/connectors/google_sheets_connector.py` (NEW) — GoogleSheetsConnector + KeepaSheetCache
+  2. Wired into KeepaConnector.fetch() — checks sheet before Keepa for product + search routes
+  3. 14 new tests (staleness, row conversion, cache hit/miss/partial, stats)
+- **Blockers found:** None
+- **Next action:** Google Maps scraper
+
+## Work Cycle 037 — 2026-03-26
+
+- **Timestamp:** 2026-03-26
+- **Active Task IDs:** GMAPS-001
+- **What was read before action:** Google Places API (New) docs, SerpAPI Google Maps API, direct scraping approaches. Research agent returned full endpoint/pricing/field reference.
+- **Action taken:** Google Maps business scraper with 3-tier approach
+- **Why:** User needs to scrape business data from Google Maps by keyword (e.g., "restaurants in Dubai")
+- **Outputs produced:**
+  1. `packages/connectors/google_maps_connector.py` (NEW, 580 lines) — GoogleMapsConnector with Places API, SerpAPI, and browser scraping tiers
+  2. Updated __init__.py exports, .env.example with GOOGLE_MAPS_API_KEY and SERPAPI_KEY
+  3. `tests/unit/test_google_maps.py` (NEW, 19 tests) — init, transformation, parsing, fallback, metrics
+- **Blockers found:** `googlemaps` pip package fails to build — used direct REST API calls instead (better: async, no extra dependency)
+- **Next action:** Full E2E test sweep

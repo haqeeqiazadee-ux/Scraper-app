@@ -1392,3 +1392,36 @@
 - **Pass/Fail:** PASS
 - **Final Status:** COMPLETE
 
+---
+
+## KEEPA-005/006: Keepa Hardening + Priority Routing
+
+- **Task IDs:** KEEPA-005 (hardening), KEEPA-006 (priority routing)
+- **Start/End:** 2026-03-26
+- **Steps:** Audit found 10 gaps → fixed all: price fallback, offer extraction, 7 params, 8 domains, category_lookup, error classification. Changed router so ALL Amazon queries go through Keepa first. fetch() now handles search/deals/bestsellers via Keepa methods.
+- **Files:** keepa_connector.py, router.py, test_keepa_connector.py
+- **Validation:** 58 tests passed
+- **Pass/Fail:** PASS
+
+---
+
+## SHEETS-001/002: Google Sheets Cache Layer
+
+- **Task IDs:** SHEETS-001 (connector), SHEETS-002 (cache integration)
+- **Start/End:** 2026-03-26
+- **Steps:** Built GoogleSheetsConnector with gspread + service account auth, read/write/search/batch, staleness detection. Built KeepaSheetCache wrapper. Wired into KeepaConnector.fetch(). 14 new tests.
+- **Files:** google_sheets_connector.py (NEW), keepa_connector.py, __init__.py, pyproject.toml, .env.example, test_google_sheets.py (NEW)
+- **Validation:** 44 tests passed (14 new + 30 Keepa)
+- **Pass/Fail:** PASS
+
+---
+
+## GMAPS-001/002/003: Google Maps Business Scraper
+
+- **Task IDs:** GMAPS-001 (connector), GMAPS-002 (extraction), GMAPS-003 (sheets output)
+- **Start/End:** 2026-03-26
+- **Steps:** Built GoogleMapsConnector with 3-tier fallback (Places API → SerpAPI → browser). 19 tests covering init, transformation, parsing, fallback logic, metrics.
+- **Files:** google_maps_connector.py (NEW, 580 lines), __init__.py, .env.example, test_google_maps.py (NEW)
+- **Validation:** 19 tests passed
+- **Pass/Fail:** PASS
+

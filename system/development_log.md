@@ -1806,3 +1806,47 @@ Amazon URL → Router
 - All existing router tests still passing
 - Zero regressions
 
+---
+
+## 2026-03-26 — Keepa Connector Hardening
+
+Fixed all audit findings: price fallback BUY_BOX→NEW→AMAZON→FBA, offer extraction, 7 missing params (update, stock, videos, aplus, only_live_offers, product_code_is_asin, extra_params), 8 new Amazon TLDs (AU, NL, SG, AE, SA, PL, SE, TR), category_lookup(), error classification, description/features/dimensions extraction.
+
+ALL Amazon queries now route through Keepa first (not just /dp/ pages). fetch() handles search→product_finder, deals→deals endpoint, bestsellers→best_sellers.
+
+---
+
+## 2026-03-26 — Google Sheets Cache Layer for Keepa
+
+**Problem:** Paying Keepa for the same product data every time.
+**Solution:** Cache product data in Google Sheet — query sheet first, Keepa only for misses.
+
+GoogleSheetsConnector: service account auth, read/write/search/batch, staleness detection (24h default), auto-create worksheet with headers.
+
+KeepaSheetCache: wraps Keepa+Sheets — check sheet → query Keepa for misses → write back. Hit/miss stats.
+
+14 tests: staleness, row conversion, cache hit/miss/partial, stats accumulation.
+
+---
+
+## 2026-03-26 — Google Maps Business Scraper
+
+### Architecture
+3-tier fallback: Google Places API (primary, $0.032/req) → SerpAPI (secondary, $0.01/search) → Browser scraping (free, stealth Playwright).
+
+### GoogleMapsConnector
+- search_businesses(query, max_results, location, language)
+- get_business_details(place_id) — full details via Places API
+- search_and_save_to_sheets() — search + auto-save to Google Sheet
+
+### Data per business
+name, place_id, address, lat/lng, phone, website, rating, review_count, business_status, price_level, types, primary_type, google_maps_url, open_now, hours, photos, reviews
+
+### Browser scraping
+- Multiple CSS selector strategies for Maps SPA
+- API/XHR interception for internal JSON
+- Regex fallback, aria-label extraction
+- Uses our stealth Playwright with resource blocking + device profiles
+
+19 tests: init, Places API transform, SerpAPI transform, HTML parsing, tier fallback, location handling, metrics.
+

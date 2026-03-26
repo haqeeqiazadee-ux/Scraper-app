@@ -175,7 +175,7 @@ After completing any task:
 | `system/todo.md` | Current task queue |
 | `system/execution_trace.md` | Decision audit trail |
 | `system/development_log.md` | Engineering log |
-| `system/lessons.md` | What we've learned (84 lessons) |
+| `system/lessons.md` | What we've learned (86 lessons) |
 | `system/final_step_logs.md` | Per-task execution evidence |
 
 ## Key New Modules (Phase 6-8)
@@ -192,6 +192,8 @@ After completing any task:
 | `packages/core/waf_token_manager.py` | AWS WAF token lifecycle (Amazon cookie management) |
 | `packages/core/response_cache.py` | Two-tier HTTP response cache (memory LRU + disk) |
 | `packages/connectors/keepa_connector.py` | Keepa API connector for Amazon product data (replaces browser scraping) |
+| `packages/connectors/google_sheets_connector.py` | Google Sheets read/write + Keepa cache layer |
+| `packages/connectors/google_maps_connector.py` | Google Maps business scraper (Places API + SerpAPI + browser) |
 
 ## Legacy Code (scraper_pro/)
 
