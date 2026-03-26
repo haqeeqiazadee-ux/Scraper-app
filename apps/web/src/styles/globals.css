@@ -1684,3 +1684,128 @@ th.sortable.sort-desc::after {
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Gradient utilities ── */
+.gradient-purple { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+.gradient-blue { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+.gradient-green { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+.gradient-orange { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+.gradient-teal { background: linear-gradient(135deg, #0093E9 0%, #80D0C7 100%); }
+
+/* ── Accent cards ── */
+.accent-card {
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  transition: var(--transition-base);
+  box-shadow: var(--shadow-sm);
+}
+.accent-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-primary-muted);
+}
+
+/* ── Star rating ── */
+.stars { display: inline-flex; gap: 2px; }
+.star { color: #fbbf24; }
+.star-empty { color: var(--color-border); }
+
+/* ── Search input enhanced ── */
+.search-input-lg {
+  padding: 14px 20px;
+  font-size: 16px;
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  width: 100%;
+  transition: var(--transition-fast);
+}
+.search-input-lg:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-subtle);
+  outline: none;
+}
+
+/* ── Business card (Google Maps) ── */
+.business-card {
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  transition: var(--transition-base);
+}
+.business-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+/* ── Product card (Amazon/Keepa) ── */
+.product-card-lg {
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: var(--space-6);
+}
+.product-card-lg img {
+  width: 200px;
+  height: 200px;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+  background: #f8f9fa;
+}
+
+/* ── Login split layout ── */
+.login-split {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+}
+.login-brand {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #6366f1 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 60px;
+  color: white;
+}
+.login-form-side {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  background: var(--color-bg);
+}
+
+@media (max-width: 768px) {
+  .login-split { grid-template-columns: 1fr; }
+  .login-brand { padding: 40px 24px; min-height: 30vh; }
+  .login-form-side { padding: 24px; }
+  .product-card-lg { grid-template-columns: 1fr; }
+}
+
+/* ── Badge variants ── */
+.badge-green { background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+.badge-blue { background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+.badge-orange { background: #ffedd5; color: #9a3412; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+.badge-red { background: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+.badge-purple { background: #f3e8ff; color: #6b21a8; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+
+/* ── Grid layouts ── */
+.grid-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-5);
+}
+.grid-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-4);
+}
