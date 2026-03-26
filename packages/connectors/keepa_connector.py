@@ -114,11 +114,14 @@ class KeepaConnector:
         self,
         api_key: Optional[str] = None,
         timeout: float = 15.0,
+        sheets_cache: Optional[Any] = None,
     ) -> None:
         self._api_key = api_key or self._load_api_key()
         self._timeout = timeout
         self._api = None
         self._metrics = ConnectorMetrics()
+        # Optional Google Sheets cache layer — if set, checks sheet before Keepa
+        self._sheets_cache = sheets_cache  # KeepaSheetCache instance
 
     def _load_api_key(self) -> str:
         """Load Keepa API key from environment."""
@@ -690,12 +693,18 @@ class KeepaConnector:
         # Route 1: Product detail page (/dp/ASIN, /gp/product/ASIN)
         asin = extract_asin(url)
         if asin:
-            products = await self.query_products(
-                asins=[asin],
-                domain=domain,
-                include_rating=True,
-                stats_days=90,
-            )
+            # Check Google Sheets cache first (if configured)
+            if self._sheets_cache:
+                products = await self._sheets_cache.get_products(
+                    asins=[asin], domain=domain, include_rating=True, stats_days=90,
+                )
+            else:
+                products = await self.query_products(
+                    asins=[asin],
+                    domain=domain,
+                    include_rating=True,
+                    stats_days=90,
+                )
 
         # Route 2: Search page (/s?k=keyword)
         elif "/s" in path and ("k" in query_params or "field-keywords" in query_params):
@@ -707,13 +716,16 @@ class KeepaConnector:
                     title=keyword,
                 )
                 if asins:
-                    products = await self.query_products(
-                        asins=asins[:20],
-                        domain=domain,
-                        include_rating=True,
-                        stats_days=30,
-                        history_days=7,
-                    )
+                    if self._sheets_cache:
+                        products = await self._sheets_cache.get_products(
+                            asins=asins[:20], domain=domain,
+                            include_rating=True, stats_days=30, history_days=7,
+                        )
+                    else:
+                        products = await self.query_products(
+                            asins=asins[:20], domain=domain,
+                            include_rating=True, stats_days=30, history_days=7,
+                        )
 
         # Route 3: Best sellers (/gp/bestsellers/, /Best-Sellers)
         elif "bestseller" in path or "best-seller" in path:
