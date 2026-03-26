@@ -1737,3 +1737,72 @@ Covers: Shopify, WooCommerce, Magento, BigCommerce, PrestaShop, OpenCart, Bootst
 - All 4 new modules smoke-tested: WAF tokens (TTL, fingerprint, expiry), UA updater (Chrome 133, Firefox 134, Safari 18.0), mobile proxy filtering, response cache (put/get/conditional/no-store)
 - **All tracked tasks complete: zero remaining items**
 
+---
+
+## 2026-03-26 — Keepa API Integration for Amazon Data
+
+### Problem
+Amazon product pages require browser rendering + AWS WAF token management, costing ~$0.10+ per page (proxy bandwidth + CAPTCHA solving + browser session). The data extracted from HTML is limited to what's visible on the page.
+
+### Solution
+Integrate Keepa.com's API — they track 900M+ Amazon products across 11 marketplaces with complete price/sales/offer history. One API call (~$0.001/token) returns richer data than scraping could ever produce.
+
+### Research
+- Installed and inspected `keepa` v1.4.4 Python library source code
+- Read: `keepa_async.py` (AsyncKeepa class, 567 lines), `keepa_sync.py` (Keepa class), `constants.py` (domain codes, CSV indices), `query_keys.py` (700+ product finder params), `models/domain.py` (11 marketplaces), `models/product_params.py` (Pydantic model)
+- Launched 4 research agents for API docs, pricing, endpoints, best practices
+- Mapped all Keepa methods to our platform's architecture
+
+### Implementation
+
+**New Module: `packages/connectors/keepa_connector.py`**
+
+KeepaConnector class with full Keepa API surface:
+
+| Method | What | Token Cost |
+|--------|------|-----------|
+| `query_products(asins, domain)` | Batch ASIN lookup (up to 100), price/rank/rating/offers | 1/ASIN |
+| `search_products(**params)` | Find ASINs by title, brand, price, category (700+ filters) | 1/result |
+| `find_deals(min_discount, category)` | Current price drops and lightning deals | Variable |
+| `best_sellers(category)` | Top ASINs by category (up to 100K) | 1 |
+| `seller_info(seller_ids)` | Seller details + storefront | 1/seller |
+| `search_categories(term)` | Browse Amazon category tree | Free |
+| `fetch(request)` | Connector protocol — ASIN from URL → query → JSON response | 1 |
+
+Data transformation (Keepa → our format):
+- Prices: cents → dollars (2799 → "27.99")
+- Rating: 0-50 scale → 0-5.0 ("4.5")
+- Images: CSV hash → full Amazon CDN URL
+- Stock: availabilityAmazon code → "InStock"/"OutOfStock"
+- Price history summary: current/min/max per track (AMAZON, NEW, BUY_BOX)
+
+**Router Changes: `packages/core/router.py`**
+
+```
+Amazon URL → Router
+  ├── /dp/ASIN (product page) → API lane (Keepa) → fallback: Browser → Hard-Target
+  └── /s?k= or /events/ (search/deals) → Browser lane → fallback: Hard-Target
+```
+
+- Added AMAZON_DOMAINS set (11 marketplaces)
+- Added `_is_amazon_product_url()` helper
+- Amazon removed from BROWSER_REQUIRED_DOMAINS (now in dedicated routing)
+
+### Utility Functions
+- `extract_asin(url)` — Extracts ASIN from `/dp/`, `/gp/product/`, `/ASIN/` patterns
+- `detect_amazon_domain(url)` — Maps Amazon TLD → Keepa domain code (US, GB, DE, etc.)
+- `is_amazon_url(url)` — Checks if URL is from any Amazon marketplace
+
+### Keepa API Capabilities (for reference)
+
+**32 price/history data tracks:** AMAZON, NEW, USED, SALES rank, LISTPRICE, BUY_BOX_SHIPPING, NEW_FBA, NEW_FBM_SHIPPING, WAREHOUSE, LIGHTNING_DEAL, COUNT_NEW/USED/REFURBISHED, RATING, COUNT_REVIEWS, TRADE_IN, RENT, plus used/collectible sub-conditions
+
+**100+ product fields:** title, brand, manufacturer, description, features, images, videos, categories, dimensions, weight, UPC/EAN, FBA fees, monthly sold, frequently bought together, variations, A+ content
+
+**11 Amazon marketplaces:** US (.com), GB (.co.uk), DE (.de), FR (.fr), JP (.co.jp), CA (.ca), IT (.it), ES (.es), IN (.in), MX (.com.mx), BR (.com.br)
+
+### Test Results
+- 30 new tests: ASIN extraction (8), domain detection (8), routing (5), transformation (2), protocol (4), is_amazon_url (3)
+- All existing router tests still passing
+- Zero regressions
+

@@ -1362,3 +1362,33 @@
 - **Pass/Fail:** PASS
 - **Final Status:** COMPLETE — ALL TRACKED TASKS DONE
 
+---
+
+## KEEPA-001 through KEEPA-004: Keepa API Integration
+
+- **Task IDs:** KEEPA-001 (connector), KEEPA-002 (router), KEEPA-003 (transformation), KEEPA-004 (tests)
+- **Task Title:** Integrate Keepa API for Amazon product data
+- **Start Time:** 2026-03-26
+- **End Time:** 2026-03-26
+- **Exact steps performed:**
+  1. Installed keepa v1.4.4 via pip and inspected all source files (keepa_async.py, keepa_sync.py, constants.py, query_keys.py, models/)
+  2. Launched 4 research agents for API docs, pricing, endpoints, comparisons
+  3. Read PyPI listing, GitHub README, fetched raw source files
+  4. Mapped all Keepa methods (query, product_finder, deals, best_sellers, seller_query, category_lookup, search_for_categories, download_graph_image) to our platform architecture
+  5. Read existing Amazon code (amazon.py extractor, router.py, waf_token_manager.py, api_adapter.py)
+  6. Created `packages/connectors/keepa_connector.py` — KeepaConnector with full API surface, data transformation, ASIN extraction, domain detection
+  7. Updated `packages/core/router.py` — Amazon smart routing: /dp/ → API (Keepa), search/deals → browser
+  8. Added AMAZON_DOMAINS set and _is_amazon_product_url() helper
+  9. Removed Amazon from BROWSER_REQUIRED_DOMAINS (now handled separately)
+  10. Updated `packages/connectors/__init__.py` to export KeepaConnector
+  11. Added keepa>=1.4 to pyproject.toml dependencies
+  12. Added KEEPA_API_KEY to .env.example
+  13. Created `tests/unit/test_keepa_connector.py` — 30 tests covering ASIN extraction, domain detection, URL classification, router routing, data transformation, connector protocol
+  14. Ran all 30 tests — all passed
+  15. Ran existing router tests — all passed (0 regressions)
+  16. Committed and pushed
+- **Files touched:** keepa_connector.py (NEW), router.py, __init__.py, pyproject.toml, .env.example, test_keepa_connector.py (NEW)
+- **Validation evidence:** 30 new tests passed, 4 existing router tests passed, 0 regressions
+- **Pass/Fail:** PASS
+- **Final Status:** COMPLETE
+

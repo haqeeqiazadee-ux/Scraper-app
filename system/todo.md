@@ -204,6 +204,13 @@ Research-driven upgrade based on analysis of top-tier scrapers (Crawlee, Camoufo
 - [x] **INFRA-005:** Load More button clicking in browser worker
 - [x] **INFRA-006:** srcset image resolution (extract highest-res from srcset)
 
+## Completed — Keepa API Integration
+
+- [x] **KEEPA-001:** KeepaConnector with full API surface (query, search, deals, best sellers, sellers, categories)
+- [x] **KEEPA-002:** Router smart routing — Amazon /dp/ → Keepa API, search/deals → browser
+- [x] **KEEPA-003:** Data transformation (Keepa format → platform normalized format)
+- [x] **KEEPA-004:** 30 tests (ASIN extraction, domain detection, routing, transformation, protocol)
+
 ## Blocked
 (none)
 
@@ -218,5 +225,6 @@ Research-driven upgrade based on analysis of top-tier scrapers (Crawlee, Camoufo
 - **Operational upgrade tasks:** 5/5 complete
 - **Infrastructure tasks:** 6/6 complete
 - **Deferred stealth tasks:** 3/3 complete
-- **Lessons learned:** 82
+- **Keepa integration tasks:** 4/4 complete
+- **Lessons learned:** 84
 - **Platform completeness:** ALL TASKS COMPLETE — zero remaining items

@@ -179,3 +179,7 @@
 81. **Response caching saves more than bandwidth** — Caching with ETag/If-Modified-Since means the server returns 304 Not Modified (no body) instead of re-sending the full page. This cuts bandwidth, reduces proxy costs, and decreases the chance of triggering rate limits because the request is lighter.
 
 82. **srcset always has the highest-res image** — When an `<img>` has a `srcset` attribute, the largest width descriptor (e.g. `1600w`) is the full product image. The `src` is often a low-res placeholder. Always parse srcset and pick the highest resolution. Same applies to `<picture>` elements with `<source>` tags.
+
+83. **APIs beat scraping when they exist** — Keepa's API returns richer Amazon data (price history, sales rank, buy box, offers, stock levels, monthly sold) than any scraper could extract from HTML, at ~$0.001/token vs ~$0.10+ per browser session. Always check if a data API exists before building a scraper. The API is faster, cheaper, more reliable, and doesn't trigger anti-bot systems.
+
+84. **Smart routing by URL pattern saves resources** — Not all Amazon URLs need the same treatment. Product pages (`/dp/ASIN`) have a clear ASIN → use Keepa API. Search pages (`/s?k=`) have no ASIN → need browser rendering. Routing by URL pattern avoids wasting expensive browser sessions on pages that have a cheaper API path.

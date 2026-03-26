@@ -963,4 +963,21 @@
   3. `packages/connectors/proxy_adapter.py` — proxy_type field (datacenter/residential/isp/mobile) + type-based filtering in get_proxy()
   4. `packages/core/response_cache.py` (NEW) — two-tier cache (memory LRU 500 items + disk), ETag/If-None-Match, Last-Modified, Cache-Control respect
 - **Blockers found:** None
-- **Next action:** All tasks complete. Platform ready for deployment.
+- **Next action:** Keepa API integration for Amazon data
+
+## Work Cycle 034 — 2026-03-26
+
+- **Timestamp:** 2026-03-26
+- **Active Task IDs:** KEEPA-001
+- **What was read before action:** Keepa Python library source code (installed v1.4.4 — keepa_async.py, keepa_sync.py, constants.py, query_keys.py, models/domain.py, models/product_params.py), PyPI listing, GitHub README, 4 background research agents on Keepa API docs/pricing/endpoints. Also read: packages/connectors/api_adapter.py, packages/core/router.py, packages/core/ai_providers/social/amazon.py, packages/core/waf_token_manager.py
+- **Action taken:** Keepa API integration — replaces browser scraping for Amazon product pages
+- **Why:** Amazon product pages require browser rendering + AWS WAF bypass, costing ~$0.10+ per page (proxy + CAPTCHA + bandwidth). Keepa API returns richer data (price history, sales rank, buy box, offers, rating history, stock levels) for ~$0.001/token with zero anti-bot risk.
+- **Outputs produced:**
+  1. `packages/connectors/keepa_connector.py` (NEW, 520 lines) — Full KeepaConnector class with: query_products(), search_products(), find_deals(), best_sellers(), seller_info(), search_categories(), fetch() protocol method, data transformation (Keepa format → our normalized format)
+  2. `packages/core/router.py` — Amazon smart routing: product pages (/dp/ASIN) → API lane (Keepa), search/deals → browser lane. All 11 Amazon marketplaces supported.
+  3. `packages/connectors/__init__.py` — Export KeepaConnector
+  4. `pyproject.toml` — Added keepa>=1.4 dependency
+  5. `.env.example` — Added KEEPA_API_KEY
+  6. `tests/unit/test_keepa_connector.py` (NEW, 30 tests) — ASIN extraction, domain detection, routing, data transformation, protocol compliance
+- **Blockers found:** None
+- **Next action:** Update system tracking files

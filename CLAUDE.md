@@ -175,7 +175,7 @@ After completing any task:
 | `system/todo.md` | Current task queue |
 | `system/execution_trace.md` | Decision audit trail |
 | `system/development_log.md` | Engineering log |
-| `system/lessons.md` | What we've learned (82 lessons) |
+| `system/lessons.md` | What we've learned (84 lessons) |
 | `system/final_step_logs.md` | Per-task execution evidence |
 
 ## Key New Modules (Phase 6-8)
@@ -191,6 +191,7 @@ After completing any task:
 | `packages/core/circuit_breaker.py` | Per-domain circuit breaker (CLOSED/OPEN/HALF_OPEN) |
 | `packages/core/waf_token_manager.py` | AWS WAF token lifecycle (Amazon cookie management) |
 | `packages/core/response_cache.py` | Two-tier HTTP response cache (memory LRU + disk) |
+| `packages/connectors/keepa_connector.py` | Keepa API connector for Amazon product data (replaces browser scraping) |
 
 ## Legacy Code (scraper_pro/)
 
