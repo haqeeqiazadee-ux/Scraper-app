@@ -651,3 +651,55 @@ export const keepa = {
     return request("/keepa/status");
   },
 };
+
+/* ── Google Maps ── */
+
+export interface MapsBusinessResult {
+  name: string;
+  place_id: string;
+  address: string;
+  latitude: number | null;
+  longitude: number | null;
+  phone: string;
+  website: string;
+  rating: number | null;
+  review_count: number | null;
+  business_status: string;
+  price_level: string;
+  primary_type: string;
+  types: string[];
+  google_maps_url: string;
+  open_now: boolean | null;
+  hours_text: string[];
+  source: string;
+  [key: string]: unknown;
+}
+
+export interface MapsSearchResponse {
+  query: string;
+  results: MapsBusinessResult[];
+  count: number;
+}
+
+export const maps = {
+  search(query: string, maxResults: number = 20): Promise<MapsSearchResponse> {
+    return request("/maps/search", {
+      method: "POST",
+      body: JSON.stringify({
+        query,
+        max_results: maxResults,
+      }),
+    });
+  },
+
+  details(placeId: string): Promise<{ business: MapsBusinessResult }> {
+    return request("/maps/details", {
+      method: "POST",
+      body: JSON.stringify({ place_id: placeId }),
+    });
+  },
+
+  status(): Promise<{ google_api_configured: boolean; serpapi_configured: boolean; browser_fallback: boolean }> {
+    return request("/maps/status");
+  },
+};
