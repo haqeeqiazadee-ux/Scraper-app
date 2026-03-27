@@ -557,3 +557,97 @@ export const scrapeTest = {
     });
   },
 };
+
+/* ── Keepa / Amazon ── */
+
+export interface KeepaProduct {
+  name: string;
+  asin: string;
+  brand: string;
+  manufacturer: string;
+  price: string;
+  amazon_price: string;
+  original_price: string;
+  rating: string;
+  reviews_count: string;
+  sales_rank: number;
+  image_url: string;
+  product_url: string;
+  currency: string;
+  stock_status: string;
+  offer_count_new: number;
+  offer_count_used: number;
+  fba_price: string;
+  category: string;
+  source: string;
+  used_price: string;
+  refurbished_price: string;
+  warehouse_price: string;
+  monthly_sold: number;
+  price_history: Record<string, { current: string; min: string; max: string }>;
+  [key: string]: unknown;
+}
+
+export interface KeepaQueryResponse {
+  query: string;
+  query_type: string;
+  domain: string;
+  asins: string[];
+  products: KeepaProduct[];
+  count: number;
+  tokens_left: number;
+}
+
+export const keepa = {
+  query(query: string, domain: string = "US", includeOffers: boolean = false): Promise<KeepaQueryResponse> {
+    return request("/keepa/query", {
+      method: "POST",
+      body: JSON.stringify({
+        query,
+        domain,
+        include_offers: includeOffers,
+        max_results: 20,
+      }),
+    });
+  },
+
+  search(params: {
+    title?: string;
+    brand?: string;
+    author?: string;
+    min_price?: number;
+    max_price?: number;
+    min_rating?: number;
+    domain?: string;
+    max_results?: number;
+  }): Promise<KeepaQueryResponse> {
+    return request("/keepa/search", {
+      method: "POST",
+      body: JSON.stringify(params),
+    });
+  },
+
+  deals(params: {
+    min_discount_percent?: number;
+    min_price?: number;
+    max_price?: number;
+    domain?: string;
+  }): Promise<{ deals: unknown[]; count: number; tokens_left: number }> {
+    return request("/keepa/deals", {
+      method: "POST",
+      body: JSON.stringify(params),
+    });
+  },
+
+  bestsellers(category: string, domain: string = "US"): Promise<{ asins: string[]; count: number }> {
+    return request(`/keepa/bestsellers/${category}?domain=${domain}`);
+  },
+
+  categories(term: string, domain: string = "US"): Promise<{ categories: Record<string, unknown>; count: number }> {
+    return request(`/keepa/categories?term=${encodeURIComponent(term)}&domain=${domain}`);
+  },
+
+  status(): Promise<{ tokens_left: number; api_key_set: boolean }> {
+    return request("/keepa/status");
+  },
+};

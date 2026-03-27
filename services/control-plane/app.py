@@ -208,6 +208,8 @@ def create_app() -> FastAPI:
     app.include_router(sessions.router, prefix="/api/v1", tags=["Sessions"])
     app.include_router(webhooks.router, prefix="/api/v1", tags=["Webhooks"])
     app.include_router(templates.router, prefix="/api/v1", tags=["Templates"])
+    from services.control_plane.routers import keepa
+    app.include_router(keepa.router, prefix="/api/v1", tags=["Keepa"])
     if _auth_available:
         app.include_router(auth_router.router, prefix="/api/v1", tags=["Auth"])
 
