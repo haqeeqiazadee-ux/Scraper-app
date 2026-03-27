@@ -191,3 +191,11 @@
 87. **Sandbox environments block Google APIs at the network level** — `sheets.googleapis.com`, `drive.googleapis.com`, and `generativelanguage.googleapis.com` all return 403 from sandboxed environments. The error looks like an auth problem but it's a network firewall. Always verify by checking if the domain is reachable at all (`curl https://sheets.googleapis.com/`). The same code works instantly on Railway, Render, or any real server.
 
 88. **Service accounts need both API enablement AND sheet sharing** — Two separate permissions are required: (1) enable the Sheets/Drive APIs in Google Cloud Console, and (2) share the specific spreadsheet with the service account email as Editor. Missing either one causes a 403. The service account email looks like `name@project.iam.gserviceaccount.com`.
+
+89. **Free official APIs cover more platforms than expected** — eBay, Etsy, Best Buy, MercadoLibre, Steam, Rakuten, Envato, Product Hunt all have FREE official APIs with generous rate limits. Always check for official APIs before paying for third-party scrapers.
+
+90. **Social media all-in-one providers are 5x cheaper than single-platform** — SociaVault covers 25+ platforms for $20/mo vs EnsembleData covering 8 platforms for $100/mo. Xpoz offers 100K free results/month. Always compare all-in-one vs per-platform pricing.
+
+91. **APIs get shut down by lawsuits** — Proxycurl (LinkedIn data) was shut down in July 2026 after LinkedIn sued them for fake accounts. Always have a backup provider and never depend on a single source for legally risky data (LinkedIn, Facebook).
+
+92. **Pay-per-use beats subscriptions for low volume** — ScrapeCreators charges $10 for 5K credits that never expire. Apify charges per successful extract. For platforms you query occasionally, pay-per-use avoids wasted monthly fees.
