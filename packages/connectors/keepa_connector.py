@@ -355,6 +355,10 @@ class KeepaConnector:
                 c.get("name", "") for c in category_tree if isinstance(c, dict)
             )
 
+        # Category fallback if no tree
+        if not product.get("category"):
+            product["category"] = raw.get("productGroup", "") or ""
+
         # Additional metadata
         product["sku"] = raw.get("asin", "")
         if raw.get("parentAsin"):
