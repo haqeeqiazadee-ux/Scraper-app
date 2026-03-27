@@ -21,8 +21,11 @@ def _get_keepa():
     """Lazy-initialize the KeepaConnector."""
     global _keepa
     if _keepa is None:
-        from packages.connectors.keepa_connector import KeepaConnector
-        _keepa = KeepaConnector()
+        try:
+            from packages.connectors.keepa_connector import KeepaConnector
+            _keepa = KeepaConnector()
+        except ImportError as e:
+            raise HTTPException(status_code=503, detail=f"Keepa module not available: {e}")
     return _keepa
 
 
