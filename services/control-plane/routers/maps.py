@@ -17,8 +17,11 @@ _maps = None
 def _get_maps():
     global _maps
     if _maps is None:
-        from packages.connectors.google_maps_connector import GoogleMapsConnector
-        _maps = GoogleMapsConnector()
+        try:
+            from packages.connectors.google_maps_connector import GoogleMapsConnector
+            _maps = GoogleMapsConnector()
+        except ImportError as e:
+            raise HTTPException(status_code=503, detail=f"Google Maps module not available: {e}")
     return _maps
 
 
