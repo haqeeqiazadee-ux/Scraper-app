@@ -210,6 +210,8 @@ def create_app() -> FastAPI:
     app.include_router(templates.router, prefix="/api/v1", tags=["Templates"])
     from services.control_plane.routers import keepa
     app.include_router(keepa.router, prefix="/api/v1", tags=["Keepa"])
+    from services.control_plane.routers import maps
+    app.include_router(maps.router, prefix="/api/v1", tags=["Google Maps"])
     if _auth_available:
         app.include_router(auth_router.router, prefix="/api/v1", tags=["Auth"])
 

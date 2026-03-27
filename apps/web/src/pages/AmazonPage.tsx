@@ -1,6 +1,6 @@
 /**
  * AmazonPage — Amazon product lookup via live Keepa API.
- * Searches by ASIN, Amazon URL, or keyword. Displays real product data.
+ * Shows query type buttons for all available search types.
  */
 
 import { useState, type FormEvent } from "react";
@@ -20,21 +20,22 @@ const DOMAIN_OPTIONS = [
   { code: "BR", label: "Amazon.com.br (BR)" },
 ];
 
-const SEARCH_EXAMPLES = [
-  { label: "ASIN Lookup", example: "B0088PUEPK", desc: "Single product by ASIN" },
-  { label: "Multiple ASINs", example: "B0088PUEPK, B09V3KXJPB", desc: "Comma-separated ASINs" },
-  { label: "Amazon URL", example: "https://www.amazon.com/dp/B0088PUEPK", desc: "Any Amazon product URL" },
-  { label: "Keyword Search", example: "wireless mouse", desc: "Search by product title" },
-  { label: "Brand Search", example: "Apple MacBook", desc: "Brand + keyword" },
+type QueryType = "asin" | "url" | "keyword" | "multi" | "brand" | "deals";
+
+const QUERY_TYPES: { type: QueryType; label: string; icon: string; example: string; desc: string; color: string }[] = [
+  { type: "asin", label: "ASIN Lookup", icon: "🔍", example: "B0088PUEPK", desc: "Single product by ASIN", color: "#2563eb" },
+  { type: "multi", label: "Batch ASINs", icon: "📦", example: "B0088PUEPK, B09V3KXJPB, B07FZ8S74R", desc: "Multiple ASINs (comma separated)", color: "#7c3aed" },
+  { type: "url", label: "Amazon URL", icon: "🔗", example: "https://www.amazon.com/dp/B0088PUEPK", desc: "Paste any Amazon product URL", color: "#059669" },
+  { type: "keyword", label: "Keyword Search", icon: "🔎", example: "wireless mouse", desc: "Search by product name/keywords", color: "#d97706" },
+  { type: "brand", label: "Brand Search", icon: "🏷️", example: "Apple MacBook", desc: "Search by brand + product type", color: "#dc2626" },
+  { type: "deals", label: "Find Deals", icon: "🔥", example: "20", desc: "Find products with price drops (%)", color: "#ea580c" },
 ];
 
 function StarRating({ rating }: { rating: number }) {
   const stars = [];
   for (let i = 1; i <= 5; i++) {
     stars.push(
-      <span key={i} className={i <= Math.round(rating) ? "star" : "star-empty"}>
-        &#9733;
-      </span>
+      <span key={i} className={i <= Math.round(rating) ? "star" : "star-empty"}>★</span>
     );
   }
   return <span className="stars">{stars}</span>;
@@ -43,11 +44,18 @@ function StarRating({ rating }: { rating: number }) {
 export function AmazonPage() {
   const [query, setQuery] = useState("");
   const [domain, setDomain] = useState("US");
+  const [selectedType, setSelectedType] = useState<QueryType>("asin");
   const [isSearching, setIsSearching] = useState(false);
   const [products, setProducts] = useState<KeepaProduct[]>([]);
   const [response, setResponse] = useState<KeepaQueryResponse | null>(null);
   const [error, setError] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
+
+  function handleTypeSelect(type: QueryType) {
+    setSelectedType(type);
+    const qt = QUERY_TYPES.find(q => q.type === type);
+    if (qt) setQuery(qt.example);
+  }
 
   async function handleSearch(e: FormEvent) {
     e.preventDefault();
@@ -58,11 +66,30 @@ export function AmazonPage() {
     setHasSearched(true);
 
     try {
-      const result = await keepa.query(query.trim(), domain);
+      let result: KeepaQueryResponse;
+
+      if (selectedType === "deals") {
+        const dealsResult = await keepa.deals({
+          min_discount_percent: parseInt(query) || 20,
+          domain,
+        });
+        result = {
+          query: `Deals ≥${query}% off`,
+          query_type: "deals",
+          domain,
+          asins: [],
+          products: (dealsResult.deals || []).slice(0, 20) as KeepaProduct[],
+          count: dealsResult.count,
+          tokens_left: dealsResult.tokens_left,
+        };
+      } else {
+        result = await keepa.query(query.trim(), domain);
+      }
+
       setResponse(result);
       setProducts(result.products || []);
       if (result.count === 0) {
-        setError("No products found. Try a different ASIN or keyword.");
+        setError("No products found. Try a different query.");
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to query Keepa API";
@@ -73,22 +100,18 @@ export function AmazonPage() {
     }
   }
 
-  function handleExampleClick(example: string) {
-    setQuery(example);
-  }
+  const activeType = QUERY_TYPES.find(q => q.type === selectedType);
 
   return (
     <div style={{ maxWidth: 1100, margin: "0 auto" }}>
       {/* Header */}
-      <div style={{ marginBottom: 32 }}>
+      <div style={{ marginBottom: 24 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
-          <div
-            style={{
-              width: 40, height: 40, borderRadius: 10,
-              background: "linear-gradient(135deg, #ff9900 0%, #ffb347 100%)",
-              display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-            }}
-          >
+          <div style={{
+            width: 40, height: 40, borderRadius: 10,
+            background: "linear-gradient(135deg, #ff9900 0%, #ffb347 100%)",
+            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+          }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
               <line x1="3" y1="6" x2="21" y2="6" />
@@ -104,89 +127,70 @@ export function AmazonPage() {
         </div>
       </div>
 
+      {/* Query Type Buttons */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text-secondary)", marginBottom: 10 }}>
+          Select Query Type:
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))", gap: 10 }}>
+          {QUERY_TYPES.map((qt) => (
+            <button
+              key={qt.type}
+              type="button"
+              onClick={() => handleTypeSelect(qt.type)}
+              style={{
+                padding: "14px 16px",
+                borderRadius: 12,
+                border: selectedType === qt.type ? `2px solid ${qt.color}` : "2px solid var(--color-border)",
+                background: selectedType === qt.type ? `${qt.color}10` : "var(--color-surface)",
+                cursor: "pointer",
+                textAlign: "left",
+                transition: "all 0.15s",
+                boxShadow: selectedType === qt.type ? `0 0 0 3px ${qt.color}20` : "none",
+              }}
+            >
+              <div style={{ fontSize: 20, marginBottom: 6 }}>{qt.icon}</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: selectedType === qt.type ? qt.color : "var(--color-text)", marginBottom: 2 }}>
+                {qt.label}
+              </div>
+              <div style={{ fontSize: 11, color: "var(--color-text-secondary)", lineHeight: 1.3 }}>
+                {qt.desc}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Search bar */}
       <form onSubmit={handleSearch} style={{ marginBottom: 24 }}>
         <div className="accent-card" style={{ display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap" }}>
           <div style={{ flex: 1, minWidth: 280 }}>
             <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--color-text-secondary)", marginBottom: 6 }}>
-              ASIN, Amazon URL, or Keyword
+              {activeType?.label || "Search"} — <span style={{ fontWeight: 400 }}>{activeType?.desc}</span>
             </label>
             <input
               type="text"
               className="search-input-lg"
-              placeholder="e.g. B0088PUEPK or wireless mouse"
+              placeholder={`e.g. ${activeType?.example || "B0088PUEPK"}`}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               disabled={isSearching}
             />
           </div>
           <div style={{ minWidth: 200 }}>
-            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--color-text-secondary)", marginBottom: 6 }}>
-              Marketplace
-            </label>
-            <select
-              className="search-input-lg"
-              value={domain}
-              onChange={(e) => setDomain(e.target.value)}
-              disabled={isSearching}
-              style={{ cursor: "pointer" }}
-            >
-              {DOMAIN_OPTIONS.map((d) => (
-                <option key={d.code} value={d.code}>{d.label}</option>
-              ))}
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--color-text-secondary)", marginBottom: 6 }}>Marketplace</label>
+            <select className="search-input-lg" value={domain} onChange={(e) => setDomain(e.target.value)} disabled={isSearching} style={{ cursor: "pointer" }}>
+              {DOMAIN_OPTIONS.map((d) => (<option key={d.code} value={d.code}>{d.label}</option>))}
             </select>
           </div>
-          <button
-            type="submit"
-            className="btn btn-primary btn-lg"
-            disabled={isSearching || !query.trim()}
-            style={{ height: 50, paddingInline: 32 }}
-          >
-            {isSearching ? (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                <span className="spinner" /> Searching...
-              </span>
-            ) : "Search"}
+          <button type="submit" className="btn btn-primary btn-lg" disabled={isSearching || !query.trim()} style={{ height: 50, paddingInline: 32 }}>
+            {isSearching ? (<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><span className="spinner" /> Searching...</span>) : "Search"}
           </button>
         </div>
       </form>
 
-      {/* Quick examples */}
-      {!hasSearched && (
-        <div style={{ marginBottom: 32 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text-secondary)", marginBottom: 10 }}>
-            Search Examples — click to try:
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {SEARCH_EXAMPLES.map((ex) => (
-              <button
-                key={ex.example}
-                type="button"
-                onClick={() => handleExampleClick(ex.example)}
-                style={{
-                  padding: "8px 14px",
-                  borderRadius: 8,
-                  border: "1px solid var(--color-border)",
-                  background: "var(--color-surface)",
-                  cursor: "pointer",
-                  fontSize: 13,
-                  color: "var(--color-text)",
-                  transition: "all 0.15s",
-                }}
-                title={ex.desc}
-              >
-                <span style={{ fontWeight: 600, color: "var(--color-primary)" }}>{ex.label}:</span>{" "}
-                <code style={{ fontSize: 12 }}>{ex.example}</code>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Error */}
-      {error && (
-        <div className="form-error-banner" style={{ marginBottom: 16 }}>{error}</div>
-      )}
+      {error && <div className="form-error-banner" style={{ marginBottom: 16 }}>{error}</div>}
 
       {/* Loading */}
       {isSearching && (
@@ -196,135 +200,63 @@ export function AmazonPage() {
         </div>
       )}
 
-      {/* Empty state */}
-      {!isSearching && !hasSearched && (
-        <div className="accent-card" style={{ textAlign: "center", padding: 60 }}>
-          <div style={{
-            width: 64, height: 64, borderRadius: 16,
-            background: "linear-gradient(135deg, #ff9900, #ffb347)",
-            display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 16,
-          }}>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-          </div>
-          <h3 style={{ fontSize: 18, fontWeight: 600, color: "var(--color-text)", marginBottom: 8 }}>Search for a Product</h3>
-          <p style={{ color: "var(--color-text-secondary)", maxWidth: 400, margin: "0 auto" }}>
-            Enter an ASIN, Amazon URL, or keyword to fetch live pricing, sales rank, and offer data.
-          </p>
-        </div>
-      )}
-
       {/* Results */}
       {!isSearching && products.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-          {/* Meta info */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
             <div style={{ fontSize: 14, color: "var(--color-text-secondary)" }}>
               <strong style={{ color: "var(--color-text)" }}>{products.length}</strong> product{products.length !== 1 ? "s" : ""} found
-              {response?.query_type && (
-                <span className="badge-blue" style={{ marginLeft: 8 }}>{response.query_type}</span>
-              )}
-              {response?.tokens_left !== undefined && (
-                <span style={{ marginLeft: 12 }}>Tokens: {response.tokens_left}</span>
-              )}
+              {response?.query_type && <span className="badge-blue" style={{ marginLeft: 8 }}>{response.query_type}</span>}
+              {response?.tokens_left !== undefined && <span style={{ marginLeft: 12, fontSize: 12 }}>Tokens remaining: {response.tokens_left}</span>}
             </div>
           </div>
 
-          {/* Product cards */}
           {products.map((product) => (
-            <div key={product.asin} className="product-card-lg">
-              {/* Image */}
-              <div style={{
-                width: 200, height: 200, background: "#f8f9fa",
-                borderRadius: "var(--radius-md)", display: "flex",
-                alignItems: "center", justifyContent: "center", overflow: "hidden",
-              }}>
+            <div key={product.asin || Math.random()} className="product-card-lg">
+              <div style={{ width: 200, height: 200, background: "#f8f9fa", borderRadius: "var(--radius-md)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
                 {product.image_url ? (
                   <img src={product.image_url} alt={product.name} style={{ width: 200, height: 200, objectFit: "contain" }} />
                 ) : (
-                  <div style={{ textAlign: "center", color: "#aaa", fontSize: 13 }}>
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ opacity: 0.4 }}>
-                      <rect x="3" y="3" width="18" height="18" rx="2" />
-                      <circle cx="8.5" cy="8.5" r="1.5" />
-                      <polyline points="21 15 16 10 5 21" />
-                    </svg>
-                    <div style={{ marginTop: 8 }}>No Image</div>
-                  </div>
+                  <div style={{ textAlign: "center", color: "#aaa", fontSize: 12 }}>No Image</div>
                 )}
               </div>
-
-              {/* Details */}
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 <div>
-                  <span className="badge-blue" style={{ marginBottom: 6, display: "inline-block" }}>
-                    ASIN: {product.asin}
-                  </span>
-                  <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--color-text)", lineHeight: 1.3, marginTop: 4 }}>
-                    {product.name || "Untitled Product"}
-                  </h2>
+                  {product.asin && <span className="badge-blue" style={{ marginBottom: 6, display: "inline-block" }}>ASIN: {product.asin}</span>}
+                  <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--color-text)", lineHeight: 1.3, marginTop: 4 }}>{product.name || "Untitled"}</h2>
                   <p style={{ fontSize: 13, color: "var(--color-text-secondary)", marginTop: 4 }}>
                     {product.brand && <>by <strong>{product.brand}</strong></>}
                     {product.category && <> in {product.category}</>}
                   </p>
                 </div>
-
                 <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
                   {product.price && (
-                    <span style={{
-                      fontSize: 26, fontWeight: 800,
-                      background: "linear-gradient(135deg, #ff9900, #e67e00)",
-                      WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-                    }}>
+                    <span style={{ fontSize: 26, fontWeight: 800, background: "linear-gradient(135deg, #ff9900, #e67e00)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
                       ${product.price}
                     </span>
                   )}
-                  {product.amazon_price && product.amazon_price !== product.price && (
-                    <span style={{ fontSize: 14, color: "var(--color-text-secondary)" }}>
-                      Amazon: ${product.amazon_price}
-                    </span>
-                  )}
-                  {product.original_price && (
-                    <span style={{ fontSize: 14, color: "var(--color-text-secondary)", textDecoration: "line-through" }}>
-                      ${product.original_price}
-                    </span>
-                  )}
-                  {product.stock_status && (
-                    <span className={product.stock_status === "InStock" ? "badge-green" : "badge-red"}>
-                      {product.stock_status}
-                    </span>
-                  )}
+                  {product.original_price && <span style={{ fontSize: 14, color: "var(--color-text-secondary)", textDecoration: "line-through" }}>${product.original_price}</span>}
+                  {product.stock_status && <span className={product.stock_status === "InStock" ? "badge-green" : "badge-red"}>{product.stock_status}</span>}
                 </div>
-
                 {product.rating && (
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <StarRating rating={parseFloat(product.rating)} />
                     <span style={{ fontSize: 14, fontWeight: 600 }}>{product.rating}</span>
-                    {product.reviews_count && (
-                      <span style={{ fontSize: 13, color: "var(--color-text-secondary)" }}>
-                        ({parseInt(product.reviews_count).toLocaleString()} reviews)
-                      </span>
-                    )}
+                    {product.reviews_count && <span style={{ fontSize: 13, color: "var(--color-text-secondary)" }}>({parseInt(product.reviews_count).toLocaleString()} reviews)</span>}
                   </div>
                 )}
-
                 {product.sales_rank > 0 && (
                   <div style={{ fontSize: 13, color: "var(--color-text-secondary)" }}>
                     Sales Rank: <strong style={{ color: "var(--color-text)" }}>#{product.sales_rank.toLocaleString()}</strong>
                   </div>
                 )}
-
                 {product.product_url && (
-                  <a href={product.product_url} target="_blank" rel="noopener noreferrer"
-                    style={{ fontSize: 13, color: "var(--color-primary)" }}>
-                    View on Amazon →
-                  </a>
+                  <a href={product.product_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: "var(--color-primary)" }}>View on Amazon →</a>
                 )}
               </div>
             </div>
           ))}
 
-          {/* Stats row for first product */}
           {products[0] && (
             <div className="grid-stats">
               <StatCard label="New Offers" value={products[0].offer_count_new?.toString() || "—"} color="#2563eb" />
@@ -333,6 +265,19 @@ export function AmazonPage() {
               <StatCard label="Sales Rank" value={products[0].sales_rank > 0 ? `#${products[0].sales_rank}` : "—"} color="#d97706" />
             </div>
           )}
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!isSearching && !hasSearched && products.length === 0 && (
+        <div className="accent-card" style={{ textAlign: "center", padding: 48 }}>
+          <div style={{ width: 64, height: 64, borderRadius: 16, background: "linear-gradient(135deg, #ff9900, #ffb347)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+          </div>
+          <h3 style={{ fontSize: 18, fontWeight: 600, color: "var(--color-text)", marginBottom: 8 }}>Select a query type and search</h3>
+          <p style={{ color: "var(--color-text-secondary)", maxWidth: 400, margin: "0 auto" }}>
+            Choose a query type above, then enter your search to fetch live data from Keepa.
+          </p>
         </div>
       )}
     </div>

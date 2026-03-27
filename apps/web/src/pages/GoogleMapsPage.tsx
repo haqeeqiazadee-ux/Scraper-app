@@ -1,105 +1,45 @@
 /**
  * GoogleMapsPage — Google Maps business scraping interface.
- * Search for businesses by type and location, view results in a card grid.
+ * Search for businesses by type and location with query type buttons.
+ * Calls backend API which uses Places API → SerpAPI → browser fallback.
  */
 
 import { useState, type FormEvent } from "react";
 
 interface BusinessResult {
-  id: string;
   name: string;
   address: string;
   phone: string;
   website: string;
-  rating: number;
-  reviewCount: number;
-  isOpen: boolean;
-  category: string;
-  placeId: string;
+  rating: number | null;
+  review_count: number | null;
+  open_now: boolean | null;
+  primary_type: string;
+  place_id: string;
+  google_maps_url: string;
+  source: string;
+  latitude: number | null;
+  longitude: number | null;
+  price_level: string;
+  business_status: string;
 }
 
-const DEMO_BUSINESSES: BusinessResult[] = [
-  {
-    id: "1",
-    name: "The Italian Kitchen",
-    address: "142 Main Street, San Francisco, CA 94105",
-    phone: "(415) 555-0142",
-    website: "https://italiankitchensf.com",
-    rating: 4.6,
-    reviewCount: 847,
-    isOpen: true,
-    category: "Italian Restaurant",
-    placeId: "ChIJabc123",
-  },
-  {
-    id: "2",
-    name: "Bay Sushi House",
-    address: "298 Market Street, San Francisco, CA 94102",
-    phone: "(415) 555-0298",
-    website: "https://baysushihouse.com",
-    rating: 4.3,
-    reviewCount: 562,
-    isOpen: true,
-    category: "Japanese Restaurant",
-    placeId: "ChIJdef456",
-  },
-  {
-    id: "3",
-    name: "Golden Gate Tacos",
-    address: "78 Mission Street, San Francisco, CA 94105",
-    phone: "(415) 555-0078",
-    website: "https://goldengatetacos.com",
-    rating: 4.8,
-    reviewCount: 1203,
-    isOpen: false,
-    category: "Mexican Restaurant",
-    placeId: "ChIJghi789",
-  },
-  {
-    id: "4",
-    name: "Pacific Brew Coffee",
-    address: "455 Howard Street, San Francisco, CA 94105",
-    phone: "(415) 555-0455",
-    website: "https://pacificbrew.coffee",
-    rating: 4.5,
-    reviewCount: 389,
-    isOpen: true,
-    category: "Coffee Shop",
-    placeId: "ChIJjkl012",
-  },
-  {
-    id: "5",
-    name: "Marina Seafood Grill",
-    address: "1020 Chestnut Street, San Francisco, CA 94109",
-    phone: "(415) 555-1020",
-    website: "https://marinaseafoodgrill.com",
-    rating: 4.1,
-    reviewCount: 276,
-    isOpen: true,
-    category: "Seafood Restaurant",
-    placeId: "ChIJmno345",
-  },
-  {
-    id: "6",
-    name: "Nob Hill Bakery",
-    address: "832 Powell Street, San Francisco, CA 94108",
-    phone: "(415) 555-0832",
-    website: "https://nobhillbakery.com",
-    rating: 4.9,
-    reviewCount: 1547,
-    isOpen: true,
-    category: "Bakery",
-    placeId: "ChIJpqr678",
-  },
+type SearchType = "business" | "restaurant" | "hotel" | "medical" | "service" | "retail";
+
+const SEARCH_TYPES: { type: SearchType; label: string; icon: string; example: string; location: string; desc: string; color: string }[] = [
+  { type: "business", label: "Any Business", icon: "🏢", example: "business consultants", location: "Dubai", desc: "Search any type of business", color: "#2563eb" },
+  { type: "restaurant", label: "Restaurants", icon: "🍽️", example: "italian restaurants", location: "New York", desc: "Restaurants, cafes, food places", color: "#dc2626" },
+  { type: "hotel", label: "Hotels", icon: "🏨", example: "luxury hotels", location: "London", desc: "Hotels, resorts, accommodation", color: "#7c3aed" },
+  { type: "medical", label: "Medical", icon: "🏥", example: "dentists", location: "Los Angeles", desc: "Doctors, clinics, hospitals", color: "#059669" },
+  { type: "service", label: "Services", icon: "🔧", example: "plumbers", location: "Chicago", desc: "Plumbers, electricians, contractors", color: "#d97706" },
+  { type: "retail", label: "Retail & Shopping", icon: "🛍️", example: "electronics stores", location: "San Francisco", desc: "Shops, malls, retail stores", color: "#ea580c" },
 ];
 
 function StarRating({ rating }: { rating: number }) {
   const stars = [];
   for (let i = 1; i <= 5; i++) {
     stars.push(
-      <span key={i} className={i <= Math.round(rating) ? "star" : "star-empty"}>
-        &#9733;
-      </span>
+      <span key={i} className={i <= Math.round(rating) ? "star" : "star-empty"}>★</span>
     );
   }
   return <span className="stars">{stars}</span>;
@@ -109,152 +49,173 @@ export function GoogleMapsPage() {
   const [businessType, setBusinessType] = useState("");
   const [location, setLocation] = useState("");
   const [maxResults, setMaxResults] = useState(20);
+  const [selectedType, setSelectedType] = useState<SearchType>("business");
   const [isSearching, setIsSearching] = useState(false);
-  const [businesses, setBusinesses] = useState<BusinessResult[]>([]);
+  const [results, setResults] = useState<BusinessResult[]>([]);
+  const [error, setError] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
 
-  function handleSearch(e: FormEvent) {
+  function handleTypeSelect(type: SearchType) {
+    setSelectedType(type);
+    const st = SEARCH_TYPES.find(s => s.type === type);
+    if (st) {
+      setBusinessType(st.example);
+      setLocation(st.location);
+    }
+  }
+
+  async function handleSearch(e: FormEvent) {
     e.preventDefault();
-    if (!businessType.trim() || !location.trim()) return;
+    if (!businessType.trim()) return;
 
     setIsSearching(true);
+    setError("");
     setHasSearched(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      setBusinesses(DEMO_BUSINESSES);
+    try {
+      const query = location.trim()
+        ? `${businessType.trim()} in ${location.trim()}`
+        : businessType.trim();
+
+      const BASE = (import.meta as { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL ?? "/api/v1";
+      const token = localStorage.getItem("auth_token");
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      };
+
+      const resp = await fetch(`${BASE}/maps/search`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          query,
+          max_results: maxResults,
+        }),
+      });
+
+      if (!resp.ok) {
+        throw new Error(`API error: ${resp.status}`);
+      }
+
+      const data = await resp.json();
+      setResults(data.results || []);
+      if ((data.results || []).length === 0) {
+        setError("No businesses found. Try a different search.");
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Search failed";
+      setError(msg);
+      setResults([]);
+    } finally {
       setIsSearching(false);
-    }, 1500);
+    }
   }
 
-  function handleExportToSheet() {
-    alert("Export to Google Sheet functionality will connect to the Google Sheets connector.");
-  }
+  const activeType = SEARCH_TYPES.find(s => s.type === selectedType);
 
   return (
     <div style={{ maxWidth: 1100, margin: "0 auto" }}>
       {/* Header */}
-      <div style={{ marginBottom: 32 }}>
+      <div style={{ marginBottom: 24 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
-          <div
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 10,
-              background: "linear-gradient(135deg, #4285F4 0%, #34A853 50%, #FBBC05 100%)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
+          <div style={{
+            width: 40, height: 40, borderRadius: 10,
+            background: "linear-gradient(135deg, #4285F4 0%, #34A853 50%, #EA4335 100%)",
+            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+          }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
               <circle cx="12" cy="10" r="3" />
             </svg>
           </div>
           <div>
-            <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--color-text)" }}>
-              Google Maps
-            </h1>
+            <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--color-text)" }}>Google Maps</h1>
             <p style={{ fontSize: 13, color: "var(--color-text-secondary)", margin: 0 }}>
-              Extract business data, reviews, and contact information
+              Scrape business data — 3 tiers: Places API → SerpAPI → Browser
             </p>
           </div>
         </div>
       </div>
 
-      {/* Search bar */}
-      <form onSubmit={handleSearch} style={{ marginBottom: 32 }}>
-        <div
-          className="accent-card"
-          style={{ display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap" }}
-        >
-          <div style={{ flex: 1, minWidth: 200 }}>
-            <label
+      {/* Search Type Buttons */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text-secondary)", marginBottom: 10 }}>
+          Select Business Category:
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))", gap: 10 }}>
+          {SEARCH_TYPES.map((st) => (
+            <button
+              key={st.type}
+              type="button"
+              onClick={() => handleTypeSelect(st.type)}
               style={{
-                display: "block",
-                fontSize: 13,
-                fontWeight: 600,
-                color: "var(--color-text-secondary)",
-                marginBottom: 6,
+                padding: "14px 16px",
+                borderRadius: 12,
+                border: selectedType === st.type ? `2px solid ${st.color}` : "2px solid var(--color-border)",
+                background: selectedType === st.type ? `${st.color}10` : "var(--color-surface)",
+                cursor: "pointer",
+                textAlign: "left",
+                transition: "all 0.15s",
+                boxShadow: selectedType === st.type ? `0 0 0 3px ${st.color}20` : "none",
               }}
             >
-              What type of businesses?
+              <div style={{ fontSize: 20, marginBottom: 6 }}>{st.icon}</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: selectedType === st.type ? st.color : "var(--color-text)", marginBottom: 2 }}>
+                {st.label}
+              </div>
+              <div style={{ fontSize: 11, color: "var(--color-text-secondary)", lineHeight: 1.3 }}>{st.desc}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Search Form */}
+      <form onSubmit={handleSearch} style={{ marginBottom: 24 }}>
+        <div className="accent-card" style={{ display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap" }}>
+          <div style={{ flex: 1, minWidth: 220 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--color-text-secondary)", marginBottom: 6 }}>
+              Business Type
             </label>
             <input
               type="text"
               className="search-input-lg"
-              placeholder="e.g., restaurants, dentists, hotels"
+              placeholder={`e.g. ${activeType?.example || "restaurants"}`}
               value={businessType}
               onChange={(e) => setBusinessType(e.target.value)}
               disabled={isSearching}
             />
           </div>
-          <div style={{ flex: 1, minWidth: 200 }}>
-            <label
-              style={{
-                display: "block",
-                fontSize: 13,
-                fontWeight: 600,
-                color: "var(--color-text-secondary)",
-                marginBottom: 6,
-              }}
-            >
+          <div style={{ flex: 1, minWidth: 180 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--color-text-secondary)", marginBottom: 6 }}>
               Location
             </label>
             <input
               type="text"
               className="search-input-lg"
-              placeholder="e.g., San Francisco, CA"
+              placeholder={`e.g. ${activeType?.location || "Dubai"}`}
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               disabled={isSearching}
             />
           </div>
-          <div style={{ minWidth: 120 }}>
-            <label
-              style={{
-                display: "block",
-                fontSize: 13,
-                fontWeight: 600,
-                color: "var(--color-text-secondary)",
-                marginBottom: 6,
-              }}
-            >
-              Max Results
-            </label>
-            <select
-              className="search-input-lg"
-              value={maxResults}
-              onChange={(e) => setMaxResults(Number(e.target.value))}
-              disabled={isSearching}
-              style={{ cursor: "pointer" }}
-            >
+          <div style={{ minWidth: 100 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--color-text-secondary)", marginBottom: 6 }}>Results</label>
+            <select className="search-input-lg" value={maxResults} onChange={(e) => setMaxResults(Number(e.target.value))} disabled={isSearching} style={{ cursor: "pointer" }}>
               <option value={10}>10</option>
               <option value={20}>20</option>
               <option value={50}>50</option>
             </select>
           </div>
-          <button
-            type="submit"
-            className="btn btn-primary btn-lg"
-            disabled={isSearching || !businessType.trim() || !location.trim()}
-            style={{ height: 50, paddingInline: 32 }}
-          >
-            {isSearching ? (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                <span className="spinner" />
-                Searching...
-              </span>
-            ) : (
-              "Search"
-            )}
+          <button type="submit" className="btn btn-primary btn-lg" disabled={isSearching || !businessType.trim()} style={{ height: 50, paddingInline: 32 }}>
+            {isSearching ? (<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><span className="spinner" /> Searching...</span>) : "Search"}
           </button>
         </div>
       </form>
 
-      {/* Results */}
+      {/* Error */}
+      {error && <div className="form-error-banner" style={{ marginBottom: 16 }}>{error}</div>}
+
+      {/* Loading */}
       {isSearching && (
         <div style={{ textAlign: "center", padding: 60 }}>
           <div className="spinner" style={{ width: 32, height: 32, margin: "0 auto 16px" }} />
@@ -262,152 +223,66 @@ export function GoogleMapsPage() {
         </div>
       )}
 
-      {!isSearching && !hasSearched && (
-        <div
-          className="accent-card"
-          style={{ textAlign: "center", padding: 60 }}
-        >
-          <div
-            style={{
-              width: 64,
-              height: 64,
-              borderRadius: 16,
-              background: "linear-gradient(135deg, #4285F4 0%, #34A853 50%, #FBBC05 100%)",
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              marginBottom: 16,
-            }}
-          >
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
-              <circle cx="12" cy="10" r="3" />
-            </svg>
-          </div>
-          <h3 style={{ fontSize: 18, fontWeight: 600, color: "var(--color-text)", marginBottom: 8 }}>
-            Search Google Maps
-          </h3>
-          <p style={{ color: "var(--color-text-secondary)", maxWidth: 400, margin: "0 auto" }}>
-            Enter a business type and location to scrape business listings including ratings, contact info, and reviews.
-          </p>
-        </div>
-      )}
-
-      {!isSearching && businesses.length > 0 && (
-        <>
-          {/* Results header */}
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 20,
-            }}
-          >
-            <div>
-              <span style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text)" }}>
-                {businesses.length} businesses found
-              </span>
-              <span style={{ fontSize: 13, color: "var(--color-text-secondary)", marginLeft: 8 }}>
-                in {location || "selected area"}
-              </span>
+      {/* Results Grid */}
+      {!isSearching && results.length > 0 && (
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <div style={{ fontSize: 14, color: "var(--color-text-secondary)" }}>
+              <strong style={{ color: "var(--color-text)" }}>{results.length}</strong> businesses found
             </div>
-            <button className="btn btn-primary" onClick={handleExportToSheet}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6 }}>
-                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
-              Export to Sheet
-            </button>
           </div>
-
-          {/* Business cards grid */}
           <div className="grid-cards">
-            {businesses.map((biz) => (
-              <div key={biz.id} className="business-card">
+            {results.map((biz, idx) => (
+              <div key={biz.place_id || idx} className="business-card">
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                   <div>
-                    <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--color-text)", marginBottom: 4 }}>
-                      {biz.name}
-                    </h3>
-                    <span className="badge-purple" style={{ fontSize: 11 }}>{biz.category}</span>
+                    <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--color-text)", marginBottom: 4 }}>{biz.name}</h3>
+                    {biz.primary_type && <span className="badge-blue">{biz.primary_type}</span>}
                   </div>
-                  <span className={biz.isOpen ? "badge-green" : "badge-red"}>
-                    {biz.isOpen ? "Open" : "Closed"}
-                  </span>
-                </div>
-
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <StarRating rating={biz.rating} />
-                  <span style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text)" }}>
-                    {biz.rating}
-                  </span>
-                  <span style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
-                    ({biz.reviewCount.toLocaleString()})
-                  </span>
-                </div>
-
-                <div style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 13 }}>
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: 8, color: "var(--color-text-secondary)" }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 2 }}>
-                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
-                      <circle cx="12" cy="10" r="3" />
-                    </svg>
-                    <span>{biz.address}</span>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--color-text-secondary)" }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                      <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" />
-                    </svg>
-                    <span>{biz.phone}</span>
-                  </div>
-                  {biz.website && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--color-text-secondary)" }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="2" y1="12" x2="22" y2="12" />
-                        <path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
-                      </svg>
-                      <a
-                        href={biz.website}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{ color: "var(--color-primary)", textDecoration: "none" }}
-                      >
-                        {biz.website.replace(/^https?:\/\//, "")}
-                      </a>
-                    </div>
+                  {biz.open_now !== null && (
+                    <span className={biz.open_now ? "badge-green" : "badge-red"}>
+                      {biz.open_now ? "Open" : "Closed"}
+                    </span>
                   )}
                 </div>
-
-                <div style={{ marginTop: "auto", paddingTop: 8, borderTop: "1px solid var(--color-border)" }}>
-                  <a
-                    href={`https://www.google.com/maps/place/?q=place_id:${biz.placeId}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 600,
-                      color: "var(--color-primary)",
-                      textDecoration: "none",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 4,
-                    }}
-                  >
-                    View on Maps
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
-                      <polyline points="15 3 21 3 21 9" />
-                      <line x1="10" y1="14" x2="21" y2="3" />
-                    </svg>
+                {biz.address && <div style={{ fontSize: 13, color: "var(--color-text-secondary)" }}>📍 {biz.address}</div>}
+                {biz.phone && <div style={{ fontSize: 13, color: "var(--color-text-secondary)" }}>📞 {biz.phone}</div>}
+                {biz.website && (
+                  <a href={biz.website} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: "var(--color-primary)" }}>
+                    🌐 {biz.website.replace(/^https?:\/\//, "").slice(0, 40)}
                   </a>
-                </div>
+                )}
+                {biz.rating !== null && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <StarRating rating={biz.rating} />
+                    <span style={{ fontSize: 14, fontWeight: 600 }}>{biz.rating}</span>
+                    {biz.review_count !== null && (
+                      <span style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>({biz.review_count.toLocaleString()})</span>
+                    )}
+                  </div>
+                )}
+                {biz.google_maps_url && (
+                  <a href={biz.google_maps_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: "var(--color-primary)" }}>
+                    View on Google Maps →
+                  </a>
+                )}
               </div>
             ))}
           </div>
-        </>
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!isSearching && !hasSearched && results.length === 0 && (
+        <div className="accent-card" style={{ textAlign: "center", padding: 48 }}>
+          <div style={{ width: 64, height: 64, borderRadius: 16, background: "linear-gradient(135deg, #4285F4, #34A853)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" /></svg>
+          </div>
+          <h3 style={{ fontSize: 18, fontWeight: 600, color: "var(--color-text)", marginBottom: 8 }}>Search for businesses</h3>
+          <p style={{ color: "var(--color-text-secondary)", maxWidth: 400, margin: "0 auto" }}>
+            Select a category above, then enter a business type and location to search Google Maps.
+          </p>
+        </div>
       )}
     </div>
   );
