@@ -1899,3 +1899,31 @@ name, place_id, address, lat/lng, phone, website, rating, review_count, business
 - `service_account.json`: Google service account key (gitignored)
 - `.env.example`: All placeholder entries committed (no secrets)
 
+
+---
+
+## 2026-03-27 — Comprehensive API Pricing Research (56 Live Searches)
+
+### Research Methodology
+3 parallel research agents executed 56 live web searches across:
+- 18 e-commerce marketplace queries
+- 18 social media + influencer queries
+- 20 digital product + AI tools queries
+
+### Key Findings
+
+**16 FREE official APIs discovered:** eBay, Etsy, Shopify, Best Buy, MercadoLibre, Steam, Rakuten, Envato, Product Hunt, Amazon SP-API, TikTok Shop Partner, Flipkart, Walmart Affiliate, Noon Seller, Shopee/Lazada, Upwork
+
+**New cheaper providers found:**
+- Xpoz: FREE 100K results/mo (social media)
+- SociaVault: $20/mo for 25+ platforms ($0.001/req)
+- BlueCart: $15/mo for Walmart data
+- Crawl4AI: FREE open-source AI scraping
+- Spider.cloud: $0.00065/page AI extraction
+
+**Discontinued/Dead:** Proxycurl (LinkedIn lawsuit July 2026), Udemy Affiliate API (Jan 2025)
+
+**No public API exists for:** Creative Market, Futurepedia, Toolify.ai, AlternativeTo, TAAFT, Fiverr, Poshmark, Mercari, AppSumo
+
+### Optimal Stack
+Total: ~$163-183/mo covering ALL major platforms (down from initial $421 estimate — 60% savings)
