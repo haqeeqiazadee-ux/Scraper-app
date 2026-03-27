@@ -14,6 +14,10 @@ from packages.connectors.api_adapter import ApiAdapter
 from packages.connectors.keepa_connector import KeepaConnector
 from packages.connectors.google_sheets_connector import GoogleSheetsConnector, KeepaSheetCache
 from packages.connectors.google_maps_connector import GoogleMapsConnector
+from packages.connectors.ebay_connector import EbayConnector
+from packages.connectors.shopify_connector import ShopifyConnector
+from packages.connectors.walmart_connector import WalmartConnector
+from packages.connectors.tiktok_connector import TikTokConnector
 
 __all__ = [
     "HttpCollector",
@@ -26,4 +30,8 @@ __all__ = [
     "GoogleSheetsConnector",
     "KeepaSheetCache",
     "GoogleMapsConnector",
+    "EbayConnector",
+    "ShopifyConnector",
+    "WalmartConnector",
+    "TikTokConnector",
 ]
