@@ -5,7 +5,7 @@
  */
 
 import { useState, type FormEvent } from "react";
-import { maps, type MapsBusinessResult } from "../api/client";
+import { maps } from "../api/client";
 
 interface BusinessResult {
   name: string;
