@@ -5,6 +5,7 @@
  */
 
 import { useState, type FormEvent } from "react";
+import { maps, type MapsBusinessResult } from "../api/client";
 
 interface BusinessResult {
   name: string;
@@ -77,28 +78,8 @@ export function GoogleMapsPage() {
         ? `${businessType.trim()} in ${location.trim()}`
         : businessType.trim();
 
-      const BASE = (import.meta as { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL ?? "/api/v1";
-      const token = localStorage.getItem("auth_token");
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      };
-
-      const resp = await fetch(`${BASE}/maps/search`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          query,
-          max_results: maxResults,
-        }),
-      });
-
-      if (!resp.ok) {
-        throw new Error(`API error: ${resp.status}`);
-      }
-
-      const data = await resp.json();
-      setResults(data.results || []);
+      const data = await maps.search(query, maxResults);
+      setResults((data.results || []) as BusinessResult[]);
       if ((data.results || []).length === 0) {
         setError("No businesses found. Try a different search.");
       }
