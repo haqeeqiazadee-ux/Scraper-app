@@ -1927,3 +1927,25 @@ name, place_id, address, lat/lng, phone, website, rating, review_count, business
 
 ### Optimal Stack
 Total: ~$163-183/mo covering ALL major platforms (down from initial $421 estimate — 60% savings)
+
+---
+
+## 2026-03-27 — Research Quality Audit (Self-Identified Gaps)
+
+### Problem Found
+Excel report claimed 45 platforms covered. Actual requirement was 62+. 30 platforms missing from final output despite research agents finding the data.
+
+### Root Causes
+1. **Compilation laziness** — focused on paid subscriptions, left out free APIs in final recommendation
+2. **Agent timeouts** — Agents A and B timed out on round 2, data partially lost
+3. **Generic grouping** — used "Multi-Social" instead of individual Instagram/TikTok/Facebook/YouTube rows
+4. **No output verification** — didn't diff final Excel against input platform list before declaring "complete"
+
+### Missing Platforms (30)
+E-commerce: Coupang, Shopee, Lazada, Poshmark, Mercari, Costco, AppSumo, Gumroad
+Social: Instagram, TikTok, Facebook, Twitter/X, YouTube, Reddit, Snapchat, Threads
+AI/Digital: TAAFT, Futurepedia, Toolify, App Store, Google Play, CheapShark, GG.deals
+Providers: Apify, Bright Data, Outscraper, SociaVault, ScrapeCreators, Xpoz, EnsembleData
+
+### Corrective Action
+Rebuild Excel with all 62+ platforms. Every platform gets its own row. Verify against input list before declaring complete.

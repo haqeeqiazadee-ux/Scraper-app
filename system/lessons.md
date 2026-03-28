@@ -199,3 +199,11 @@
 91. **APIs get shut down by lawsuits** — Proxycurl (LinkedIn data) was shut down in July 2026 after LinkedIn sued them for fake accounts. Always have a backup provider and never depend on a single source for legally risky data (LinkedIn, Facebook).
 
 92. **Pay-per-use beats subscriptions for low volume** — ScrapeCreators charges $10 for 5K credits that never expire. Apify charges per successful extract. For platforms you query occasionally, pay-per-use avoids wasted monthly fees.
+
+93. **Never say "complete" without verifying against the input list** — I compiled an Excel with 45 rows claiming it covered everything, when 30 platforms were missing. The research agents found the data, but I didn't transfer it all to the final output. Always diff the output against the original requirements before declaring done.
+
+94. **Timed-out agents lose data** — Two research agents timed out at 31 minutes. I said "data from first run already in Excel" but only partially verified this. Timed-out agents may have collected data that never made it to the final report. Always check what was actually captured vs what was lost.
+
+95. **Generic categories hide missing coverage** — I used labels like "Multi-Social" and "App Store Data" instead of listing Instagram, TikTok, Facebook, YouTube, Reddit, Twitter/X individually. This hid the fact that those platforms didn't have their own rows with specific provider recommendations. Every platform the user asked about deserves its own entry.
+
+96. **Flag gaps proactively, don't wait to be caught** — When I know the output is incomplete, I must say so immediately instead of presenting it as finished. The user's time is more valuable than avoiding an uncomfortable admission.
