@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import { useAuthContext } from "./contexts/AuthContext";
+
 import { Layout } from "./components/Layout";
 import { Dashboard } from "./pages/Dashboard";
 import { TasksPage } from "./pages/TasksPage";
@@ -7,7 +7,7 @@ import { TaskDetailPage } from "./pages/TaskDetailPage";
 import { Policies } from "./pages/Policies";
 import { ResultsPage } from "./pages/ResultsPage";
 import { ResultDetailPage } from "./pages/ResultDetailPage";
-import { Login } from "./pages/Login";
+
 import { SchedulesPage } from "./pages/SchedulesPage";
 import { BillingPage } from "./pages/BillingPage";
 import { SessionsPage } from "./pages/SessionsPage";
@@ -18,56 +18,13 @@ import ScrapeTestPage from "./pages/ScrapeTestPage";
 import { TemplatesPage } from "./pages/TemplatesPage";
 import { AmazonPage } from "./pages/AmazonPage";
 import { GoogleMapsPage } from "./pages/GoogleMapsPage";
+import { CrawlPage } from "./pages/CrawlPage";
+import { SearchPage } from "./pages/SearchPage";
+import { ExtractPage } from "./pages/ExtractPage";
+import { ChangesPage } from "./pages/ChangesPage";
+import { McpPage } from "./pages/McpPage";
 
-/** Wrapper that redirects unauthenticated users to /login. */
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuthContext();
-
-  if (isLoading) {
-    return (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <div className="loading">Initializing...</div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return <>{children}</>;
-}
-
-/** Wrapper that redirects authenticated users away from login. */
-function GuestRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuthContext();
-
-  if (isLoading) {
-    return (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <div className="loading">Initializing...</div>
-      </div>
-    );
-  }
-
-  if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
   return <>{children}</>;
 }
 
@@ -75,14 +32,7 @@ export function App() {
   return (
     <Routes>
       {/* Public route */}
-      <Route
-        path="/login"
-        element={
-          <GuestRoute>
-            <Login />
-          </GuestRoute>
-        }
-      />
+      <Route path="/login" element={<Navigate to="/dashboard" replace />} />
 
       {/* Protected routes */}
       <Route
@@ -109,6 +59,11 @@ export function App() {
         <Route path="/proxies" element={<ProxyPage />} />
         <Route path="/webhooks" element={<WebhookHistoryPage />} />
         <Route path="/billing" element={<BillingPage />} />
+        <Route path="/crawl" element={<CrawlPage />} />
+        <Route path="/search" element={<SearchPage />} />
+        <Route path="/extract" element={<ExtractPage />} />
+        <Route path="/changes" element={<ChangesPage />} />
+        <Route path="/mcp" element={<McpPage />} />
       </Route>
 
       {/* Catch-all redirect */}

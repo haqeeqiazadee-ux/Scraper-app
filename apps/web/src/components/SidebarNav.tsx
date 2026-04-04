@@ -136,6 +136,55 @@ function IconMap() {
   );
 }
 
+function IconSpider() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="8" cy="6" r="2.5" />
+      <path d="M5.5 6L2 3M10.5 6L14 3M5.5 7L1.5 8.5M10.5 7L14.5 8.5M6 8.5L3 12M10 8.5L13 12" />
+    </svg>
+  );
+}
+
+function IconSearch() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="7" cy="7" r="4.5" />
+      <line x1="10.5" y1="10.5" x2="14" y2="14" />
+    </svg>
+  );
+}
+
+function IconCode() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="5 4 1.5 8 5 12" />
+      <polyline points="11 4 14.5 8 11 12" />
+      <line x1="9.5" y1="2.5" x2="6.5" y2="13.5" />
+    </svg>
+  );
+}
+
+function IconDiff() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="1" y="1" width="6" height="14" rx="1" />
+      <rect x="9" y="1" width="6" height="14" rx="1" />
+      <line x1="3" y1="5" x2="5" y2="5" />
+      <line x1="4" y1="4" x2="4" y2="6" />
+      <line x1="11" y1="11" x2="13" y2="11" />
+    </svg>
+  );
+}
+
+function IconPlug() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 1.5v3M10 1.5v3M4 4.5h8v3a4 4 0 01-8 0v-3z" />
+      <line x1="8" y1="11.5" x2="8" y2="14.5" />
+    </svg>
+  );
+}
+
 /* ── Nav groups ── */
 
 interface NavItem {
@@ -167,6 +216,10 @@ const NAV_GROUPS: NavGroup[] = [
       { to: "/scrape-test",   label: "Scrape Tester", Icon: IconDatabase },
       { to: "/amazon",        label: "Amazon / Keepa", Icon: IconAmazon },
       { to: "/google-maps",   label: "Google Maps",   Icon: IconMap },
+      { to: "/crawl",         label: "Crawl",         Icon: IconSpider },
+      { to: "/search",        label: "Search",        Icon: IconSearch },
+      { to: "/extract",       label: "Extract",       Icon: IconCode },
+      { to: "/changes",       label: "Changes",       Icon: IconDiff },
       { to: "/schedules",     label: "Schedules",     Icon: IconClock },
     ],
   },
@@ -176,6 +229,12 @@ const NAV_GROUPS: NavGroup[] = [
       { to: "/sessions", label: "Sessions", Icon: IconActivity },
       { to: "/proxies",  label: "Proxies",  Icon: IconGlobe },
       { to: "/webhooks", label: "Webhooks", Icon: IconWebhook },
+    ],
+  },
+  {
+    section: "INTEGRATION",
+    items: [
+      { to: "/mcp", label: "MCP Server", Icon: IconPlug },
     ],
   },
   {

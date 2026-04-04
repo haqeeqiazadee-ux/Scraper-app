@@ -9,12 +9,10 @@ import {
   createContext,
   useContext,
   useState,
-  useEffect,
   useCallback,
   useMemo,
   type ReactNode,
 } from "react";
-import { auth, onAuthFailure } from "../api/client";
 import type { UserProfile } from "../api/types";
 
 /* ── Context Shape ── */
@@ -42,73 +40,32 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+const DEFAULT_USER: UserProfile = {
+  sub: "admin",
+  tenant_id: "default",
+  roles: ["admin"],
+};
+
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // On mount, check if we have a stored token and try to fetch the user profile.
-  useEffect(() => {
-    let cancelled = false;
-
-    async function checkAuth() {
-      if (!auth.isAuthenticated()) {
-        setIsLoading(false);
-        return;
-      }
-      try {
-        const profile = await auth.me();
-        if (!cancelled) {
-          setUser(profile);
-        }
-      } catch {
-        // Token is invalid or expired — clear it
-        auth.logout();
-        if (!cancelled) {
-          setUser(null);
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    checkAuth();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // Register the 401 handler so any API call that gets a 401 logs the user out.
-  useEffect(() => {
-    onAuthFailure(() => {
-      setUser(null);
-    });
-  }, []);
+  const [user, setUser] = useState<UserProfile | null>(DEFAULT_USER);
+  const [isLoading, setIsLoading] = useState(false);
 
   const login = useCallback(
-    async (username: string, password: string): Promise<UserProfile> => {
-      await auth.login(username, password);
-      const profile = await auth.me();
-      setUser(profile);
-      return profile;
+    async (_username: string, _password: string): Promise<UserProfile> => {
+      return DEFAULT_USER;
     },
     [],
   );
 
   const register = useCallback(
-    async (username: string, password: string): Promise<UserProfile> => {
-      await auth.register(username, password);
-      const profile = await auth.me();
-      setUser(profile);
-      return profile;
+    async (_username: string, _password: string): Promise<UserProfile> => {
+      return DEFAULT_USER;
     },
     [],
   );
 
   const logout = useCallback(() => {
-    auth.logout();
-    setUser(null);
+    // no-op
   }, []);
 
   const value = useMemo<AuthState>(

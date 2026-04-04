@@ -436,3 +436,50 @@ export interface AnalyticsData {
   top_domains: { domain: string; count: number }[];
   tasks_today: number;
 }
+
+/* ── Crawl (HYDRA) ── */
+
+export interface CrawlStats {
+  pages_crawled: number;
+  pages_queued: number;
+  pages_failed: number;
+  items_extracted: number;
+  bytes_downloaded: number;
+  elapsed_seconds: number;
+  pages_per_second: number;
+  current_depth: number;
+}
+
+export interface CrawlJob {
+  crawl_id: string;
+  state: string;
+  config: Record<string, any>;
+  stats: CrawlStats;
+  results: any[];
+  errors: any[];
+  created_at: string;
+  updated_at: string;
+}
+
+/* ── Search (HYDRA) ── */
+
+export interface SearchResult {
+  query: string;
+  results: Array<{
+    url: string;
+    title: string;
+    extracted_data: Record<string, any>;
+    status: string;
+  }>;
+  total_results: number;
+  search_provider: string;
+}
+
+/* ── Extract (HYDRA) ── */
+
+export interface ExtractResult {
+  url: string;
+  extracted_data: Record<string, any>;
+  confidence: number;
+  extraction_method: string;
+}

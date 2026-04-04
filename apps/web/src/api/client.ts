@@ -84,10 +84,8 @@ export function onAuthFailure(cb: () => void): void {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const token = getToken();
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(init?.headers as Record<string, string> | undefined),
   };
 
@@ -96,13 +94,6 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
     headers,
   });
-
-  if (response.status === 401) {
-    // Clear stored token and notify auth listeners
-    setToken(null);
-    _onAuthFailure?.();
-    throw new ApiError(401, "Authentication required");
-  }
 
   if (!response.ok) {
     let detail = response.statusText;
@@ -649,6 +640,66 @@ export const keepa = {
 
   status(): Promise<{ tokens_left: number; api_key_set: boolean }> {
     return request("/keepa/status");
+  },
+};
+
+/* ── Crawl ── */
+
+export const crawl = {
+  start(data: {
+    seed_urls: string[];
+    max_depth?: number;
+    max_pages?: number;
+    output_format?: string;
+    crawl_delay?: number;
+  }): Promise<{ crawl_id: string; status: string }> {
+    return request("/crawl", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
+  get(id: string): Promise<any> {
+    return request(`/crawl/${id}`);
+  },
+
+  results(id: string, params?: { limit?: number; offset?: number }): Promise<any> {
+    const qs = buildQuery({ limit: params?.limit, offset: params?.offset });
+    return request(`/crawl/${id}/results${qs}`);
+  },
+
+  stop(id: string): Promise<any> {
+    return request(`/crawl/${id}/stop`, { method: "POST" });
+  },
+};
+
+/* ── Search ── */
+
+export const search = {
+  run(data: {
+    query: string;
+    max_results?: number;
+    output_format?: string;
+  }): Promise<any> {
+    return request("/search", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+};
+
+/* ── Extract ── */
+
+export const extract = {
+  run(data: {
+    url: string;
+    schema?: Record<string, any>;
+    output_format?: string;
+  }): Promise<any> {
+    return request("/extract", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
   },
 };
 

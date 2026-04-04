@@ -147,6 +147,42 @@ export function Dashboard() {
         </svg>
       ),
     },
+    {
+      title: "Start Crawl",
+      description: "Recursive web crawl",
+      route: "/crawl",
+      iconBg: "#e0e7ff",
+      icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="10" r="4" />
+          <path d="M8 10L4 5M16 10L20 5M8 12L3 15M16 12L21 15M9 14L5 20M15 14L19 20" />
+        </svg>
+      ),
+    },
+    {
+      title: "Web Search",
+      description: "Search and extract",
+      route: "/search",
+      iconBg: "#ecfdf5",
+      icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="11" cy="11" r="7" />
+          <line x1="16.5" y1="16.5" x2="21" y2="21" />
+        </svg>
+      ),
+    },
+    {
+      title: "MCP Setup",
+      description: "Connect to AI agents",
+      route: "/mcp",
+      iconBg: "#f0fdf4",
+      icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M9 2v5M15 2v5M6 7h12v4.5a6 6 0 01-12 0V7z" />
+          <line x1="12" y1="17.5" x2="12" y2="22" />
+        </svg>
+      ),
+    },
   ];
 
   const handleQuickAction = useCallback(
