@@ -379,3 +379,73 @@ find src -name '*.ts' -o -name '*.tsx' | wc -l       # Total src files
 9. *Video/media*: Use claude-code-video-toolkit skills for any video/audio/image generation
 10. *Auto-update*: System files update AUTOMATICALLY after every major change — see protocol above
 10. *Git discipline*: Use /checkpoint for save points, /prp-commit for polished commits
+
+---
+
+## 🔴 MUST DO — NON-NEGOTIABLE PRE-TASK GATE (APPLIES TO EVERY SINGLE TASK)
+
+**THIS OVERRIDES EVERYTHING. NO TASK BEGINS WITHOUT COMPLETING THIS GATE.**
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  🔴 BEFORE TOUCHING ANY CODE, FILE, OR COMMAND:             │
+│                                                              │
+│  1. READ this file (~/.claude/CLAUDE.md)                     │
+│     → Load agent hierarchy, MCP servers, skills, commands    │
+│     → Load autonomy rules + session memory protocol          │
+│                                                              │
+│  2. READ project CLAUDE.md (root of current repo)            │
+│     → Load project-specific pre-task protocol                │
+│     → Load project-specific tool mapping table               │
+│     → Load project architecture + conventions                │
+│                                                              │
+│  3. CLASSIFY the task                                        │
+│     → ARCHITECTURE → architect-1 + architect-2               │
+│     → IMPLEMENTATION → engineer-1 + engineer-2               │
+│     → RESEARCH/CONTENT → product-1 + product-2              │
+│     → SECURITY/AUTH → security-1 + security-2                │
+│     → TESTING/QA → qa-1 + qa-2                              │
+│     → FULL FEATURE → ALL agents                             │
+│                                                              │
+│  4. SELECT TOOLS from inventory (match task to tools)        │
+│     → Which MCP servers? (10 available)                      │
+│     → Which skills? (437 available)                          │
+│     → Which commands? (102 available)                        │
+│     → Which Python packages? (3 global)                      │
+│                                                              │
+│  5. READ PROJECT STATE                                       │
+│     → system/todo.md (current queue)                         │
+│     → system/execution_trace.md (last 5 entries)             │
+│     → system/lessons.md (avoid repeating mistakes)           │
+│                                                              │
+│  6. ONLY THEN → EXECUTE with full autonomy                   │
+│                                                              │
+│  7. POST-TASK → auto-update system files + claude-mem + push │
+└──────────────────────────────────────────────────────────────┘
+```
+
+**FAILURE TO FOLLOW THIS GATE = BROKEN WORKFLOW. NO EXCEPTIONS.**
+
+### Why This Exists
+
+Without this gate, Claude Code:
+- Picks random/wrong tools instead of the best ones from 1,260+ available
+- Misses agent orchestration — runs single-threaded instead of parallel agents
+- Ignores lessons learned — repeats past mistakes documented in system/lessons.md
+- Skips post-task updates — breaks session continuity and audit trail
+- Doesn't persist findings — loses cross-session knowledge
+
+### Quick Reference: Tool Selection Cheat Sheet
+
+| If task involves... | Use these FIRST |
+|---------------------|-----------------|
+| Web research | exa (search) + firecrawl (scrape) |
+| Writing code with a library | context7 (latest docs) |
+| GitHub operations | github MCP (not gh CLI) |
+| Browser testing | playwright MCP |
+| Multi-step complex work | ruflo (multi-agent swarm) |
+| UI from Figma designs | figma MCP |
+| n8n automations | n8n-mcp + n8n-instance |
+| Persisting findings | claude-mem |
+| Security/pen testing | security-1 + security-2 agents |
+| Any code review | /code-review + /verify commands |
