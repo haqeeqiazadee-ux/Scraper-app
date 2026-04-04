@@ -121,7 +121,9 @@ async def start_crawl(request: CrawlRequest) -> dict:
         max_depth=request.max_depth,
         max_pages=request.max_pages,
     )
-    result = await manager.start_crawl(
+    from packages.core.crawl_manager import CrawlConfig
+
+    config = CrawlConfig(
         seed_urls=request.seed_urls,
         max_depth=request.max_depth,
         max_pages=request.max_pages,
@@ -133,8 +135,9 @@ async def start_crawl(request: CrawlRequest) -> dict:
         crawl_delay=request.crawl_delay,
         concurrent_limit=request.concurrent_limit,
     )
-    logger.info("crawl.started", crawl_id=result["crawl_id"])
-    return {"crawl_id": result["crawl_id"], "status": result["status"]}
+    crawl_id = await manager.start_crawl(config)
+    logger.info("crawl.started", crawl_id=crawl_id)
+    return {"crawl_id": crawl_id, "status": "running"}
 
 
 @crawl_router.get("/{crawl_id}")

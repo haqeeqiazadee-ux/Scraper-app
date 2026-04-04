@@ -93,7 +93,7 @@ def backend_server():
         env=env,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        preexec_fn=os.setsid,
+        **({"preexec_fn": os.setsid} if hasattr(os, "setsid") else {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP} if hasattr(subprocess, "CREATE_NEW_PROCESS_GROUP") else {}),
     )
 
     if not _wait_for_server(f"{BACKEND_URL}/health", timeout=30):
@@ -104,7 +104,13 @@ def backend_server():
 
     yield proc
 
-    os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+    try:
+        if hasattr(os, "killpg"):
+            os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+        else:
+            proc.terminate()
+    except Exception:
+        proc.kill()
     proc.wait(timeout=10)
 
 
@@ -125,7 +131,7 @@ def frontend_server(backend_server):
         env=env,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        preexec_fn=os.setsid,
+        **({"preexec_fn": os.setsid} if hasattr(os, "setsid") else {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP} if hasattr(subprocess, "CREATE_NEW_PROCESS_GROUP") else {}),
     )
 
     if not _wait_for_server(FRONTEND_URL, timeout=45):
@@ -136,7 +142,13 @@ def frontend_server(backend_server):
 
     yield proc
 
-    os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+    try:
+        if hasattr(os, "killpg"):
+            os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+        else:
+            proc.terminate()
+    except Exception:
+        proc.kill()
     proc.wait(timeout=10)
 
 
@@ -231,6 +243,6 @@ def mock_external_apis(page):
 # Base URL
 # ---------------------------------------------------------------------------
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def base_url(frontend_server):
     return FRONTEND_URL
