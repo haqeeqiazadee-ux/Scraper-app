@@ -306,6 +306,178 @@ _CHROME_131_WIN_AU = DeviceProfile(
     impersonate_target="chrome131",
 )
 
+# --- Sprint 5: Mobile, tablet, and additional desktop profiles ---------------
+
+_CHROME_131_ANDROID_SAMSUNG_S24 = DeviceProfile(
+    user_agent="Mozilla/5.0 (Linux; Android 14; SM-S921B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36",
+    browser="chrome",
+    browser_version="131",
+    platform="Linux armv81",
+    locale="ko-KR",
+    accept_language="ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
+    timezone="Asia/Seoul",
+    viewport={"width": 412, "height": 915},
+    screen={"width": 412, "height": 915},
+    color_depth=24,
+    pixel_ratio=3.0,
+    hardware_concurrency=8,
+    geo_hint="KR",
+    impersonate_target="chrome131",
+)
+
+_CHROME_131_ANDROID_PIXEL_8 = DeviceProfile(
+    user_agent="Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36",
+    browser="chrome",
+    browser_version="131",
+    platform="Linux armv81",
+    locale="en-US",
+    accept_language="en-US,en;q=0.9",
+    timezone="America/Los_Angeles",
+    viewport={"width": 412, "height": 915},
+    screen={"width": 412, "height": 915},
+    color_depth=24,
+    pixel_ratio=2.625,
+    hardware_concurrency=8,
+    geo_hint="US",
+    impersonate_target="chrome131",
+)
+
+_CHROME_131_ANDROID_ONEPLUS_12 = DeviceProfile(
+    user_agent="Mozilla/5.0 (Linux; Android 14; CPH2583) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36",
+    browser="chrome",
+    browser_version="131",
+    platform="Linux armv81",
+    locale="en-IN",
+    accept_language="en-IN,en;q=0.9,hi;q=0.8",
+    timezone="Asia/Kolkata",
+    viewport={"width": 412, "height": 915},
+    screen={"width": 412, "height": 915},
+    color_depth=24,
+    pixel_ratio=3.0,
+    hardware_concurrency=8,
+    geo_hint="IN",
+    impersonate_target="chrome131",
+)
+
+_CHROME_131_IOS_IPAD = DeviceProfile(
+    user_agent="Mozilla/5.0 (iPad; CPU OS 17_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/131.0.6778.73 Mobile/15E148 Safari/604.1",
+    browser="chrome",
+    browser_version="131",
+    platform="iPad",
+    locale="en-US",
+    accept_language="en-US,en;q=0.9",
+    timezone="America/New_York",
+    viewport={"width": 1024, "height": 1366},
+    screen={"width": 1024, "height": 1366},
+    color_depth=24,
+    pixel_ratio=2.0,
+    hardware_concurrency=6,
+    geo_hint="US",
+    impersonate_target="chrome131",
+)
+
+_SAFARI_17_IOS_IPHONE15 = DeviceProfile(
+    user_agent="Mozilla/5.0 (iPhone; CPU iPhone OS 17_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.6 Mobile/15E148 Safari/604.1",
+    browser="safari",
+    browser_version="17.6",
+    platform="iPhone",
+    locale="en-US",
+    accept_language="en-US,en;q=0.9",
+    timezone="America/Los_Angeles",
+    viewport={"width": 390, "height": 844},
+    screen={"width": 390, "height": 844},
+    color_depth=24,
+    pixel_ratio=3.0,
+    hardware_concurrency=6,
+    geo_hint="US",
+    impersonate_target="safari17_2_ios",
+)
+
+_SAFARI_17_IOS_IPHONE14 = DeviceProfile(
+    user_agent="Mozilla/5.0 (iPhone; CPU iPhone OS 17_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.6 Mobile/15E148 Safari/604.1",
+    browser="safari",
+    browser_version="17.6",
+    platform="iPhone",
+    locale="en-GB",
+    accept_language="en-GB,en;q=0.9",
+    timezone="Europe/London",
+    viewport={"width": 390, "height": 844},
+    screen={"width": 390, "height": 844},
+    color_depth=24,
+    pixel_ratio=3.0,
+    hardware_concurrency=6,
+    geo_hint="GB",
+    impersonate_target="safari17_2_ios",
+)
+
+_FIREFOX_132_LINUX_UBUNTU = DeviceProfile(
+    user_agent="Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:132.0) Gecko/20100101 Firefox/132.0",
+    browser="firefox",
+    browser_version="132",
+    platform="Linux",
+    locale="en-US",
+    accept_language="en-US,en;q=0.5",
+    timezone="America/Chicago",
+    viewport={"width": 1920, "height": 1080},
+    screen={"width": 1920, "height": 1080},
+    color_depth=24,
+    pixel_ratio=1.0,
+    hardware_concurrency=8,
+    geo_hint="US",
+    impersonate_target="chrome131",  # curl_cffi doesn't support firefox impersonation
+)
+
+_FIREFOX_132_LINUX_FEDORA = DeviceProfile(
+    user_agent="Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:132.0) Gecko/20100101 Firefox/132.0",
+    browser="firefox",
+    browser_version="132",
+    platform="Linux",
+    locale="de-DE",
+    accept_language="de-DE,de;q=0.9,en;q=0.5",
+    timezone="Europe/Berlin",
+    viewport={"width": 1920, "height": 1080},
+    screen={"width": 1920, "height": 1080},
+    color_depth=24,
+    pixel_ratio=1.0,
+    hardware_concurrency=8,
+    geo_hint="DE",
+    impersonate_target="chrome131",  # curl_cffi doesn't support firefox impersonation
+)
+
+_EDGE_131_WIN_US = DeviceProfile(
+    user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.2903.86",
+    browser="chrome",
+    browser_version="131",
+    platform="Windows",
+    locale="en-US",
+    accept_language="en-US,en;q=0.9",
+    timezone="America/New_York",
+    viewport={"width": 1920, "height": 1080},
+    screen={"width": 1920, "height": 1080},
+    color_depth=24,
+    pixel_ratio=1.0,
+    hardware_concurrency=8,
+    geo_hint="US",
+    impersonate_target="chrome131",
+)
+
+_BRAVE_131_WIN_US = DeviceProfile(
+    user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    browser="chrome",
+    browser_version="131",
+    platform="Windows",
+    locale="en-US",
+    accept_language="en-US,en;q=0.9",
+    timezone="America/Denver",
+    viewport={"width": 1920, "height": 1080},
+    screen={"width": 1920, "height": 1080},
+    color_depth=24,
+    pixel_ratio=1.0,
+    hardware_concurrency=8,
+    geo_hint="US",
+    impersonate_target="chrome131",
+)
+
 # Master pool of all profiles
 DEVICE_PROFILES: list[DeviceProfile] = [
     _CHROME_131_WIN_US,
@@ -322,6 +494,17 @@ DEVICE_PROFILES: list[DeviceProfile] = [
     _CHROME_131_LINUX_US,
     _CHROME_131_WIN_CA,
     _CHROME_131_WIN_AU,
+    # Sprint 5: new profiles
+    _CHROME_131_ANDROID_SAMSUNG_S24,
+    _CHROME_131_ANDROID_PIXEL_8,
+    _CHROME_131_ANDROID_ONEPLUS_12,
+    _CHROME_131_IOS_IPAD,
+    _SAFARI_17_IOS_IPHONE15,
+    _SAFARI_17_IOS_IPHONE14,
+    _FIREFOX_132_LINUX_UBUNTU,
+    _FIREFOX_132_LINUX_FEDORA,
+    _EDGE_131_WIN_US,
+    _BRAVE_131_WIN_US,
 ]
 
 
@@ -478,9 +661,10 @@ def get_headers_for_profile(profile: DeviceProfile) -> dict[str, str]:
     for header-order fingerprinting.
     """
     if profile.browser == "chrome":
+        _is_mobile = profile.platform in ("Linux armv81", "iPhone", "iPad")
         return {
             "sec-ch-ua": f'"Chromium";v="{profile.browser_version}", "Google Chrome";v="{profile.browser_version}", "Not?A_Brand";v="99"',
-            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-mobile": "?1" if _is_mobile else "?0",
             "sec-ch-ua-platform": f'"{profile.platform}"',
             "Upgrade-Insecure-Requests": "1",
             "User-Agent": profile.user_agent,

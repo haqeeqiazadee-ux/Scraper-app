@@ -129,6 +129,8 @@ class AINormalizationWorker:
 
         result["extracted_data"] = items
         result["confidence"] = new_confidence
+        # Ensure output_format is always present in the result (pass-through)
+        result.setdefault("output_format", "json")
         return result
 
     async def process_batch(self, results: list[dict]) -> list[dict]:

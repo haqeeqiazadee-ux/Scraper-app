@@ -22,6 +22,7 @@ from packages.core.ai_providers.deterministic import DeterministicProvider
 from packages.core.dedup import DedupEngine
 from packages.core.normalizer import Normalizer
 from packages.core.interfaces import AIProvider, FetchRequest
+from packages.core.markdown_converter import MarkdownConverter
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +82,7 @@ class HardTargetLaneWorker:
         self._ai = ai_provider or DeterministicProvider()
         self._normalizer = Normalizer()
         self._dedup = DedupEngine()
+        self._converter = MarkdownConverter()
 
     async def process_task(self, task: dict) -> dict:
         """Process a hard-target extraction task with intelligent content detection."""
@@ -181,6 +183,15 @@ class HardTargetLaneWorker:
                 item_scores.append(min(score, 1.0))
             confidence = sum(item_scores) / len(item_scores) if item_scores else 0.0
 
+        # Output format conversion (markdown, etc.)
+        output_format = task.get("output_format", "json")
+        converted_content = None
+        estimated_tokens = None
+        if output_format != "json" and html:
+            conversion = self._converter.convert(html, url, output_format=output_format)
+            converted_content = conversion.content
+            estimated_tokens = conversion.estimated_tokens
+
         elapsed = int((time.time() - start_time) * 1000)
         method = "deterministic" if isinstance(self._ai, DeterministicProvider) else "ai"
 
@@ -190,7 +201,7 @@ class HardTargetLaneWorker:
             "duration_ms": elapsed,
         })
 
-        return {
+        result = {
             "task_id": task_id, "run_id": run_id, "tenant_id": tenant_id,
             "url": url, "lane": "hard_target", "connector": "hard_target_worker",
             "status": "success", "status_code": response.status_code,
@@ -203,7 +214,12 @@ class HardTargetLaneWorker:
             "normalization_applied": normalization_applied,
             "dedup_applied": dedup_applied,
             "should_escalate": False,
+            "output_format": output_format,
         }
+        if converted_content is not None:
+            result["converted_content"] = converted_content
+            result["estimated_tokens"] = estimated_tokens
+        return result
 
     def _classify_failure(self, response: object) -> str:
         """Classify the failure reason from the response."""

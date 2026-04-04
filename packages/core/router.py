@@ -40,6 +40,7 @@ class RouteDecision:
     reason: str
     fallback_lanes: list[Lane]
     confidence: float = 1.0
+    estimated_cost: float = 0.0  # Estimated cost per page in USD
 
 
 # Domains known to require browser rendering
@@ -57,6 +58,49 @@ def _is_amazon_product_url(url: str) -> bool:
     """
     import re
     return bool(re.search(r"/(?:dp|gp/product|ASIN)/[A-Z0-9]{10}", url))
+
+
+# --- Cost constants (Task 5.4) ---
+LANE_COSTS: dict[Lane, float] = {
+    Lane.API: 0.0005,       # API calls (cheapest)
+    Lane.HTTP: 0.001,       # curl_cffi (very cheap)
+    Lane.BROWSER: 0.01,     # Playwright (10x HTTP)
+    Lane.HARD_TARGET: 0.05, # Camoufox + proxy + human sim (50x HTTP)
+}
+
+LLM_EXTRACTION_COST: float = 0.03  # Per page when LLM extraction needed
+
+
+# --- Anti-bot markers for response-based reclassification (Task 5.3) ---
+ANTI_BOT_MARKERS: list[str] = [
+    "__cf_chl_tk",       # Cloudflare challenge token
+    "cf-challenge",      # Cloudflare challenge
+    "_datadome",         # DataDome
+    "datadome",          # DataDome
+    "px-captcha",        # PerimeterX / HUMAN
+    "awswaf",            # AWS WAF
+    "aws-waf-token",     # AWS WAF token
+    "challenge-platform",  # Generic challenge platform
+]
+
+# Markers that specifically indicate Cloudflare protection
+CLOUDFLARE_MARKERS: list[str] = [
+    "__cf_chl_tk",
+    "cf-challenge",
+    "cf-chl-bypass",
+]
+
+# SPA framework markers (indicates browser rendering is needed)
+SPA_FRAMEWORK_MARKERS: list[str] = [
+    "__NEXT_DATA__",           # Next.js
+    "__NUXT__",                # Nuxt.js (Vue)
+    "id=\"__next\"",           # Next.js root
+    "id=\"app\"",              # Vue default
+    "ng-version",              # Angular
+    "data-reactroot",          # React
+    "_react",                  # React internals
+    "window.__INITIAL_STATE__",  # Vuex / SSR state
+]
 
 # Domains with known APIs
 API_AVAILABLE_DOMAINS: dict[str, str] = {
@@ -136,6 +180,7 @@ class ExecutionRouter:
                 lane=lane,
                 reason=f"Policy '{policy.name}' specifies {lane} lane",
                 fallback_lanes=self._get_fallback_lanes(lane),
+                estimated_cost=LANE_COSTS.get(lane, 0.0),
             )
 
         # 2. Check for known API availability (exact or suffix match)
@@ -145,6 +190,7 @@ class ExecutionRouter:
                 lane=Lane.API,
                 reason=f"Known API available for {domain} (matched {api_match})",
                 fallback_lanes=[Lane.HTTP, Lane.BROWSER],
+                estimated_cost=LANE_COSTS[Lane.API],
             )
 
         # 3. Check site profiles (learned from history)
@@ -155,6 +201,7 @@ class ExecutionRouter:
                 reason=f"Site profile recommends {lane} for {domain}",
                 fallback_lanes=self._get_fallback_lanes(lane),
                 confidence=0.8,
+                estimated_cost=LANE_COSTS.get(lane, 0.0),
             )
 
         # 4. Amazon — ALL queries go through Keepa API first
@@ -166,6 +213,7 @@ class ExecutionRouter:
                 lane=Lane.API,
                 reason=f"Amazon → Keepa API (priority for all Amazon queries)",
                 fallback_lanes=[Lane.BROWSER, Lane.HARD_TARGET],
+                estimated_cost=LANE_COSTS[Lane.API],
             )
 
         # 5. Check if domain requires hard-target (exact or suffix match)
@@ -174,6 +222,7 @@ class ExecutionRouter:
                 lane=Lane.HARD_TARGET,
                 reason=f"{domain} requires hard-target stealth browser",
                 fallback_lanes=[],
+                estimated_cost=LANE_COSTS[Lane.HARD_TARGET],
             )
 
         # 6. Check if domain requires browser (exact or suffix match)
@@ -182,6 +231,7 @@ class ExecutionRouter:
                 lane=Lane.BROWSER,
                 reason=f"{domain} requires browser rendering",
                 fallback_lanes=[Lane.HARD_TARGET],
+                estimated_cost=LANE_COSTS[Lane.BROWSER],
             )
 
         # 6. B4: WooCommerce REST API → use API lane
@@ -191,6 +241,7 @@ class ExecutionRouter:
                 lane=Lane.API,
                 reason="WooCommerce REST API detected (/wp-json/wc/)",
                 fallback_lanes=[Lane.HTTP],
+                estimated_cost=LANE_COSTS[Lane.API],
             )
 
         # 7. B4: RSS / XML feed → use HTTP lane (lightweight, no JS needed)
@@ -200,6 +251,7 @@ class ExecutionRouter:
                 reason="RSS/XML feed detected — HTTP lane sufficient",
                 fallback_lanes=[],
                 confidence=0.9,
+                estimated_cost=LANE_COSTS[Lane.HTTP],
             )
 
         # 8. Default: try HTTP first
@@ -208,6 +260,7 @@ class ExecutionRouter:
             reason="Default: try HTTP lane first",
             fallback_lanes=[Lane.BROWSER, Lane.HARD_TARGET],
             confidence=0.5,
+            estimated_cost=LANE_COSTS[Lane.HTTP],
         )
 
     async def route_with_checks(
@@ -270,6 +323,114 @@ class ExecutionRouter:
         if not decision.fallback_lanes:
             return None
         return decision.fallback_lanes[0]
+
+    # --- Task 5.3: Response-based reclassification ---
+
+    def reclassify_from_response(
+        self, domain: str, current_lane: Lane, status_code: int, html: str = ""
+    ) -> Lane | None:
+        """Reclassify a domain based on actual response.
+
+        Called after a fetch attempt. If the response indicates the current lane
+        is insufficient, reclassify the domain for future requests.
+
+        Returns the new lane if reclassified, None if no change needed.
+        """
+        html_lower = html.lower()
+
+        if current_lane == Lane.HTTP:
+            # Cloudflare challenge page (typically 403 or 503 with challenge JS)
+            if self._has_cloudflare_challenge(html_lower):
+                self._site_profiles[domain] = Lane.BROWSER
+                logger.info(
+                    "Reclassified domain from HTTP → BROWSER (Cloudflare challenge)",
+                    extra={"domain": domain, "status_code": status_code},
+                )
+                return Lane.BROWSER
+
+            # 403 with any anti-bot marker → escalate to BROWSER
+            if status_code == 403 and self._has_anti_bot_markers(html_lower):
+                self._site_profiles[domain] = Lane.BROWSER
+                logger.info(
+                    "Reclassified domain from HTTP → BROWSER (403 + anti-bot)",
+                    extra={"domain": domain, "status_code": status_code},
+                )
+                return Lane.BROWSER
+
+        elif current_lane == Lane.BROWSER:
+            # Browser still blocked → escalate to HARD_TARGET
+            if status_code in (403, 429) and self._has_anti_bot_markers(html_lower):
+                self._site_profiles[domain] = Lane.HARD_TARGET
+                logger.info(
+                    "Reclassified domain from BROWSER → HARD_TARGET (still blocked)",
+                    extra={"domain": domain, "status_code": status_code},
+                )
+                return Lane.HARD_TARGET
+
+            # Cloudflare challenge persists through browser → HARD_TARGET
+            if self._has_cloudflare_challenge(html_lower):
+                self._site_profiles[domain] = Lane.HARD_TARGET
+                logger.info(
+                    "Reclassified domain from BROWSER → HARD_TARGET (CF challenge persists)",
+                    extra={"domain": domain, "status_code": status_code},
+                )
+                return Lane.HARD_TARGET
+
+        return None
+
+    def reclassify_from_content_type(
+        self, domain: str, content_type: str, html: str = ""
+    ) -> Lane:
+        """Determine best lane from response content type and HTML content.
+
+        Returns the recommended lane for future requests to this domain.
+        """
+        ct_lower = content_type.lower()
+        html_lower = html.lower()
+
+        # RSS/XML/Atom → HTTP is sufficient
+        if any(t in ct_lower for t in ("application/rss+xml", "application/atom+xml", "text/xml", "application/xml")):
+            self._site_profiles[domain] = Lane.HTTP
+            return Lane.HTTP
+
+        # JSON API → HTTP is sufficient
+        if "application/json" in ct_lower:
+            self._site_profiles[domain] = Lane.HTTP
+            return Lane.HTTP
+
+        # HTML content — inspect for framework / anti-bot markers
+        if "text/html" in ct_lower and html_lower:
+            # Cloudflare markers in HTML → HARD_TARGET
+            if self._has_cloudflare_challenge(html_lower):
+                self._site_profiles[domain] = Lane.HARD_TARGET
+                return Lane.HARD_TARGET
+
+            # Any anti-bot markers → at least BROWSER
+            if self._has_anti_bot_markers(html_lower):
+                self._site_profiles[domain] = Lane.BROWSER
+                return Lane.BROWSER
+
+            # SPA framework markers → BROWSER (needs JS rendering)
+            if self._has_spa_markers(html_lower):
+                self._site_profiles[domain] = Lane.BROWSER
+                return Lane.BROWSER
+
+        # Default: HTTP
+        return Lane.HTTP
+
+    def _has_cloudflare_challenge(self, html_lower: str) -> bool:
+        """Check if HTML contains Cloudflare challenge markers."""
+        return any(marker in html_lower for marker in CLOUDFLARE_MARKERS)
+
+    def _has_anti_bot_markers(self, html_lower: str) -> bool:
+        """Check if HTML contains any anti-bot protection markers."""
+        return any(marker in html_lower for marker in ANTI_BOT_MARKERS)
+
+    def _has_spa_markers(self, html_lower: str) -> bool:
+        """Check if HTML contains SPA framework markers requiring JS rendering."""
+        return any(marker.lower() in html_lower for marker in SPA_FRAMEWORK_MARKERS)
+
+    # --- End Task 5.3 ---
 
     def _extract_domain(self, url: str) -> str:
         """Extract domain from URL."""

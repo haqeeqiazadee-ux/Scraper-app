@@ -23,6 +23,9 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from services.control_plane.routers import health, tasks, policies, results, execution, metrics, schedules, billing, artifacts, sessions, webhooks, templates  # noqa: E402 — uses symlink
+from services.control_plane.routers.crawl import crawl_router
+from services.control_plane.routers.search import search_router
+from services.control_plane.routers.extract import extract_router
 from services.control_plane.middleware.metrics import MetricsMiddleware
 from services.control_plane.middleware.rate_limit import RateLimitMiddleware
 from services.control_plane.middleware.quota import QuotaMiddleware
@@ -208,6 +211,9 @@ def create_app() -> FastAPI:
     app.include_router(sessions.router, prefix="/api/v1", tags=["Sessions"])
     app.include_router(webhooks.router, prefix="/api/v1", tags=["Webhooks"])
     app.include_router(templates.router, prefix="/api/v1", tags=["Templates"])
+    app.include_router(crawl_router, prefix="/api/v1")
+    app.include_router(search_router, prefix="/api/v1")
+    app.include_router(extract_router, prefix="/api/v1")
     from services.control_plane.routers import keepa
     app.include_router(keepa.router, prefix="/api/v1", tags=["Keepa"])
     from services.control_plane.routers import maps

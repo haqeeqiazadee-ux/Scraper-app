@@ -47,6 +47,20 @@ class DeterministicProvider(BaseAIProvider):
             self._social_provider = SocialMediaProvider()
         return self._social_provider
 
+    def _get_adaptive_engine(self):
+        """Lazily initialize the adaptive selector engine."""
+        if not hasattr(self, '_adaptive'):
+            from packages.core.adaptive_selectors import AdaptiveSelectorEngine
+            self._adaptive = AdaptiveSelectorEngine()
+        return self._adaptive
+
+    def _get_converter(self):
+        """Lazily initialize the markdown/trafilatura converter."""
+        if not hasattr(self, '_converter'):
+            from packages.core.markdown_converter import MarkdownConverter
+            self._converter = MarkdownConverter()
+        return self._converter
+
     async def extract(
         self,
         html: str,
@@ -57,14 +71,17 @@ class DeterministicProvider(BaseAIProvider):
         """Extract structured data using deterministic methods.
 
         Extraction cascade (most reliable → least reliable):
-        1. Social media platform-specific handlers
-        2. Custom CSS selectors (user-provided)
-        3. JSON-LD structured data (schema.org)
-        4. Microdata / RDFa (schema.org in HTML attributes)
-        5. Open Graph meta tags (og:type=product)
-        6. DOM auto-discovery (repeating groups)
-        7. CSS selector extraction (common card patterns)
-        8. Basic fallback (single product from title/meta — validated)
+        0a. Social media platform-specific handlers
+        0b. Custom CSS selectors (user-provided / policy)
+        1.  JSON-LD structured data (schema.org)
+        2.  Microdata / RDFa (schema.org in HTML attributes)
+        3.  Open Graph meta tags (og:type=product)
+        4.  Adaptive selectors (fuzzy-matched from cache)
+        5.  DOM auto-discovery (repeating groups)
+        6.  CSS selector extraction (common card patterns)
+        7.  Trafilatura content extraction (article/blog/non-product)
+        8.  Validated basic fallback (single product from title/meta)
+        9.  LLM extraction (only when all tiers fail AND confidence < 0.3)
         """
         # 0a. Try social media platform-specific extraction first
         social = self._get_social_provider()
@@ -94,19 +111,69 @@ class DeterministicProvider(BaseAIProvider):
         if og_product:
             return [og_product]
 
-        # 4. Try DOM auto-discovery (finds repeating groups without selectors)
+        # 4. Try adaptive selectors (fuzzy-matched from cache)
+        try:
+            adaptive = self._get_adaptive_engine()
+            selectors = adaptive.get_selectors(url)
+            if selectors:
+                result = self._extract_with_custom_selectors(
+                    html, url, selectors.get("field_selectors", {})
+                )
+                if result:
+                    adaptive.record_success(url, selectors, html)
+                    return [result]
+                else:
+                    # Try adapting stale selectors
+                    adapted = adaptive.adapt_selectors(url, html)
+                    if adapted:
+                        result = self._extract_with_custom_selectors(
+                            html, url, adapted.get("field_selectors", {})
+                        )
+                        if result:
+                            adaptive.record_success(url, adapted, html)
+                            return [result]
+                    adaptive.record_failure(url, selectors)
+        except Exception as exc:
+            logger.debug("Adaptive selector extraction failed: %s", exc)
+
+        # 5. Try DOM auto-discovery (finds repeating groups without selectors)
         dom_products = self._extract_dom_discovery(html, url)
         if dom_products:
             return dom_products
 
-        # 5. Try CSS selector extraction (multi-item capable)
+        # 6. Try CSS selector extraction (multi-item capable)
         css_products = self._extract_css(html, url)
         if css_products:
             return css_products
 
-        # 6. Validated basic fallback (only returns if actually looks like a product)
+        # 7. Try trafilatura for article/blog content extraction
+        try:
+            converter = self._get_converter()
+            traf_result = converter.convert(html, url, output_format="html")
+            if traf_result.content and len(traf_result.content) > 100:
+                return [{
+                    "name": traf_result.title or "Article",
+                    "description": traf_result.content[:500],
+                    "product_url": url,
+                    "content_type": "article",
+                    "full_content": traf_result.content,
+                    "estimated_tokens": traf_result.estimated_tokens,
+                    "_confidence": 0.4,
+                    "_extraction_method": "trafilatura",
+                }]
+        except Exception as exc:
+            logger.debug("Trafilatura content extraction failed: %s", exc)
+
+        # 8. Validated basic fallback (only returns if actually looks like a product)
         basic = self._extract_basic(html, url)
-        return [basic] if basic else []
+        if basic:
+            return [basic]
+
+        # 9. LLM extraction fallback — triggered in the AI normalization worker
+        # when all deterministic tiers above fail AND confidence < 0.3.
+        # Return empty with a low-confidence marker so the caller knows to
+        # escalate to LLM-based extraction.
+        return [{"_confidence": 0.0, "_extraction_method": "none", "product_url": url}]
 
     async def classify(self, text: str, labels: list[str]) -> str:
         """Simple keyword-based classification."""

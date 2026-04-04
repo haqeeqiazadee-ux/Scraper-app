@@ -19,10 +19,13 @@ from packages.core.interfaces import (
     AIProvider,
 )
 
+from packages.core.content_filter import ContentFilter
+
 __all__ = [
     "Fetcher", "FetchRequest", "FetchResponse",
     "BrowserWorker",
     "Connector", "ConnectorMetrics",
     "ObjectStore", "MetadataStore", "QueueBackend", "CacheBackend",
     "AIProvider",
+    "ContentFilter",
 ]

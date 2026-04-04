@@ -284,6 +284,139 @@ class HardTargetWorker:
         for script in STEALTH_SCRIPTS:
             await page.add_init_script(script)
 
+    # ---- fingerprint noise injection (Sprint 5) ----------------------------
+
+    async def _inject_fingerprint_noise(self, page: Any, profile: DeviceProfile) -> None:
+        """Inject noise into browser fingerprinting APIs to avoid detection.
+
+        Adds subtle randomisation to Canvas, WebGL, AudioContext, and Battery
+        API outputs, and aligns the Date timezone offset with the profile
+        timezone. Uses ``page.add_init_script`` so the overrides execute
+        before any page JavaScript runs.
+        """
+
+        # 1. Canvas fingerprint noise — randomise a small number of pixels
+        #    on every toDataURL / getImageData call so the hash changes per
+        #    session but images remain visually identical.
+        await page.add_init_script("""(() => {
+            const _toDataURL = HTMLCanvasElement.prototype.toDataURL;
+            HTMLCanvasElement.prototype.toDataURL = function(type) {
+                const ctx = this.getContext('2d');
+                if (ctx && this.width > 0 && this.height > 0) {
+                    try {
+                        const img = ctx.getImageData(0, 0, this.width, this.height);
+                        const d = img.data;
+                        const seed = (Date.now() ^ (Math.random() * 0xFFFF)) & 0xFFFF;
+                        for (let i = 0; i < d.length; i += 4) {
+                            if (((i * seed) & 0xFF) < 3) {  // ~1% of pixels
+                                d[i] = d[i] ^ 1;            // flip LSB of R channel
+                            }
+                        }
+                        ctx.putImageData(img, 0, 0);
+                    } catch(_) {}
+                }
+                return _toDataURL.apply(this, arguments);
+            };
+
+            const _getImageData = CanvasRenderingContext2D.prototype.getImageData;
+            CanvasRenderingContext2D.prototype.getImageData = function() {
+                const img = _getImageData.apply(this, arguments);
+                const d = img.data;
+                const seed = (Date.now() ^ (Math.random() * 0xFFFF)) & 0xFFFF;
+                for (let i = 0; i < d.length; i += 4) {
+                    if (((i * seed) & 0xFF) < 3) {
+                        d[i] = d[i] ^ 1;
+                    }
+                }
+                return img;
+            };
+        })();""")
+
+        # 2. WebGL fingerprint noise — rotate through plausible vendor/renderer
+        #    pairs so UNMASKED_VENDOR / UNMASKED_RENDERER are not a static
+        #    identifier across sessions.
+        webgl_vendors = [
+            ("Intel Inc.", "Intel Iris OpenGL Engine"),
+            ("Intel Inc.", "Intel(R) UHD Graphics 630"),
+            ("Google Inc. (Intel)", "ANGLE (Intel, Intel(R) UHD Graphics 630, OpenGL 4.1)"),
+            ("Google Inc. (NVIDIA)", "ANGLE (NVIDIA, NVIDIA GeForce GTX 1650, OpenGL 4.5)"),
+            ("Google Inc. (AMD)", "ANGLE (AMD, AMD Radeon RX 580, OpenGL 4.5)"),
+        ]
+        vendor, renderer = random.choice(webgl_vendors)
+        await page.add_init_script(f"""(() => {{
+            const vendor = {repr(vendor)};
+            const renderer = {repr(renderer)};
+            const _getParam = WebGLRenderingContext.prototype.getParameter;
+            WebGLRenderingContext.prototype.getParameter = function(p) {{
+                if (p === 37445) return vendor;   // UNMASKED_VENDOR_WEBGL
+                if (p === 37446) return renderer;  // UNMASKED_RENDERER_WEBGL
+                return _getParam.apply(this, arguments);
+            }};
+            if (typeof WebGL2RenderingContext !== 'undefined') {{
+                const _getParam2 = WebGL2RenderingContext.prototype.getParameter;
+                WebGL2RenderingContext.prototype.getParameter = function(p) {{
+                    if (p === 37445) return vendor;
+                    if (p === 37446) return renderer;
+                    return _getParam2.apply(this, arguments);
+                }};
+            }}
+        }})();""")
+
+        # 3. AudioContext fingerprint noise — add micro-noise to audio
+        #    buffer output so audio-fingerprinting hashes change per session.
+        await page.add_init_script("""(() => {
+            const _getChannelData = AudioBuffer.prototype.getChannelData;
+            AudioBuffer.prototype.getChannelData = function(channel) {
+                const buf = _getChannelData.apply(this, arguments);
+                if (!buf._fpNoised) {
+                    for (let i = 0; i < buf.length; i += 100) {
+                        buf[i] = buf[i] + (Math.random() * 0.0001 - 0.00005);
+                    }
+                    buf._fpNoised = true;
+                }
+                return buf;
+            };
+        })();""")
+
+        # 4. Battery API spoofing — always report charging=true, level=1.0
+        #    to eliminate battery-state as a tracking signal.
+        await page.add_init_script("""(() => {
+            if (navigator.getBattery) {
+                navigator.getBattery = () => Promise.resolve({
+                    charging: true,
+                    chargingTime: 0,
+                    dischargingTime: Infinity,
+                    level: 1.0,
+                    addEventListener: function() {},
+                    removeEventListener: function() {},
+                });
+            }
+        })();""")
+
+        # 5. Timezone alignment — override getTimezoneOffset to match
+        #    the device profile timezone so Date fingerprinting is consistent
+        #    with the timezone_id set on the browser context.
+        tz_offsets: dict[str, int] = {
+            "America/New_York": 300,
+            "America/Chicago": 360,
+            "America/Denver": 420,
+            "America/Los_Angeles": 480,
+            "America/Toronto": 300,
+            "Europe/London": 0,
+            "Europe/Berlin": -60,
+            "Europe/Paris": -60,
+            "Asia/Seoul": -540,
+            "Asia/Kolkata": -330,
+            "Australia/Sydney": -600,
+        }
+        offset = tz_offsets.get(profile.timezone, 0)
+        await page.add_init_script(f"""(() => {{
+            const _gTZO = Date.prototype.getTimezoneOffset;
+            Date.prototype.getTimezoneOffset = function() {{
+                return {offset};
+            }};
+        }})();""")
+
     # ---- proxy -----------------------------------------------------------
 
     def _get_proxy_url(self, domain: Optional[str] = None) -> Optional[str]:
@@ -437,6 +570,7 @@ class HardTargetWorker:
             try:
                 page = await context.new_page()
                 await self._apply_stealth(page)
+                await self._inject_fingerprint_noise(page, fingerprint.profile)
 
                 # Load persisted cookies
                 await self._load_cookies(context, request.url)

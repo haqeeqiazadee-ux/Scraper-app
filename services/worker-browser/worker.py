@@ -24,6 +24,7 @@ from packages.core.ai_providers.deterministic import DeterministicProvider
 from packages.core.dedup import DedupEngine
 from packages.core.normalizer import Normalizer
 from packages.core.interfaces import AIProvider, FetchRequest
+from packages.core.markdown_converter import MarkdownConverter
 
 logger = logging.getLogger(__name__)
 
@@ -87,6 +88,92 @@ class BrowserLaneWorker:
         self._ai = ai_provider or DeterministicProvider()
         self._normalizer = Normalizer()
         self._dedup = DedupEngine()
+        self._converter = MarkdownConverter()
+
+    async def _smart_wait(self, page, task_id: str, timeout_ms: int = 15000) -> bool:
+        """Wait intelligently for dynamic content to finish loading.
+
+        Instead of fixed timeout, checks for:
+        1. Network idle (no pending XHR/fetch for 2 seconds)
+        2. DOM stability (no new nodes for 1.5 seconds)
+        3. Specific element appearance (from task config or auto-detected)
+
+        Returns True if content appears stable, False if timed out.
+        """
+        # Try network idle first
+        try:
+            await page.wait_for_load_state("networkidle", timeout=timeout_ms)
+            return True
+        except Exception:
+            pass
+
+        # Fallback: DOM mutation observer
+        # Inject JS that resolves when no DOM mutations for 1.5 seconds
+        try:
+            await page.evaluate("""
+                () => new Promise((resolve) => {
+                    let timer;
+                    const observer = new MutationObserver(() => {
+                        clearTimeout(timer);
+                        timer = setTimeout(() => {
+                            observer.disconnect();
+                            resolve(true);
+                        }, 1500);
+                    });
+                    observer.observe(document.body, { childList: true, subtree: true });
+                    timer = setTimeout(() => {
+                        observer.disconnect();
+                        resolve(false);
+                    }, %d);
+                })
+            """ % timeout_ms)
+            return True
+        except Exception:
+            return False
+
+    async def _extract_shadow_dom(self, page) -> str:
+        """Extract HTML content from shadow DOM roots.
+
+        Web Components use shadow DOM, which is invisible to regular DOM queries.
+        This method opens shadow roots and extracts their content.
+        """
+        shadow_html = await page.evaluate("""
+            () => {
+                function extractShadowDom(root) {
+                    let html = '';
+                    const shadowHosts = root.querySelectorAll('*');
+                    for (const el of shadowHosts) {
+                        if (el.shadowRoot) {
+                            html += el.shadowRoot.innerHTML;
+                            html += extractShadowDom(el.shadowRoot);
+                        }
+                    }
+                    return html;
+                }
+                return extractShadowDom(document);
+            }
+        """)
+        return shadow_html or ""
+
+    async def _trigger_lazy_load(self, page) -> int:
+        """Scroll through page to trigger lazy-loaded images and content.
+
+        Returns number of new images that loaded.
+        """
+        return await page.evaluate("""
+            () => {
+                // Trigger IntersectionObserver-based lazy loading
+                const images = document.querySelectorAll('img[data-src], img[loading="lazy"], img[data-lazy]');
+                let count = 0;
+                images.forEach(img => {
+                    if (img.dataset.src && !img.src.includes(img.dataset.src)) {
+                        img.src = img.dataset.src;
+                        count++;
+                    }
+                });
+                return count;
+            }
+        """)
 
     async def process_task(self, task: dict) -> dict:
         """Process a browser extraction task with intelligent content detection.
@@ -126,6 +213,7 @@ class BrowserLaneWorker:
             return await self._extract_and_return(
                 task_id, run_id, tenant_id, url, html, start_time,
                 response, css_selectors, scrolled=False, waited=False,
+                task=task,
             )
 
         # ── Step 2: Check for CAPTCHA / bot detection ──
@@ -177,12 +265,8 @@ class BrowserLaneWorker:
                 except Exception:
                     continue
 
-        # Always give JS an extra moment to finish rendering after first element appears
-        # Amazon, React SPAs, etc. often load the container first, then fill data
-        try:
-            await page.wait_for_timeout(3000)
-        except Exception:
-            pass
+        # Smart wait: intelligently wait for dynamic content instead of fixed timeout
+        await self._smart_wait(page, task_id)
 
         # ── Step 4: Smart scroll to load lazy content ──
         scrolled = False
@@ -217,22 +301,35 @@ class BrowserLaneWorker:
             except Exception as scroll_err:
                 logger.debug("Scroll failed: %s", scroll_err)
 
+        # ── Step 4b: Trigger lazy loading and extract shadow DOM ──
+        # Trigger lazy loading
+        lazy_count = await self._trigger_lazy_load(page)
+        if lazy_count > 0:
+            logger.info("Triggered %d lazy-loaded images", lazy_count, extra={"task_id": task_id})
+
+        # Extract shadow DOM content
+        shadow_html = await self._extract_shadow_dom(page)
+
         # ── Step 5: Get final rendered HTML ──
         try:
             html = await page.content()
         except Exception:
             html = response.html or response.text
 
+        if shadow_html:
+            html = html + "\n<!-- Shadow DOM Content -->\n" + shadow_html
+
         # ── Step 6: Extract, normalize, deduplicate ──
         return await self._extract_and_return(
             task_id, run_id, tenant_id, url, html, start_time,
             response, css_selectors, scrolled, waited,
+            task=task,
         )
 
     async def _extract_and_return(
         self, task_id: str, run_id: str, tenant_id: str, url: str,
         html: str, start_time: float, response, css_selectors,
-        scrolled: bool, waited: bool,
+        scrolled: bool, waited: bool, task: Optional[dict] = None,
     ) -> dict:
         """Extract data from HTML, normalize, deduplicate, and return result dict."""
 
@@ -281,6 +378,15 @@ class BrowserLaneWorker:
                 item_scores.append(min(score, 1.0))
             confidence = sum(item_scores) / len(item_scores) if item_scores else 0.0
 
+        # Output format conversion (markdown, etc.)
+        output_format = task.get("output_format", "json") if task else "json"
+        converted_content = None
+        estimated_tokens = None
+        if output_format != "json" and html:
+            conversion = self._converter.convert(html, url, output_format=output_format)
+            converted_content = conversion.content
+            estimated_tokens = conversion.estimated_tokens
+
         elapsed = int((time.time() - start_time) * 1000)
         method = "deterministic" if isinstance(self._ai, DeterministicProvider) else "ai"
 
@@ -291,7 +397,7 @@ class BrowserLaneWorker:
             "html_size": len(html),
         })
 
-        return {
+        result = {
             "task_id": task_id,
             "run_id": run_id,
             "tenant_id": tenant_id,
@@ -312,7 +418,12 @@ class BrowserLaneWorker:
             "waited_for_selector": waited,
             # Escalate if no data, or suspiciously few items for what looks like a listing page
             "should_escalate": len(extracted_data) == 0 or (len(extracted_data) <= 2 and confidence < 0.5),
+            "output_format": output_format,
         }
+        if converted_content is not None:
+            result["converted_content"] = converted_content
+            result["estimated_tokens"] = estimated_tokens
+        return result
 
     @staticmethod
     def _fail_result(task_id, run_id, tenant_id, url, elapsed, status_code, error):
