@@ -5,32 +5,97 @@
 
 > This file is the authoritative context document for Claude Code sessions working on this project.
 
-## Global Config Link
+## ⚡ MANDATORY PRE-TASK PROTOCOL (RUNS BEFORE EVERY TASK)
 
-This project operates under the **Global Claude Code Config** (`~/.claude/CLAUDE.md`). Key inherited directives:
+**This is NON-NEGOTIABLE. Every single task — no matter how small — triggers this sequence.**
+
+```
+BEFORE ANY WORK:
+  ┌─────────────────────────────────────────────────────────┐
+  │ STEP 0: READ GLOBAL CONFIG                             │
+  │   → Read ~/.claude/CLAUDE.md (or .claude/CLAUDE.md)    │
+  │   → Load: agent hierarchy, MCP servers, skills,        │
+  │     commands, autonomy rules, session memory protocol   │
+  └──────────────────────┬──────────────────────────────────┘
+                         ▼
+  ┌─────────────────────────────────────────────────────────┐
+  │ STEP 1: CLASSIFY TASK                                  │
+  │   → ARCHITECTURE? → architect-1 + architect-2          │
+  │   → IMPLEMENTATION? → engineer-1 + engineer-2          │
+  │   → RESEARCH/CONTENT? → product-1 + product-2         │
+  │   → SECURITY/AUTH? → security-1 + security-2           │
+  │   → TESTING/QA? → qa-1 + qa-2                         │
+  │   → FULL FEATURE? → ALL agents                        │
+  └──────────────────────┬──────────────────────────────────┘
+                         ▼
+  ┌─────────────────────────────────────────────────────────┐
+  │ STEP 2: SELECT TOOLS                                   │
+  │   → MCP servers needed? (context7, exa, firecrawl,     │
+  │     github, playwright, claude-mem, ruflo, figma,      │
+  │     n8n-mcp, n8n-instance)                             │
+  │   → Skills to invoke? (437 available — match to task)  │
+  │   → Commands to run? (102 available)                   │
+  │   → Python packages? (lightrag, elevenlabs, boto3)     │
+  └──────────────────────┬──────────────────────────────────┘
+                         ▼
+  ┌─────────────────────────────────────────────────────────┐
+  │ STEP 3: READ PROJECT STATE                             │
+  │   → system/todo.md (current queue)                     │
+  │   → system/execution_trace.md (last 5 entries)         │
+  │   → system/lessons.md (avoid past mistakes)            │
+  │   → docs/final_specs.md (if architecture-relevant)     │
+  │   → docs/tasks_breakdown.md (if task is in backlog)    │
+  └──────────────────────┬──────────────────────────────────┘
+                         ▼
+  ┌─────────────────────────────────────────────────────────┐
+  │ STEP 4: EXECUTE                                        │
+  │   → Deploy selected agents in parallel via AgentPool   │
+  │   → Use selected MCP servers + skills + commands       │
+  │   → Full autonomy: no permission asking, fix forward   │
+  │   → Complete fully before stopping                     │
+  └──────────────────────┬──────────────────────────────────┘
+                         ▼
+  ┌─────────────────────────────────────────────────────────┐
+  │ STEP 5: POST-TASK AUTO-UPDATE                          │
+  │   → Update system/todo.md                              │
+  │   → Update system/execution_trace.md                   │
+  │   → Update system/development_log.md                   │
+  │   → Update system/final_step_logs.md                   │
+  │   → Update system/lessons.md (if learned)              │
+  │   → Update CLAUDE.md (if architecture changed)         │
+  │   → Store findings in claude-mem                       │
+  │   → Git commit + push                                  │
+  └─────────────────────────────────────────────────────────┘
+```
+
+### Global Config Location
+
+| Location | When Used |
+|----------|-----------|
+| `~/.claude/CLAUDE.md` | Claude Code on local machine (auto-loaded) |
+| `.claude/CLAUDE.md` | Fallback copy inside this repo (portable) |
+
+### Inherited Global Directives
 
 - **Owner:** Muhammad Usman — fully autonomous, action-first execution
-- **MCP Servers:** firecrawl, exa, github, context7, playwright, n8n-mcp, n8n-instance, claude-mem, ruflo, figma
 - **Agent Hierarchy:** Orchestrator → 10-agent pool (2× architect, 2× engineer, 2× product, 2× security, 2× QA)
-- **Skills:** 437 skills across engineering, marketing, C-level, product, compliance, finance
-- **Commands:** 102 slash commands (/build-fix, /verify, /checkpoint, /plan, etc.)
-- **Python Packages:** lightrag-hku, elevenlabs, boto3
 - **Autonomy:** MAXIMIZED — no permission asking, complete tasks fully, fix forward
 - **Session Memory:** claude-mem auto-persist on start/during/end
 - **Auto-Updates:** system files update after every major change (see global protocol)
 
-### Project-Specific MCP Priorities
+### Project-Specific Tool Mapping
 
-For this scraping platform, prioritize these MCP servers:
-
-| Server | Project Use |
-|--------|-------------|
-| *context7* | FastAPI, Pydantic v2, Playwright, curl_cffi, Camoufox docs |
-| *playwright* | E2E testing of browser scraping lanes |
-| *github* | All repo operations on fahad-scraper/Scraper-app |
-| *exa* | Research anti-detection techniques, WAF bypass patterns |
-| *firecrawl* | Test scraping targets, validate extraction pipelines |
-| *claude-mem* | Persist scraper-specific findings (site fingerprints, working selectors) |
+| Task Type | MCP Servers | Key Skills | Commands |
+|-----------|-------------|------------|----------|
+| **Scraper code** | context7, github | senior-backend, senior-fullstack, focused-fix | /build-fix, /tdd, /verify |
+| **Anti-detection** | exa, firecrawl, context7 | security-pen-testing, browser-automation | /code-review, /e2e |
+| **Browser automation** | playwright, context7 | playwright-pro, senior-qa | /e2e, /test-coverage |
+| **API endpoints** | context7, github | api-design-reviewer, api-test-suite-builder | /build-fix, /verify |
+| **Infrastructure** | github | senior-devops, docker-development, terraform-patterns | /checkpoint |
+| **Research** | exa, firecrawl | deep-research, competitive-teardown | /plan |
+| **Web UI** | figma, context7 | senior-frontend, ui-design-system | /build-fix |
+| **n8n workflows** | n8n-mcp, n8n-instance | agent-workflow-designer | /multi-workflow |
+| **Documentation** | github, claude-mem | spec-driven-workflow | /docs, /update-docs |
 
 ## Repository
 
@@ -115,20 +180,9 @@ This is a **monorepo** with the following structure:
 
 ## Mandatory Workflow
 
-Before starting any work:
-1. Read `docs/final_specs.md` (source of truth)
-2. Read relevant section of `docs/tasks_breakdown.md`
-3. Read `system/todo.md` (current queue)
-4. Read `system/lessons.md` (avoid past mistakes)
-5. Read latest entries in `system/execution_trace.md`
+**See `⚡ MANDATORY PRE-TASK PROTOCOL` above — it supersedes this section.**
 
-After completing any task:
-1. Update `system/todo.md`
-2. Update `system/execution_trace.md`
-3. Update `system/development_log.md`
-4. Update `system/final_step_logs.md`
-5. Update `system/lessons.md` if anything was learned
-6. Update `CLAUDE.md` if architecture or conventions changed
+All pre-task reads and post-task updates are defined in the protocol flowchart. The protocol merges global directives (agent selection, tool matching, autonomy rules) with project-specific state (todo, specs, lessons, execution trace).
 
 ## Current Phase
 
