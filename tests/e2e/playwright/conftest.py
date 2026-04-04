@@ -18,6 +18,25 @@ from playwright.sync_api import Browser, BrowserContext, Page, sync_playwright
 
 
 # ---------------------------------------------------------------------------
+# Markers
+# ---------------------------------------------------------------------------
+
+def pytest_configure(config):
+    config.addinivalue_line("markers", "live: tests that make real API calls (need RUN_LIVE_TESTS=true)")
+
+
+# ---------------------------------------------------------------------------
+# Hook for screenshot-on-failure support
+# ---------------------------------------------------------------------------
+
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    outcome = yield
+    rep = outcome.get_result()
+    setattr(item, f"rep_{rep.when}", rep)
+
+
+# ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
 
@@ -167,3 +186,51 @@ def authenticated_page(context: BrowserContext, frontend_server) -> Generator[Pa
     pg.wait_for_url("**/dashboard", timeout=10000)
     yield pg
     pg.close()
+
+
+# ---------------------------------------------------------------------------
+# Screenshot on failure
+# ---------------------------------------------------------------------------
+
+@pytest.fixture(autouse=True)
+def screenshot_on_failure(request, page):
+    """Capture screenshot on test failure."""
+    yield
+    if request.node.rep_call and request.node.rep_call.failed:
+        page.screenshot(path=f"test-results/{request.node.name}.png")
+
+
+# ---------------------------------------------------------------------------
+# Mock external APIs (sandbox mode)
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def mock_external_apis(page):
+    """Mock all external API calls in sandbox mode."""
+    async def handle_route(route):
+        url = route.request.url
+        if "api.search.brave.com" in url:
+            await route.fulfill(json={"web": {"results": [
+                {"url": "https://example.com/1", "title": "Result 1", "description": "Test"},
+                {"url": "https://example.com/2", "title": "Result 2", "description": "Test"},
+            ]}})
+        elif "api.keepa.com" in url:
+            await route.fulfill(json={"products": [{"title": "Test Product", "asin": "B09V3KXJPB"}]})
+        elif "maps.googleapis.com" in url:
+            await route.fulfill(json={"results": [{"name": "Test Coffee", "rating": 4.5}]})
+        else:
+            await route.continue_()
+
+    page.route("**/api.search.brave.com/**", handle_route)
+    page.route("**/api.keepa.com/**", handle_route)
+    page.route("**/maps.googleapis.com/**", handle_route)
+    yield
+
+
+# ---------------------------------------------------------------------------
+# Base URL
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def base_url(frontend_server):
+    return FRONTEND_URL

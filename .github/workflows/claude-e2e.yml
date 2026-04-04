@@ -1,0 +1,96 @@
+name: "E2E Tests + Claude Self-Healing"
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+
+jobs:
+  e2e-sandbox:
+    # Skip issue_comment unless it mentions @claude
+    if: >
+      github.event_name != 'issue_comment' ||
+      (github.event.issue.pull_request && contains(github.event.comment.body, '@claude'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Python dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+          pip install playwright pytest-playwright
+          playwright install chromium --with-deps
+
+      - name: Install frontend dependencies
+        run: cd apps/web && npm ci
+
+      - name: Start backend (sandbox mode)
+        run: |
+          export DATABASE_URL="sqlite+aiosqlite:///./test_e2e.db"
+          export QUEUE_BACKEND=memory
+          export STORAGE_TYPE=filesystem
+          export SECRET_KEY=test-secret-key-e2e
+          export CORS_ORIGINS="http://localhost:5199"
+          export LOG_LEVEL=WARNING
+          python -m uvicorn services.control_plane.app:app --host 0.0.0.0 --port 8765 &
+          sleep 5
+          curl -f http://localhost:8765/health || exit 1
+
+      - name: Start frontend
+        run: |
+          cd apps/web
+          VITE_API_URL=/api/v1 VITE_BACKEND_URL=http://localhost:8765 npx vite --port 5199 &
+          sleep 8
+
+      - name: Run E2E tests (sandbox)
+        run: |
+          python -m pytest tests/e2e/playwright/ -v --tb=short \
+            --html=e2e-report.html --self-contained-html \
+            -m "not live" \
+            --screenshot=on --video=retain-on-failure \
+            || true
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-results
+          path: |
+            e2e-report.html
+            test-results/
+          retention-days: 7
+
+      # Claude self-healing on PR comments
+      - name: Run Claude Code Agent
+        if: github.event_name == 'issue_comment'
+        uses: anthropics/claude-code-action@v1
+        with:
+          prompt: ${{ github.event.comment.body }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: >
+            --max-turns 15
+            --allowed-tools "Bash(python -m pytest*),Bash(npx playwright*),Read,Edit,Write,Glob,Grep"
