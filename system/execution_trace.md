@@ -1097,3 +1097,42 @@
   - "Scraping cost optimization via smart routing" white-space is UNIQUELY ours
 - **Blockers found:** None
 - **Next action:** Build P0 items (MCP server, markdown output, crawl manager) in that order
+
+## Work Cycle — 2026-04-04 — HYDRA Revision Spec Creation
+
+- **Timestamp:** 2026-04-04
+- **Active Task IDs:** HYDRA-SPEC
+- **What was read before action:**
+  1. Global CLAUDE.md (381 lines — full agent hierarchy, MCP servers, skills)
+  2. Project CLAUDE.md (240 lines — architecture, phases 1-8)
+  3. docs/COMPETITIVE_ANALYSIS.md (308 lines — 27 platform comparison)
+  4. docs/WEB_SCRAPERS_INDUSTRY_CATALOG.md (2466 lines — industry research)
+  5. ALL scraping-related source files read LINE BY LINE:
+     - deterministic.py (676 lines), human_behavior.py (264), router.py (305)
+     - http_collector.py (196), hard_target_worker.py (606), browser_worker.py (412)
+     - dom_discovery.py (498), normalizer.py (479), circuit_breaker.py (191)
+     - waf_token_manager.py (227), webhook.py (251), session_persistence.py (137)
+     - escalation.py (170), social/dispatcher.py (113)
+     - worker-http/worker.py (372), worker-browser/worker.py (318+)
+     - All 14 connectors (3260 lines), all 4 apps (14195 lines)
+- **Action taken:** Created HYDRA Revision Spec Prompt — Phase 9 Universal Scraper Upgrade
+- **Why:** Competitive analysis revealed 12 gaps; need structured plan to close them
+- **Outputs produced:**
+  1. `HYDRA_REVISION_SPEC_PROMPT.md` (751 lines) — full revision spec with:
+     - 10 modules with build-vs-integrate decisions
+     - 7 sprint plan (33 tasks)
+     - 4 new OSS deps selected (trafilatura, html2text, rank-bm25, mcp)
+     - 5 OSS deps rejected with rationale (Scrapy, Crawl4AI, Scrapling, Firecrawl, markdownify)
+     - Cost model ($0.005/page target vs $0.020-0.050 competitors)
+     - Success criteria (95% accuracy, 24 profiles, 10-tier cascade)
+  2. Updated CLAUDE.md — Phase 9 HYDRA added to Current Phase
+  3. Updated system/todo.md — 33 HYDRA tasks across 7 sprints
+  4. Updated system/execution_trace.md (this entry)
+  5. Updated system/lessons.md (lessons 93-100 from competitive analysis)
+- **Build-vs-Integrate decisions made:**
+  - BUILD: CrawlManager, AdaptiveSelectors, ChangeDetector, MCP Server, SearchScraper, Twitter/LinkedIn extractors, Router upgrades, Stealth upgrades, CLI
+  - INTEGRATE: trafilatura (content cleaning), html2text (markdown), rank-bm25 (relevance), mcp SDK
+  - REJECT: Scrapy (Twisted mismatch), Crawl4AI (too heavy), Scrapling (too young), Firecrawl (AGPL)
+  - KEEP: curl_cffi, Camoufox, Playwright, BeautifulSoup, human_behavior.py, circuit_breaker.py, waf_token_manager.py
+- **Blockers found:** None
+- **Next action:** Execute HYDRA Sprint 1 (install deps, markdown converter, BM25 filter)

@@ -1927,3 +1927,45 @@ name, place_id, address, lat/lng, phone, website, rating, review_count, business
 
 ### Optimal Stack
 Total: ~$163-183/mo covering ALL major platforms (down from initial $421 estimate — 60% savings)
+
+---
+
+## 2026-04-04 — Competitive Analysis + HYDRA Phase 9 Planning
+
+### Competitive Analysis
+- Analyzed 2466-line industry research report covering 35+ commercial and 30+ OSS scraping platforms
+- Compared every feature against our codebase (read every source file line by line — 122 Python files, 74 TS files)
+- Produced `docs/COMPETITIVE_ANALYSIS.md` (308 lines) + `docs/COMPETITIVE_ANALYSIS_MATRIX.xlsx` (3 sheets)
+- Found 8 features NO competitor has, 3 P0 gaps (MCP server, markdown output, recursive crawl)
+- Fixed 2 inaccuracies after deep verification: 27 currencies (not 30+), 5 social platforms (not 6)
+
+### HYDRA Revision Spec
+- Produced `HYDRA_REVISION_SPEC_PROMPT.md` (751 lines) — complete Phase 9 upgrade plan
+- 10 modules planned across 7 sprints (33 tasks)
+- Build-vs-integrate analysis for every module using 5-question decision matrix
+- Selected 4 new dependencies: trafilatura, html2text, rank-bm25, mcp
+- Rejected 5 dependencies: Scrapy (Twisted), Crawl4AI (heavy), Scrapling (young), Firecrawl (AGPL), markdownify (redundant)
+- Target: 10-tier extraction cascade, 24 device profiles, 7 social platforms, $0.005/page
+
+### Files Created/Modified This Session
+- CREATED: `docs/COMPETITIVE_ANALYSIS.md`
+- CREATED: `docs/COMPETITIVE_ANALYSIS_MATRIX.xlsx`
+- CREATED: `docs/WEB_SCRAPERS_INDUSTRY_CATALOG.md`
+- CREATED: `COMPARISON_ANALYSIS_PROMPT.md`
+- CREATED: `HYDRA_REVISION_SPEC_PROMPT.md`
+- CREATED: `.claude/CLAUDE.md` (global config copy)
+- MODIFIED: `CLAUDE.md` (pre-task protocol + Phase 9)
+- MODIFIED: `system/todo.md` (33 HYDRA tasks)
+- MODIFIED: `system/execution_trace.md` (2 new entries)
+- MODIFIED: `system/lessons.md` (lessons 93-108)
+- MODIFIED: `system/development_log.md` (this entry)
+
+### Git Commits This Session
+1. `446d732` — Link global CLAUDE.md to project CLAUDE.md
+2. `3c0b39b` — Add mandatory pre-task orchestration protocol
+3. `c60d8ec` — Add MUST DO pre-task gate to global CLAUDE.md
+4. `b6809dd` — Add competitive analysis super prompt + industry research report
+5. `2402647` — Add comprehensive competitive analysis (308 lines + xlsx)
+6. `f7c8475` — Post-task auto-update (12 COMP tasks, trace, 8 lessons)
+7. `6408e46` — Deep verification pass (fix 27 currencies, 5 social platforms)
+8. `ac18d50` — Add HYDRA revision spec prompt (751 lines, 10 modules, 7 sprints)

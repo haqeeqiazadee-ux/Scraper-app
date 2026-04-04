@@ -215,3 +215,19 @@
 99. **Market white-space: scraping cost optimization** — The industry catalog identifies "No tool intelligently routes between HTTP-only, JS rendering, and full browser based on actual site requirements to minimize cost" as a gap. Our 4-lane router is EXACTLY this.
 
 100. **Credit-based pricing is opaque and unpredictable** — Most scraping APIs charge 1x for HTTP, 5x for JS rendering, 25x for stealth proxies. Users can't predict costs. Our self-hosted model eliminates per-request billing entirely.
+
+101. **Borrow patterns, don't import frameworks** — Scrapy's crawl patterns and Crawl4AI's adaptive learning are excellent designs, but importing them as dependencies brings architecture conflicts (Twisted vs asyncio), bus-factor risk (solo maintainers), and license headaches (AGPL). Copy the pattern, not the package.
+
+102. **trafilatura beats readability-lxml for content extraction** — Academic-backed (4K+ stars, Apache-2.0), actively maintained, handles boilerplate removal better than Mozilla's readability port. Use it as the cleaning layer before html2text for markdown output.
+
+103. **4 dependencies is the right number for Phase 9** — trafilatura, html2text, rank-bm25, mcp. Each solves one specific problem we shouldn't reinvent. Every dependency beyond this was either architecturally incompatible, license-risky, or solvable with our existing code.
+
+104. **Cost-aware routing is our biggest strategic moat** — No competitor routes intelligently between HTTP ($0.001), browser ($0.01), and stealth ($0.05) based on actual site requirements. This alone makes us 4-10x cheaper than Firecrawl/ScrapingBee/Bright Data at scale.
+
+105. **Response-based reclassification > static domain lists** — Maintaining hardcoded lists of "browser-required" and "hard-target" domains doesn't scale. Better: try HTTP first, check response for Cloudflare markers, auto-reclassify to browser. The router should learn from every request.
+
+106. **10-tier extraction cascade = deterministic first, AI last** — Every deterministic tier we add (adaptive selectors, trafilatura content cleaning) saves $0.01-0.10/page in LLM costs. The goal is to make LLM extraction fire on <5% of pages, not 100%.
+
+107. **Scope discipline wins** — Phase 9 touches ONLY scraping code (packages/core, packages/connectors, services/worker-*). API connectors (Keepa, eBay, Walmart, etc.), frontend apps, and infrastructure are OUT OF SCOPE. This prevents scope creep and keeps the sprint plan achievable.
+
+108. **The market's biggest gap is our strongest feature** — The research report identifies "scraping cost optimization" as a market white-space that no tool fills. Our 4-lane router with automatic escalation IS that tool. Marketing should lead with cost savings, not feature count.

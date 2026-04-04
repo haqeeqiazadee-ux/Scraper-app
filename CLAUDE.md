@@ -235,6 +235,26 @@ All pre-task reads and post-task updates are defined in the protocol flowchart. 
 - URL-level deduplication — prevents scraping the same URL twice
 - Post-extraction data validation — rejects garbage (zero prices, placeholder names, fake images)
 
+**Phase 9 — HYDRA: Universal Scraper Upgrade (PLANNED)**
+- Codename: HYDRA — Hybrid Universal Discovery & Retrieval Architecture
+- Spec: `HYDRA_REVISION_SPEC_PROMPT.md` (751 lines, 10 modules, 7 sprints)
+- Competitive analysis: `docs/COMPETITIVE_ANALYSIS.md` (308 lines, 27 platforms compared)
+- Research source: `docs/WEB_SCRAPERS_INDUSTRY_CATALOG.md` (2466 lines, 35+ commercial + 30+ OSS)
+- New modules planned:
+  1. CrawlManager — full-site recursive crawling (BUILD)
+  2. MarkdownConverter — HTML→markdown via trafilatura + html2text (INTEGRATE)
+  3. AdaptiveSelectors — self-healing selectors with fuzzy matching (BUILD)
+  4. ContentFilter — BM25 relevance filtering via rank-bm25 (INTEGRATE)
+  5. ChangeDetector — content diff between crawl runs (BUILD)
+  6. MCP Server — AI agent integration (BUILD with mcp SDK)
+  7. SearchScraper — URL-less research via Brave Search API (BUILD)
+  8. Extraction cascade upgrade — 8→10 tiers (BUILD)
+  9. Stealth upgrades — 14→24 device profiles + fingerprint noise (BUILD)
+  10. Smart router — response-based reclassification + cost-aware routing (BUILD)
+- New dependencies: trafilatura (Apache-2.0), html2text (BSD), rank-bm25 (Apache-2.0), mcp (MIT)
+- Target: $0.005/page weighted average (4-10x cheaper than competitors)
+- Scope: Scraping infrastructure ONLY — API connectors (Keepa, eBay, etc.) untouched
+
 ## Coding Conventions
 
 - Use Pydantic v2 for all data models

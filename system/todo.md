@@ -241,24 +241,65 @@ Research-driven upgrade based on analysis of top-tier scrapers (Crawlee, Camoufo
 ## NEW — Competitive Analysis Action Items (April 2026)
 
 Based on comprehensive competitive analysis against 27 industry platforms (see `docs/COMPETITIVE_ANALYSIS.md`).
+Superseded by HYDRA Revision Spec (`HYDRA_REVISION_SPEC_PROMPT.md`).
 
-### P0 — Must Have (Competitive Survival)
-- [ ] **COMP-001:** Build MCP Server — Wrap REST API for AI agent integration (Claude/Cursor/VS Code). Firecrawl, Browserless, Bright Data, Hyperbrowser, Spider all have this. Size: M
-- [ ] **COMP-002:** Add Markdown Output — `output_format=markdown` in extraction pipeline using html2text. Required for LLM/RAG consumption. Firecrawl, Crawl4AI, Jina all have this. Size: S
-- [ ] **COMP-003:** Build Full-Site Recursive Crawl Manager — CrawlManager on top of URL discovery + request queue. Follow links, respect depth, output dataset. Firecrawl /crawl, Scrapy, Crawlee all have this. Size: L
+---
 
-### P1 — Competitive Disadvantage
-- [ ] **COMP-004:** Build /search Endpoint — URL-less web research via SerpAPI/Brave. Firecrawl /search, /agent. Size: M
-- [ ] **COMP-005:** Build CLI Tool — `scraper-cli scrape <url>` with Click/Typer. Scrapy, Firecrawl, Katana have CLIs. Size: S
-- [ ] **COMP-006:** Add Adaptive Selectors — Selectors that survive layout changes. Crawl4AI, Scrapling have this. Size: L
-- [ ] **COMP-007:** Build Session Replay Viewer — HAR + screenshot sequence replay in dashboard. Playwright Trace Viewer, Browserbase. Size: L
-- [ ] **COMP-008:** Add BM25 Relevance Filtering — Score and filter extraction results. Crawl4AI has this. Size: S
-- [ ] **COMP-009:** Build Change Detection — Content diff between crawl runs. Market white-space. Size: M
+## Phase 9 — HYDRA: Universal Scraper Upgrade (7 Sprints)
 
-### P2 — Nice to Have
-- [ ] **COMP-010:** Add PDF/DOCX Parsing — Extract text from uploaded documents. Firecrawl has this. Size: M
-- [ ] **COMP-011:** Add LangChain/LlamaIndex Integration — RAG pipeline connectors. Size: M
-- [ ] **COMP-012:** Add n8n/Zapier/Make Webhook Integration — Workflow automation. Size: S
+Full spec: `HYDRA_REVISION_SPEC_PROMPT.md` (751 lines)
+
+### Sprint 1: Foundation (Week 1)
+- [ ] **HYDRA-1.1:** Install new dependencies (trafilatura, html2text, rank-bm25, mcp)
+- [ ] **HYDRA-1.2:** Build `packages/core/markdown_converter.py` (trafilatura + html2text)
+- [ ] **HYDRA-1.3:** Build `packages/core/content_filter.py` (rank-bm25 integration)
+- [ ] **HYDRA-1.4:** Add `output_format` parameter to all workers (json/markdown/html/raw)
+- [ ] **HYDRA-1.5:** Tests for markdown output + BM25 filtering
+
+### Sprint 2: Crawl Manager (Week 2)
+- [ ] **HYDRA-2.1:** Build `packages/core/crawl_manager.py` (BFS + queue + dedup + depth)
+- [ ] **HYDRA-2.2:** Link extraction from HTML (parse `<a href>`, scope filtering)
+- [ ] **HYDRA-2.3:** Crawl state persistence (Redis-backed, resumable by crawl_id)
+- [ ] **HYDRA-2.4:** Add `/crawl`, `/crawl/{id}`, `/crawl/{id}/results`, `/crawl/{id}/stop` endpoints
+- [ ] **HYDRA-2.5:** Tests for recursive crawling (mock sites)
+
+### Sprint 3: Adaptive Selectors + Change Detection (Week 3)
+- [ ] **HYDRA-3.1:** Upgrade `selector_cache.py` → `adaptive_selectors.py`
+- [ ] **HYDRA-3.2:** Fuzzy selector matching (Levenshtein on tag paths)
+- [ ] **HYDRA-3.3:** Selector auto-update on successful extraction
+- [ ] **HYDRA-3.4:** Build `packages/core/change_detector.py` (diff between crawl snapshots)
+- [ ] **HYDRA-3.5:** Tests for selector adaptation + change detection
+
+### Sprint 4: Extraction Pipeline Upgrade (Week 4)
+- [ ] **HYDRA-4.1:** Add trafilatura tier to extraction cascade (tier 7 — article/blog content)
+- [ ] **HYDRA-4.2:** Add adaptive selector tier to cascade (tier 4)
+- [ ] **HYDRA-4.3:** Build `packages/core/ai_providers/social/twitter.py` (Twitter/X extractor)
+- [ ] **HYDRA-4.4:** Build `packages/core/ai_providers/social/linkedin.py` (LinkedIn extractor)
+- [ ] **HYDRA-4.5:** Upgrade `browser_worker.py` — smart wait, shadow DOM, SPA detection
+- [ ] **HYDRA-4.6:** Tests for all new extraction tiers + social extractors
+
+### Sprint 5: Stealth + Router Upgrades (Week 5)
+- [ ] **HYDRA-5.1:** Add 10 new device profiles (Android, iOS, Edge, Brave, Samsung)
+- [ ] **HYDRA-5.2:** Add canvas/WebGL/audio fingerprint noise injection
+- [ ] **HYDRA-5.3:** Upgrade `router.py` — response-based reclassification
+- [ ] **HYDRA-5.4:** Add cost-aware routing (`estimated_cost` in RouteDecision)
+- [ ] **HYDRA-5.5:** Tests for new profiles + stealth evasion + routing
+
+### Sprint 6: MCP Server + Search (Week 6)
+- [ ] **HYDRA-6.1:** Build MCP server (scrape, crawl, search, extract, route tools)
+- [ ] **HYDRA-6.2:** Build `/search` endpoint (Brave Search API → scrape top results)
+- [ ] **HYDRA-6.3:** Build `/extract` endpoint (structured extraction with JSON schema)
+- [ ] **HYDRA-6.4:** Integration tests for MCP + search + extract
+- [ ] **HYDRA-6.5:** Full regression test run (all 706+ existing tests must pass)
+
+### Sprint 7: Polish + Documentation (Week 7)
+- [ ] **HYDRA-7.1:** Build CLI tool (`scraper-cli` with Click/Typer)
+- [ ] **HYDRA-7.2:** Update `docs/final_specs.md` with all new capabilities
+- [ ] **HYDRA-7.3:** Update `CLAUDE.md` with new module inventory + Phase 9 status
+- [ ] **HYDRA-7.4:** Update `system/todo.md`, `execution_trace.md`, `lessons.md`
+- [ ] **HYDRA-7.5:** Final commit + push — HYDRA complete
+
+---
 
 ## Summary
 - **Total original tasks:** 69/69 complete
@@ -276,6 +317,8 @@ Based on comprehensive competitive analysis against 27 industry platforms (see `
 - **Google Maps scraper:** 3/3 complete
 - **Frontend redesign:** 4/4 complete
 - **Live API integration:** 4/4 complete
-- **Lessons learned:** 88
-- **Unit tests passing:** 229 + 15 smoke tests
-- **Platform completeness:** ALL TASKS COMPLETE — ready for production deployment
+- **Competitive analysis:** Complete (27 platforms, 55+ features, 12 gaps identified)
+- **HYDRA Phase 9 tasks:** 0/33 (7 sprints, 33 tasks planned)
+- **Lessons learned:** 100
+- **Unit tests passing:** 706+
+- **Platform status:** Phases 1-8 COMPLETE — Phase 9 HYDRA PLANNED

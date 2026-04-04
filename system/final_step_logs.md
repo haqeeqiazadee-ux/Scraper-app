@@ -1455,3 +1455,38 @@
 - **Pass/Fail:** PASS (Sheets blocked by environment, not by code/auth)
 - **Final Status:** COMPLETE — ready for production deployment
 
+
+---
+
+## COMPETITIVE ANALYSIS + HYDRA PHASE 9 PLANNING — 2026-04-04
+
+### Step 1: Global/Project CLAUDE.md Linking
+- **Task:** Link global CLAUDE.md to project CLAUDE.md with MUST DO pre-task gate
+- **Files:** CLAUDE.md, .claude/CLAUDE.md
+- **Validation:** Pre-task protocol flowchart added, agent hierarchy linked
+- **Pass/Fail:** PASS
+
+### Step 2: Industry Research Analysis
+- **Task:** Read 2466-line industry research report (28 platforms profiled)
+- **Files:** docs/WEB_SCRAPERS_INDUSTRY_CATALOG.md
+- **Validation:** Every line read across 12 view calls
+- **Pass/Fail:** PASS
+
+### Step 3: Competitive Analysis
+- **Task:** Compare our codebase against 27 industry platforms across 55+ features
+- **Files:** docs/COMPETITIVE_ANALYSIS.md, docs/COMPETITIVE_ANALYSIS_MATRIX.xlsx
+- **Validation:** Deep source code verification — every claim backed by file path
+- **Pass/Fail:** PASS (2 inaccuracies found and corrected: 27 currencies not 30+, 5 social platforms not 6)
+
+### Step 4: HYDRA Revision Spec
+- **Task:** Create comprehensive revision spec for Phase 9 scraper upgrade
+- **Files:** HYDRA_REVISION_SPEC_PROMPT.md (751 lines)
+- **Validation:** 10 modules, 7 sprints, 33 tasks, build-vs-integrate decision for every module
+- **Pass/Fail:** PASS
+
+### Step 5: System File Updates
+- **Task:** Update all system files to current state
+- **Files:** CLAUDE.md, system/todo.md, system/execution_trace.md, system/lessons.md, system/development_log.md, system/final_step_logs.md
+- **Validation:** Phase 9 added to CLAUDE.md, 33 HYDRA tasks in todo, 2 trace entries, 16 lessons (93-108), development log entry
+- **Pass/Fail:** PASS
+- **Final Status:** ALL SYSTEM FILES CURRENT — ready for HYDRA execution
