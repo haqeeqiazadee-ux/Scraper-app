@@ -1069,3 +1069,31 @@
   7. .gitignore updated to exclude service_account.json
 - **Blockers found:** sheets.googleapis.com blocked by sandbox network firewall (same as Gemini). Will work on Railway/Render/local deployment.
 - **Next action:** Deploy to production environment for full Sheets integration test
+
+## Work Cycle — 2026-04-04 — Competitive Analysis
+
+- **Timestamp:** 2026-04-04
+- **Active Task IDs:** COMP-000 (Competitive Analysis)
+- **What was read before action:**
+  1. Global CLAUDE.md (381 lines — agent hierarchy, MCP servers, skills, autonomy rules)
+  2. Project CLAUDE.md (240 lines — architecture, phases, conventions)
+  3. WEB_SCRAPERS_INDUSTRY_CATALOG.md (2466 lines — 35+ commercial, 30+ OSS platforms)
+  4. ALL source files: 122 Python files, 74 TS/TSX files across packages/, services/, apps/
+  5. Extracted: class/function signatures from all core modules, connectors, services, contracts
+- **Action taken:** Comprehensive competitive analysis against 27 industry platforms
+- **Why:** Identify unique advantages, critical gaps, and strategic positioning
+- **Outputs produced:**
+  1. `docs/COMPETITIVE_ANALYSIS.md` (308 lines) — full report with 7 sections
+  2. `docs/COMPETITIVE_ANALYSIS_MATRIX.xlsx` (3 sheets) — color-coded comparison matrix
+  3. `COMPARISON_ANALYSIS_PROMPT.md` — reusable super prompt for future analysis
+  4. `.claude/CLAUDE.md` — global config copy with MUST DO gate
+  5. Updated `CLAUDE.md` — MANDATORY PRE-TASK PROTOCOL added
+  6. Updated `system/todo.md` — 12 new COMP tasks (3 P0, 6 P1, 3 P2)
+- **Key findings:**
+  - 8 features NO competitor has (8-tier cascade, Camoufox, human sim, 4-lane, WAF tokens, multi-platform, circuit breaker, device profiles)
+  - 3 P0 gaps: MCP server, markdown output, full-site crawl
+  - We fill 3 of 7 identified market white-spaces
+  - Closest competitor is nobody — each covers 2-3 dimensions, we cover 5+
+  - "Scraping cost optimization via smart routing" white-space is UNIQUELY ours
+- **Blockers found:** None
+- **Next action:** Build P0 items (MCP server, markdown output, crawl manager) in that order

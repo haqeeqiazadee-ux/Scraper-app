@@ -199,3 +199,19 @@
 91. **APIs get shut down by lawsuits** — Proxycurl (LinkedIn data) was shut down in July 2026 after LinkedIn sued them for fake accounts. Always have a backup provider and never depend on a single source for legally risky data (LinkedIn, Facebook).
 
 92. **Pay-per-use beats subscriptions for low volume** — ScrapeCreators charges $10 for 5K credits that never expire. Apify charges per successful extract. For platforms you query occasionally, pay-per-use avoids wasted monthly fees.
+
+93. **MCP server is now table stakes for AI integration** — Firecrawl, Browserless, Bright Data, Hyperbrowser, Spider all have MCP servers. Without one, AI agents (Claude, Cursor, VS Code) can't integrate with our platform. This is P0.
+
+94. **Markdown output is the new default for AI/LLM consumption** — The industry has shifted from JSON/HTML to markdown as the primary output format for RAG pipelines and LLM consumption. Firecrawl, Crawl4AI, Jina Reader, Spider all output markdown. We need this.
+
+95. **"AI extraction" is mostly thin wrappers** — Most competitors claiming "AI scraping" are just calling GPT-4 on raw HTML with no proprietary intelligence. Our 8-tier deterministic cascade extracts data without AI 90%+ of the time, which is faster and cheaper.
+
+96. **Nobody has our 4-lane routing** — After analyzing 27 platforms, no competitor implements smart routing between HTTP, browser, stealth browser, and AI lanes with automatic escalation. This is our strongest unique differentiator.
+
+97. **Stealth benchmarks vary wildly** — ScrapeOps fingerprint tests show ScrapingBee at 24.76/100 (worst), Scrapfly at 86.67/100 (best), Zyte at 80.48/100 (3rd). Our Camoufox scores 0% on CreepJS. Stealth is a genuine differentiator, not commodity.
+
+98. **Self-hosted + multi-platform is unoccupied territory** — No competitor offers Web SaaS + Desktop EXE + Chrome Extension + REST API from a single codebase with cloud/desktop abstractions. Octoparse has desktop+cloud but separate codebases.
+
+99. **Market white-space: scraping cost optimization** — The industry catalog identifies "No tool intelligently routes between HTTP-only, JS rendering, and full browser based on actual site requirements to minimize cost" as a gap. Our 4-lane router is EXACTLY this.
+
+100. **Credit-based pricing is opaque and unpredictable** — Most scraping APIs charge 1x for HTTP, 5x for JS rendering, 25x for stealth proxies. Users can't predict costs. Our self-hosted model eliminates per-request billing entirely.

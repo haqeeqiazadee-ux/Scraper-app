@@ -236,6 +236,30 @@ Research-driven upgrade based on analysis of top-tier scrapers (Crawlee, Camoufo
 ## Blocked
 - **Google Sheets write from sandbox:** `sheets.googleapis.com` blocked by network firewall. Works on Railway/Render/local.
 
+---
+
+## NEW — Competitive Analysis Action Items (April 2026)
+
+Based on comprehensive competitive analysis against 27 industry platforms (see `docs/COMPETITIVE_ANALYSIS.md`).
+
+### P0 — Must Have (Competitive Survival)
+- [ ] **COMP-001:** Build MCP Server — Wrap REST API for AI agent integration (Claude/Cursor/VS Code). Firecrawl, Browserless, Bright Data, Hyperbrowser, Spider all have this. Size: M
+- [ ] **COMP-002:** Add Markdown Output — `output_format=markdown` in extraction pipeline using html2text. Required for LLM/RAG consumption. Firecrawl, Crawl4AI, Jina all have this. Size: S
+- [ ] **COMP-003:** Build Full-Site Recursive Crawl Manager — CrawlManager on top of URL discovery + request queue. Follow links, respect depth, output dataset. Firecrawl /crawl, Scrapy, Crawlee all have this. Size: L
+
+### P1 — Competitive Disadvantage
+- [ ] **COMP-004:** Build /search Endpoint — URL-less web research via SerpAPI/Brave. Firecrawl /search, /agent. Size: M
+- [ ] **COMP-005:** Build CLI Tool — `scraper-cli scrape <url>` with Click/Typer. Scrapy, Firecrawl, Katana have CLIs. Size: S
+- [ ] **COMP-006:** Add Adaptive Selectors — Selectors that survive layout changes. Crawl4AI, Scrapling have this. Size: L
+- [ ] **COMP-007:** Build Session Replay Viewer — HAR + screenshot sequence replay in dashboard. Playwright Trace Viewer, Browserbase. Size: L
+- [ ] **COMP-008:** Add BM25 Relevance Filtering — Score and filter extraction results. Crawl4AI has this. Size: S
+- [ ] **COMP-009:** Build Change Detection — Content diff between crawl runs. Market white-space. Size: M
+
+### P2 — Nice to Have
+- [ ] **COMP-010:** Add PDF/DOCX Parsing — Extract text from uploaded documents. Firecrawl has this. Size: M
+- [ ] **COMP-011:** Add LangChain/LlamaIndex Integration — RAG pipeline connectors. Size: M
+- [ ] **COMP-012:** Add n8n/Zapier/Make Webhook Integration — Workflow automation. Size: S
+
 ## Summary
 - **Total original tasks:** 69/69 complete
 - **Gap closure tasks:** 8/8 complete
