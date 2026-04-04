@@ -1,6 +1,36 @@
 # CLAUDE.md — Project Context for AI Scraping Platform
 
+> **INHERITS FROM:** `~/.claude/CLAUDE.md` (Global Master Directives)
+> All global rules (autonomy mode, agent hierarchy, MCP servers, skills library, session memory, auto-update protocol) apply to this project. This file adds **project-specific** context only.
+
 > This file is the authoritative context document for Claude Code sessions working on this project.
+
+## Global Config Link
+
+This project operates under the **Global Claude Code Config** (`~/.claude/CLAUDE.md`). Key inherited directives:
+
+- **Owner:** Muhammad Usman — fully autonomous, action-first execution
+- **MCP Servers:** firecrawl, exa, github, context7, playwright, n8n-mcp, n8n-instance, claude-mem, ruflo, figma
+- **Agent Hierarchy:** Orchestrator → 10-agent pool (2× architect, 2× engineer, 2× product, 2× security, 2× QA)
+- **Skills:** 437 skills across engineering, marketing, C-level, product, compliance, finance
+- **Commands:** 102 slash commands (/build-fix, /verify, /checkpoint, /plan, etc.)
+- **Python Packages:** lightrag-hku, elevenlabs, boto3
+- **Autonomy:** MAXIMIZED — no permission asking, complete tasks fully, fix forward
+- **Session Memory:** claude-mem auto-persist on start/during/end
+- **Auto-Updates:** system files update after every major change (see global protocol)
+
+### Project-Specific MCP Priorities
+
+For this scraping platform, prioritize these MCP servers:
+
+| Server | Project Use |
+|--------|-------------|
+| *context7* | FastAPI, Pydantic v2, Playwright, curl_cffi, Camoufox docs |
+| *playwright* | E2E testing of browser scraping lanes |
+| *github* | All repo operations on fahad-scraper/Scraper-app |
+| *exa* | Research anti-detection techniques, WAF bypass patterns |
+| *firecrawl* | Test scraping targets, validate extraction pipelines |
+| *claude-mem* | Persist scraper-specific findings (site fingerprints, working selectors) |
 
 ## Repository
 
