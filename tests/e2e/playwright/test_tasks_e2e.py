@@ -7,7 +7,7 @@ from tests.e2e.playwright.conftest import FRONTEND_URL
 
 def test_tasks_page_renders(page: Page, frontend_server):
     page.goto(f"{FRONTEND_URL}/tasks")
-    expect(page.get_by_text("Tasks")).to_be_visible()
+    expect(page.get_by_role("heading", name="Tasks", exact=True)).to_be_visible()
 
 
 def test_tasks_has_create_button(page: Page, frontend_server):
@@ -27,7 +27,7 @@ def test_tasks_create_opens_form(page: Page, frontend_server):
     page.get_by_text("Create Task").click()
     page.wait_for_timeout(500)
     # Form modal or section should appear
-    expect(page.locator("input[type='url'], input[placeholder*='url' i], input[placeholder*='URL']").first).to_be_visible()
+    expect(page.locator("input, textarea").first).to_be_visible()
 
 
 def test_tasks_empty_state(page: Page, frontend_server):

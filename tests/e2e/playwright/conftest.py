@@ -70,7 +70,15 @@ def _wait_for_server(url: str, timeout: float = 30.0) -> bool:
 
 @pytest.fixture(scope="session")
 def backend_server():
-    """Start the FastAPI backend for E2E tests."""
+    """Start the FastAPI backend for E2E tests.
+
+    If a backend is already running on BACKEND_PORT, reuse it.
+    """
+    # Check if backend is already running (e.g. started manually)
+    if _wait_for_server(f"{BACKEND_URL}/health", timeout=2):
+        yield None  # Already running, nothing to manage
+        return
+
     env = os.environ.copy()
     env["DATABASE_URL"] = "sqlite+aiosqlite:///e2e_test.db"
     env["QUEUE_BACKEND"] = "memory"
@@ -116,7 +124,15 @@ def backend_server():
 
 @pytest.fixture(scope="session")
 def frontend_server(backend_server):
-    """Start the Vite dev server for E2E tests."""
+    """Start the Vite dev server for E2E tests.
+
+    If a frontend is already running on FRONTEND_PORT, reuse it.
+    """
+    # Check if frontend is already running (e.g. started manually)
+    if _wait_for_server(FRONTEND_URL, timeout=2):
+        yield None  # Already running, nothing to manage
+        return
+
     env = os.environ.copy()
     env["VITE_API_URL"] = "/api/v1"
     env["VITE_BACKEND_URL"] = BACKEND_URL

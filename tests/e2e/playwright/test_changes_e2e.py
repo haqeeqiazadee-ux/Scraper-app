@@ -5,8 +5,8 @@ from playwright.sync_api import Page, expect
 
 CHANGES_URL = "/changes"
 
-OLD_DATA = '[{"name": "Widget", "price": "$19.99", "product_url": "https://example.com/widget"}]'
-NEW_DATA = '[{"name": "Widget", "price": "$14.99", "product_url": "https://example.com/widget"}, {"name": "Gadget", "price": "$29.99", "product_url": "https://example.com/gadget"}]'
+OLD_DATA = '[{"name": "Widget", "price": "19.99", "product_url": "https://example.com/widget"}]'
+NEW_DATA = '[{"name": "Widget", "price": "14.99", "product_url": "https://example.com/widget"}, {"name": "Gadget", "price": "29.99", "product_url": "https://example.com/gadget"}]'
 
 
 @pytest.fixture(autouse=True)

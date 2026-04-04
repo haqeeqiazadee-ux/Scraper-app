@@ -37,7 +37,7 @@ def test_amazon_page_renders(page: Page, frontend_server):
 
 def test_amazon_has_query_types(page: Page, frontend_server):
     page.goto(f"{FRONTEND_URL}/amazon")
-    expect(page.get_by_text("ASIN Lookup")).to_be_visible()
+    expect(page.get_by_text("ASIN Lookup").first).to_be_visible()
 
 
 # --- Google Maps ---

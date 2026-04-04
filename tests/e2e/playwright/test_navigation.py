@@ -20,20 +20,22 @@ def test_no_login_screen(page: Page, frontend_server):
 
 def test_sidebar_has_core_section(page: Page, frontend_server):
     page.goto(f"{FRONTEND_URL}/dashboard")
-    expect(page.get_by_text("CORE")).to_be_visible()
-    expect(page.get_by_text("Dashboard")).to_be_visible()
-    expect(page.get_by_text("Tasks")).to_be_visible()
-    expect(page.get_by_text("Policies")).to_be_visible()
-    expect(page.get_by_text("Results")).to_be_visible()
+    nav = page.locator("nav")
+    expect(nav.get_by_text("CORE")).to_be_visible()
+    expect(nav.get_by_text("Dashboard")).to_be_visible()
+    expect(nav.get_by_text("Tasks")).to_be_visible()
+    expect(nav.get_by_text("Policies")).to_be_visible()
+    expect(nav.get_by_text("Results")).to_be_visible()
 
 
 def test_sidebar_has_tools_section(page: Page, frontend_server):
     page.goto(f"{FRONTEND_URL}/dashboard")
-    expect(page.get_by_text("TOOLS")).to_be_visible()
-    expect(page.get_by_text("Crawl")).to_be_visible()
-    expect(page.get_by_text("Search")).to_be_visible()
-    expect(page.get_by_text("Extract")).to_be_visible()
-    expect(page.get_by_text("Changes")).to_be_visible()
+    nav = page.locator("nav")
+    expect(nav.get_by_text("TOOLS")).to_be_visible()
+    expect(nav.get_by_text("Crawl")).to_be_visible()
+    expect(nav.get_by_text("Search")).to_be_visible()
+    expect(nav.get_by_text("Extract")).to_be_visible()
+    expect(nav.get_by_text("Changes")).to_be_visible()
 
 
 def test_sidebar_has_integration_section(page: Page, frontend_server):
