@@ -38,7 +38,7 @@ AMAZON_PRODUCT = Template(
     id="amazon-product",
     name="Amazon Product Scraper",
     description=(
-        "Extract product data from Amazon — titles, prices, ratings, reviews, "
+        "Extract product data from Amazon via Keepa API — titles, prices, ratings, reviews, "
         "ASINs, images, Prime eligibility, seller info. Supports 10+ Amazon marketplaces."
     ),
     category=TemplateCategory.ECOMMERCE,
@@ -69,7 +69,7 @@ AMAZON_PRODUCT = Template(
             _field("description", "Product description", css="#productDescription"),
             _field("features", "Bullet point features", css="#feature-bullets li", field_type="list"),
         ],
-        preferred_lane="browser",
+        preferred_lane="api",
         browser_required=True,
         stealth_required=True,
         proxy_required=True,
@@ -87,7 +87,7 @@ AMAZON_REVIEWS = Template(
     id="amazon-reviews",
     name="Amazon Reviews Scraper",
     description=(
-        "Extract customer reviews from Amazon products — full text, star ratings, "
+        "Extract customer reviews from Amazon products via Keepa API — full text, star ratings, "
         "dates, verified purchase flags, helpfulness votes. Ideal for sentiment analysis."
     ),
     category=TemplateCategory.REVIEWS,
@@ -110,7 +110,7 @@ AMAZON_REVIEWS = Template(
             _field("reviewer_name", "Reviewer name", css=".a-profile-name"),
             _field("reviewer_profile", "Link to reviewer profile", css=".a-profile", field_type="url"),
         ],
-        preferred_lane="browser",
+        preferred_lane="api",
         browser_required=True,
         stealth_required=True,
         proxy_required=True,
@@ -129,7 +129,7 @@ AMAZON_BESTSELLERS = Template(
     id="amazon-bestsellers",
     name="Amazon Bestsellers Scraper",
     description=(
-        "Track Amazon Best Sellers rankings across any category. Extract BSR rank, "
+        "Track Amazon Best Sellers rankings via Keepa API across any category. Extract BSR rank, "
         "ASIN, price, review count, and listing URL."
     ),
     category=TemplateCategory.ECOMMERCE,
@@ -152,7 +152,7 @@ AMAZON_BESTSELLERS = Template(
             _field("product_url", "Product page URL", field_type="url"),
             _field("image_url", "Product thumbnail", field_type="image"),
         ],
-        preferred_lane="browser",
+        preferred_lane="api",
         browser_required=True,
         stealth_required=True,
         proxy_required=True,
@@ -793,7 +793,7 @@ AMAZON_SELLER = Template(
     id="amazon-seller",
     name="Amazon Seller Scraper",
     description=(
-        "Extract Amazon seller/merchant data — store name, total reviews, "
+        "Extract Amazon seller/merchant data via Keepa API — store name, total reviews, "
         "product listings, feedback ratings, and contact details."
     ),
     category=TemplateCategory.ECOMMERCE,
@@ -816,7 +816,7 @@ AMAZON_SELLER = Template(
             _field("product_count", "Number of listed products", field_type="number"),
             _field("storefront_url", "Seller storefront URL", field_type="url"),
         ],
-        preferred_lane="browser",
+        preferred_lane="api",
         browser_required=True,
         stealth_required=True,
         proxy_required=True,
@@ -834,7 +834,7 @@ AMAZON_SEARCH = Template(
     id="amazon-search",
     name="Amazon Search Results Scraper",
     description=(
-        "Extract real-time search results from Amazon — product titles, prices, "
+        "Extract real-time search results from Amazon via Keepa API — product titles, prices, "
         "ratings, sponsored flags, and ranking positions for any keyword."
     ),
     category=TemplateCategory.ECOMMERCE,
@@ -859,7 +859,7 @@ AMAZON_SEARCH = Template(
             _field("product_url", "Product page URL", field_type="url"),
             _field("badge", "Badge text (Best Seller, Choice, etc.)"),
         ],
-        preferred_lane="browser",
+        preferred_lane="api",
         browser_required=True,
         stealth_required=True,
         proxy_required=True,
@@ -878,7 +878,7 @@ AMAZON_PRODUCT_DETAILS = Template(
     id="amazon-product-details",
     name="Amazon Product Details Scraper",
     description=(
-        "Deep extraction of Amazon product pages — full specifications, "
+        "Deep extraction of Amazon product pages via Keepa API — full specifications, "
         "variant data (colors/sizes), A+ content, comparison tables, "
         "and frequently bought together items."
     ),
@@ -908,7 +908,7 @@ AMAZON_PRODUCT_DETAILS = Template(
             _field("date_first_available", "Date first available"),
             _field("all_images", "All product images", field_type="list"),
         ],
-        preferred_lane="browser",
+        preferred_lane="api",
         browser_required=True,
         stealth_required=True,
         proxy_required=True,
