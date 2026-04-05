@@ -530,17 +530,31 @@ export interface TestScrapeResult {
   item_count: number;
   confidence: number;
   extraction_method: string | null;
+  extraction_mode?: string;
   duration_ms: number;
   error: string | null;
   extracted_data: Record<string, unknown>[];
   should_escalate: boolean;
+  saved?: boolean;
+  saved_task_id?: string;
+  save_error?: string;
 }
 
 export const scrapeTest = {
-  run(url: string, timeoutMs?: number): Promise<TestScrapeResult> {
+  run(
+    url: string,
+    timeoutMs?: number,
+    extractionMode?: string,
+    saveResult?: boolean,
+  ): Promise<TestScrapeResult> {
     return request("/test-scrape", {
       method: "POST",
-      body: JSON.stringify({ url, timeout_ms: timeoutMs ?? 15000 }),
+      body: JSON.stringify({
+        url,
+        timeout_ms: timeoutMs ?? 15000,
+        extraction_mode: extractionMode ?? "products",
+        save_result: saveResult ?? false,
+      }),
     });
   },
 };

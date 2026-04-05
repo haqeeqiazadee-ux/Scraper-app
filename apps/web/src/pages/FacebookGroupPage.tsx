@@ -174,6 +174,30 @@ export function FacebookGroupPage() {
         </div>
       </div>
 
+      {/* Requirements Note */}
+      <div style={{
+        padding: "16px 20px",
+        marginBottom: 24,
+        borderRadius: 10,
+        border: "1px solid #fbbf24",
+        background: "rgba(251, 191, 36, 0.08)",
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 12,
+      }}>
+        <span style={{ fontSize: 20, lineHeight: 1 }}>&#9888;</span>
+        <div>
+          <div style={{ fontWeight: 700, fontSize: 14, color: "var(--color-text)", marginBottom: 4 }}>
+            Requirements: Self-Hosted Backend
+          </div>
+          <div style={{ fontSize: 13, color: "var(--color-text-secondary)", lineHeight: 1.5 }}>
+            Facebook Groups scraping requires a self-hosted backend with Chrome/Playwright installed.
+            This feature <strong>cannot work on Netlify</strong> as it needs a server-side browser.
+            Deploy the backend locally or on a VM with Docker for full functionality.
+          </div>
+        </div>
+      </div>
+
       {/* Step 1: Cookie Upload */}
       <div style={{ marginBottom: 24 }}>
         <h3 style={{ fontSize: 16, fontWeight: 600, color: "var(--color-text)", marginBottom: 12 }}>

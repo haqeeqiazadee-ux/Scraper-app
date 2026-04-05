@@ -1,25 +1,40 @@
 /**
  * ScrapeTestPage — Real-time scrape testing environment.
  * Runs a scrape inline (synchronously) and shows results immediately.
+ * Supports extraction modes: Everything, Products, Content, Custom.
+ * Can save results to the Results & Export page.
  */
 
 import { useState } from "react";
 import { scrapeTest, type TestScrapeResult } from "../api/client";
 
+type ExtractionMode = "everything" | "products" | "content" | "custom";
+
+const MODE_OPTIONS: { value: ExtractionMode; label: string; description: string }[] = [
+  { value: "everything", label: "Everything", description: "Full page: products + content + headings + links + metadata" },
+  { value: "products", label: "Products", description: "Pricing, product cards, and e-commerce data" },
+  { value: "content", label: "Text Content", description: "Article text, blog content via trafilatura" },
+  { value: "custom", label: "Custom Fields", description: "Define your own extraction schema" },
+];
+
 export default function ScrapeTestPage() {
-  const [url, setUrl] = useState("https://httpbin.org/html");
+  const [url, setUrl] = useState("https://yousell.online");
+  const [mode, setMode] = useState<ExtractionMode>("everything");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<TestScrapeResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState<boolean | null>(null);
 
   const handleTest = async () => {
     if (!url.trim()) return;
     setLoading(true);
     setError(null);
     setResult(null);
+    setSaved(null);
     try {
-      const res = await scrapeTest.run(url.trim());
+      const res = await scrapeTest.run(url.trim(), 20000, mode, true);
       setResult(res);
+      setSaved(res.saved ?? null);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -31,18 +46,18 @@ export default function ScrapeTestPage() {
     <>
       <div className="page-header">
         <div className="page-header-left">
-          <h2>Scrape Tester</h2>
-          <p>Real-time scrape testing environment. Enter a URL and see extraction results instantly.</p>
+          <h2>Quick Scrape</h2>
+          <p>Enter any URL, choose what to extract, and see results instantly. Results are auto-saved.</p>
         </div>
       </div>
       <div className="page-body">
         {/* Input bar */}
         <div className="card" style={{ marginBottom: 16 }}>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
             <input
               type="url"
               className="form-input"
-              placeholder="https://example.com/products"
+              placeholder="https://example.com"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleTest()}
@@ -59,11 +74,54 @@ export default function ScrapeTestPage() {
                   Scraping...
                 </span>
               ) : (
-                "Test Scrape"
+                "Scrape"
               )}
             </button>
           </div>
+
+          {/* Extraction Mode Selector */}
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {MODE_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setMode(opt.value)}
+                title={opt.description}
+                style={{
+                  padding: "6px 14px",
+                  fontSize: 13,
+                  fontWeight: mode === opt.value ? 700 : 500,
+                  borderRadius: 6,
+                  border: mode === opt.value ? "2px solid var(--color-primary)" : "1px solid var(--color-border)",
+                  background: mode === opt.value ? "rgba(99, 102, 241, 0.1)" : "var(--color-surface)",
+                  color: mode === opt.value ? "var(--color-primary)" : "var(--color-text-secondary)",
+                  cursor: "pointer",
+                  transition: "all 0.15s",
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          <div style={{ fontSize: 12, color: "var(--color-text-secondary)", marginTop: 6 }}>
+            {MODE_OPTIONS.find((o) => o.value === mode)?.description}
+          </div>
         </div>
+
+        {/* Saved confirmation */}
+        {saved === true && (
+          <div className="card" style={{ borderColor: "var(--color-success)", marginBottom: 16, background: "rgba(34, 197, 94, 0.05)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--color-success)" }}>
+              <span style={{ fontSize: 18 }}>&#10003;</span>
+              <div>
+                <div style={{ fontWeight: 600 }}>Saved to Results</div>
+                <div style={{ fontSize: 13, color: "var(--color-text-secondary)" }}>
+                  View in <a href="/results" style={{ color: "var(--color-primary)" }}>Results &amp; Export</a> page
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Error */}
         {error && (
@@ -110,7 +168,7 @@ export default function ScrapeTestPage() {
               </div>
               <div className="stat-card">
                 <div className="stat-label">Method</div>
-                <div className="stat-value" style={{ fontSize: 20, textTransform: "capitalize" }}>
+                <div className="stat-value" style={{ fontSize: 20, textTransform: "capitalize", fontSize: 14 }}>
                   {result.extraction_method ?? "N/A"}
                 </div>
               </div>
@@ -132,19 +190,23 @@ export default function ScrapeTestPage() {
                   <table>
                     <thead>
                       <tr>
-                        {Object.keys(result.extracted_data[0]).map((key) => (
-                          <th key={key}>{key}</th>
-                        ))}
+                        {Object.keys(result.extracted_data[0])
+                          .filter((k) => !k.startsWith("_") && k !== "full_content")
+                          .map((key) => (
+                            <th key={key}>{key}</th>
+                          ))}
                       </tr>
                     </thead>
                     <tbody>
                       {result.extracted_data.map((item, i) => (
                         <tr key={i}>
-                          {Object.values(item).map((val, j) => (
-                            <td key={j} className="url-cell">
-                              {String(val ?? "")}
-                            </td>
-                          ))}
+                          {Object.entries(item)
+                            .filter(([k]) => !k.startsWith("_") && k !== "full_content")
+                            .map(([, val], j) => (
+                              <td key={j} className="url-cell">
+                                {typeof val === "boolean" ? (val ? "Yes" : "No") : String(val ?? "").substring(0, 200)}
+                              </td>
+                            ))}
                         </tr>
                       ))}
                     </tbody>
@@ -192,8 +254,8 @@ export default function ScrapeTestPage() {
                 <line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
             </div>
-            <h3>Ready to Test</h3>
-            <p>Enter a URL above and click "Test Scrape" to see extraction results in real-time.</p>
+            <h3>Ready to Scrape</h3>
+            <p>Enter a URL above, choose an extraction mode, and click "Scrape" to see results.</p>
           </div>
         )}
       </div>

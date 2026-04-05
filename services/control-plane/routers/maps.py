@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any, Optional
 
 from fastapi import APIRouter, HTTPException
@@ -76,7 +77,7 @@ async def maps_status() -> dict[str, Any]:
     maps = _get_maps()
     return {
         "google_api_configured": bool(maps._google_api_key),
-        "serpapi_configured": bool(maps._serpapi_key),
+        "serpapi_configured": bool(getattr(maps, '_serpapi_key', None) or os.environ.get("SERPER_API_KEY", "")),
         "browser_fallback": True,
         "metrics": {
             "total_requests": maps._metrics.total_requests,

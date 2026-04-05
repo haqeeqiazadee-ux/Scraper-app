@@ -95,13 +95,78 @@ async def list_results(
     }
 
 
+class BulkExportRequest(BaseModel):
+    """Request body for bulk export."""
+    format: str = "json"
+    min_confidence: Optional[float] = None
+    date_from: Optional[str] = None
+    date_to: Optional[str] = None
+    destination: str = "download"
+
+
 @router.post("/results/export")
 async def export_results(
+    body: BulkExportRequest,
     session: AsyncSession = Depends(get_session),
     tenant_id: str = Depends(get_tenant_id),
-) -> dict:
-    """Export results (stub — returns status message)."""
-    return {"status": "ok", "message": "Use /tasks/{task_id}/export/{format} for per-task exports"}
+) -> Response:
+    """Export all results as a downloadable file (JSON, CSV, or XLSX)."""
+    repo = ResultRepository(session)
+    results_list, total = await repo.list(
+        tenant_id, limit=1000, offset=0,
+        min_confidence=body.min_confidence,
+    )
+
+    if not results_list:
+        raise HTTPException(status_code=404, detail="No results found to export")
+
+    items = _gather_items(results_list)
+    if not items:
+        raise HTTPException(status_code=404, detail="No extracted data to export")
+
+    if body.format == "csv":
+        headers = list(dict.fromkeys(k for item in items for k in item.keys()))
+        output = io.StringIO()
+        writer = csv.DictWriter(output, fieldnames=headers, extrasaction="ignore")
+        writer.writeheader()
+        for item in items:
+            writer.writerow({k: str(v)[:500] if v is not None else "" for k, v in item.items()})
+        return Response(
+            content=output.getvalue(),
+            media_type="text/csv",
+            headers={"Content-Disposition": 'attachment; filename="results-export.csv"'},
+        )
+
+    elif body.format == "xlsx":
+        try:
+            from openpyxl import Workbook
+        except ImportError:
+            raise HTTPException(status_code=501, detail="openpyxl not installed for XLSX export")
+
+        headers = list(dict.fromkeys(k for item in items for k in item.keys()))
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Results"
+        ws.append(headers)
+        for item in items:
+            ws.append([str(item.get(h, ""))[:500] for h in headers])
+        output_bytes = io.BytesIO()
+        wb.save(output_bytes)
+        output_bytes.seek(0)
+        return Response(
+            content=output_bytes.getvalue(),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": 'attachment; filename="results-export.xlsx"'},
+        )
+
+    else:
+        # Default: JSON
+        content = json.dumps(items, indent=2, default=str)
+        return Response(
+            content=content,
+            media_type="application/json",
+            headers={"Content-Disposition": 'attachment; filename="results-export.json"'},
+        )
 
 
 @router.get("/results/export/count")

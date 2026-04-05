@@ -537,6 +537,121 @@ class TestScrapeRequest(BaseModel):
     """Request body for real-time scrape test."""
     url: HttpUrl
     timeout_ms: int = 15000
+    extraction_mode: str = "products"  # "everything" | "products" | "content" | "custom"
+    save_result: bool = False  # Auto-save to Results & Export
+
+
+async def _extract_everything(html: str, url: str, ai_provider) -> list[dict]:
+    """Combined extraction: deterministic products + trafilatura content.
+
+    Returns all structured items PLUS page metadata/content items for a
+    comprehensive extraction suitable for any website type.
+    """
+    import re
+    from html.parser import HTMLParser
+
+    items: list[dict] = []
+
+    # 1. Deterministic product extraction
+    product_items = await ai_provider.extract(html, url)
+    for item in product_items:
+        item["_category"] = "product"
+    items.extend(product_items)
+
+    # 2. Trafilatura content extraction
+    try:
+        from packages.core.markdown_converter import MarkdownConverter
+        converter = MarkdownConverter()
+        conversion = converter.convert(html, url, output_format="json")
+        if conversion.content:
+            items.append({
+                "name": conversion.title or "Page Content",
+                "content_type": "article",
+                "full_content": conversion.content[:2000],
+                "_category": "content",
+                "_extraction_method": "trafilatura",
+            })
+    except Exception as exc:
+        logger.debug("Trafilatura extraction failed: %s", exc)
+
+    # 3. Extract page metadata
+    title_match = re.search(r'<title[^>]*>(.*?)</title>', html, re.IGNORECASE | re.DOTALL)
+    desc_match = re.search(r'<meta\s+name=["\']description["\']\s+content=["\'](.*?)["\']', html, re.IGNORECASE)
+    og_title = re.search(r'<meta\s+property=["\']og:title["\']\s+content=["\'](.*?)["\']', html, re.IGNORECASE)
+    og_desc = re.search(r'<meta\s+property=["\']og:description["\']\s+content=["\'](.*?)["\']', html, re.IGNORECASE)
+    og_image = re.search(r'<meta\s+property=["\']og:image["\']\s+content=["\'](.*?)["\']', html, re.IGNORECASE)
+
+    meta_item: dict = {"_category": "metadata", "_extraction_method": "meta_tags"}
+    if title_match:
+        meta_item["page_title"] = title_match.group(1).strip()
+    if desc_match:
+        meta_item["page_description"] = desc_match.group(1).strip()
+    if og_title:
+        meta_item["og_title"] = og_title.group(1).strip()
+    if og_desc:
+        meta_item["og_description"] = og_desc.group(1).strip()
+    if og_image:
+        meta_item["og_image"] = og_image.group(1).strip()
+    if len(meta_item) > 2:
+        items.append(meta_item)
+
+    # 4. Extract all headings (h1-h6)
+    headings = re.findall(r'<(h[1-6])[^>]*>(.*?)</\1>', html, re.IGNORECASE | re.DOTALL)
+    for tag, text in headings:
+        clean = re.sub(r'<[^>]+>', '', text).strip()
+        if clean and len(clean) > 2:
+            items.append({
+                "name": clean,
+                "heading_level": tag.upper(),
+                "_category": "heading",
+                "_extraction_method": "dom_headings",
+            })
+
+    # 5. Extract links with text
+    links = re.findall(r'<a\s+[^>]*href=["\'](.*?)["\'][^>]*>(.*?)</a>', html, re.IGNORECASE | re.DOTALL)
+    seen_links: set = set()
+    for href, text in links:
+        clean_text = re.sub(r'<[^>]+>', '', text).strip()
+        if clean_text and len(clean_text) > 2 and href and not href.startswith(('#', 'javascript:', 'mailto:')):
+            link_key = (href, clean_text)
+            if link_key not in seen_links:
+                seen_links.add(link_key)
+                # Check if it looks like a CTA
+                cta_words = ['get started', 'sign up', 'try', 'buy', 'contact', 'demo', 'free', 'start', 'learn more', 'subscribe']
+                is_cta = any(w in clean_text.lower() for w in cta_words)
+                items.append({
+                    "name": clean_text,
+                    "url": href if href.startswith('http') else f"{url.rstrip('/')}/{href.lstrip('/')}",
+                    "is_cta": is_cta,
+                    "_category": "cta" if is_cta else "link",
+                    "_extraction_method": "dom_links",
+                })
+
+    # 6. Extract testimonials / stats (common patterns)
+    # Look for blockquotes, testimonial sections
+    blockquotes = re.findall(r'<blockquote[^>]*>(.*?)</blockquote>', html, re.IGNORECASE | re.DOTALL)
+    for bq in blockquotes:
+        clean = re.sub(r'<[^>]+>', '', bq).strip()
+        if clean and len(clean) > 10:
+            items.append({
+                "name": "Testimonial",
+                "content": clean[:500],
+                "_category": "testimonial",
+                "_extraction_method": "dom_quotes",
+            })
+
+    # Look for stat numbers (e.g., "10,000+ customers", "99.9% uptime")
+    stat_patterns = re.findall(r'[\d,]+[+%]?\s*[A-Za-z]+', re.sub(r'<[^>]+>', ' ', html))
+    stat_keywords = ['customer', 'user', 'download', 'uptime', 'support', 'review', 'rating', 'satisfied', 'country', 'client']
+    for stat in stat_patterns:
+        if any(kw in stat.lower() for kw in stat_keywords) and len(stat) < 50:
+            items.append({
+                "name": stat.strip(),
+                "_category": "stat",
+                "_extraction_method": "dom_stats",
+            })
+
+    return items
 
 
 @router.post("/test-scrape")
@@ -546,13 +661,15 @@ async def test_scrape(
 ) -> dict:
     """Real-time scrape test — runs inline and returns results immediately.
 
-    Useful for debugging and testing URLs without creating a task.
+    Supports extraction modes: everything, products, content, custom.
+    Optionally saves results to the database when save_result=True.
     """
     import traceback
     import time
 
     url = str(request.url)
     start = time.time()
+    extraction_mode = request.extraction_mode
 
     # Route to determine initial lane
     test_task = Task(tenant_id=tenant_id, url=request.url)
@@ -570,6 +687,10 @@ async def test_scrape(
             "paginate": False,
             "max_pages": 1,
         }
+
+        # For "everything" and "content" modes, request markdown output
+        if extraction_mode in ("everything", "content"):
+            task_payload["output_format"] = "markdown"
 
         while True:
             result = await _execute_lane(current_lane, task_payload)
@@ -599,21 +720,92 @@ async def test_scrape(
 
         _escalation_manager.complete("test", result)
 
+        # For "everything" mode, re-extract with combined approach using raw HTML
+        extracted_data = result.get("extracted_data", [])
+        extraction_method = result.get("extraction_method", "deterministic")
+
+        if extraction_mode == "everything" and succeeded:
+            html_snapshot = result.get("html_snapshot", "")
+            if html_snapshot:
+                from packages.core.ai_providers.deterministic import DeterministicProvider
+                ai_provider = DeterministicProvider()
+                extracted_data = await _extract_everything(html_snapshot, url, ai_provider)
+                extraction_method = "deterministic+trafilatura+dom"
+            else:
+                # Fallback: just use what we have
+                extraction_method = "deterministic"
+
+        elif extraction_mode == "content" and succeeded:
+            # Content-only: use trafilatura result from worker
+            content = result.get("converted_content", "")
+            if content:
+                extracted_data = [{
+                    "name": "Page Content",
+                    "content": content[:3000],
+                    "content_type": "article",
+                    "_extraction_method": "trafilatura",
+                }]
+                extraction_method = "trafilatura"
+
         elapsed = int((time.time() - start) * 1000)
-        return {
+
+        # Build response
+        response = {
             "url": url,
             "status": result.get("status"),
             "status_code": result.get("status_code"),
             "lane_used": current_lane.value,
             "escalation_chain": escalation_chain,
-            "item_count": result.get("item_count", 0),
+            "item_count": len(extracted_data),
             "confidence": result.get("confidence", 0),
-            "extraction_method": result.get("extraction_method"),
+            "extraction_method": extraction_method,
+            "extraction_mode": extraction_mode,
             "duration_ms": elapsed,
             "error": result.get("error"),
-            "extracted_data": result.get("extracted_data", [])[:10],
-            "should_escalate": False,  # escalation already handled
+            "extracted_data": extracted_data[:50],
+            "should_escalate": False,
         }
+
+        # Auto-save result if requested
+        if request.save_result and succeeded and extracted_data:
+            try:
+                db = get_database()
+                async with db.session() as save_session:
+                    from packages.core.storage.repositories import TaskRepository, ResultRepository as SaveResultRepo
+                    task_repo = TaskRepository(save_session)
+                    result_repo = SaveResultRepo(save_session)
+
+                    # Create a task record for this scrape
+                    saved_task_id = str(uuid4())
+                    saved_run_id = str(uuid4())
+                    await task_repo.create(
+                        tenant_id=tenant_id,
+                        id=saved_task_id,
+                        url=url,
+                        task_type="scrape",
+                        status="completed",
+                    )
+
+                    await result_repo.create(
+                        tenant_id=tenant_id,
+                        task_id=saved_task_id,
+                        run_id=saved_run_id,
+                        url=url,
+                        extracted_data=extracted_data,
+                        item_count=len(extracted_data),
+                        confidence=result.get("confidence", 0.0),
+                        extraction_method=extraction_method,
+                    )
+                    await save_session.commit()
+                    response["saved"] = True
+                    response["saved_task_id"] = saved_task_id
+                    logger.info("Test scrape result saved: task_id=%s items=%d", saved_task_id, len(extracted_data))
+            except Exception as save_err:
+                logger.warning("Failed to save test scrape result: %s", save_err)
+                response["saved"] = False
+                response["save_error"] = str(save_err)[:200]
+
+        return response
 
     except Exception:
         elapsed = int((time.time() - start) * 1000)
@@ -629,6 +821,7 @@ async def test_scrape(
             "item_count": 0,
             "confidence": 0,
             "extraction_method": None,
+            "extraction_mode": extraction_mode,
             "duration_ms": elapsed,
             "error": short_error,
             "extracted_data": [],
