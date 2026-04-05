@@ -771,8 +771,9 @@ async def test_scrape(
             try:
                 db = get_database()
                 async with db.session() as save_session:
-                    from packages.core.storage.repositories import TaskRepository, ResultRepository as SaveResultRepo
+                    from packages.core.storage.repositories import TaskRepository, ResultRepository as SaveResultRepo, RunRepository as SaveRunRepo
                     task_repo = TaskRepository(save_session)
+                    run_repo = SaveRunRepo(save_session)
                     result_repo = SaveResultRepo(save_session)
 
                     # Create a task record for this scrape
@@ -783,6 +784,16 @@ async def test_scrape(
                         id=saved_task_id,
                         url=url,
                         task_type="scrape",
+                        status="completed",
+                    )
+
+                    # Create a run record (required by FK constraint)
+                    await run_repo.create(
+                        tenant_id=tenant_id,
+                        id=saved_run_id,
+                        task_id=saved_task_id,
+                        lane=current_lane.value,
+                        connector="http_collector",
                         status="completed",
                     )
 
