@@ -1231,4 +1231,15 @@
   - Templates: 55 templates rendering with category filters
   - All forms, navigation, empty states working correctly
   - Known: Web Crawl shows 0 pages on Netlify (serverless limitation)
-- **Git commits:** f4fcafe (sidebar), d3e234d (colors), 69a4f82 (cache), 486ebf1 (TS fix), 672484c (dark mode text)
+- **Git commits:** f4fcafe (sidebar), d3e234d (colors), 69a4f82 (cache), 486ebf1 (TS fix), 672484c (dark mode text), 25ba0c1 (Serper + OpenAI)
+
+## Work Cycle — 2026-04-05 — API Integration (Serper + OpenAI)
+
+- **Timestamp:** 2026-04-05
+- **Action taken:** Wired Serper.dev (free search) and OpenAI (AI extraction) into the platform
+- **Changes:**
+  - Replaced Brave Search API with Serper.dev in /search endpoint
+  - Created .env with SERPER_API_KEY + OPENAI_API_KEY
+  - Set both env vars on Netlify (myscraper.netlify.app)
+  - Updated .env.example with Serper key placeholder
+- **APIs now active:** Serper (2,500 free), OpenAI (pay-as-go), Keepa (existing), Google (existing)
