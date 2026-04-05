@@ -5,9 +5,13 @@ E2E test fixtures: full app client, auth tokens.
 from __future__ import annotations
 
 import pytest
-from httpx import ASGITransport, AsyncClient
 
-from services.control_plane.dependencies import init_database
+try:
+    from httpx import ASGITransport, AsyncClient
+    from services.control_plane.dependencies import init_database
+    _HAS_BACKEND_DEPS = True
+except ImportError:
+    _HAS_BACKEND_DEPS = False
 
 
 # ---------------------------------------------------------------------------
@@ -21,6 +25,8 @@ async def app_client():
     Initializes a fresh in-memory database and creates the complete
     FastAPI application with all middleware and routers.
     """
+    if not _HAS_BACKEND_DEPS:
+        pytest.skip("httpx or backend dependencies not installed")
     db = init_database("sqlite+aiosqlite:///:memory:")
     await db.create_tables()
 
