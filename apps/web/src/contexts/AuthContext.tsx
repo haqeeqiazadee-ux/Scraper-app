@@ -47,8 +47,8 @@ const DEFAULT_USER: UserProfile = {
 };
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<UserProfile | null>(DEFAULT_USER);
-  const [isLoading, setIsLoading] = useState(false);
+  const [user] = useState<UserProfile | null>(DEFAULT_USER);
+  const [isLoading] = useState(false);
 
   const login = useCallback(
     async (_username: string, _password: string): Promise<UserProfile> => {

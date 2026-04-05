@@ -9,31 +9,12 @@ import { GlobalSearch } from "./GlobalSearch";
 
 /* ── SVG Icon components ── */
 
-function IconGrid() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="1" y="1" width="6" height="6" rx="1" />
-      <rect x="9" y="1" width="6" height="6" rx="1" />
-      <rect x="1" y="9" width="6" height="6" rx="1" />
-      <rect x="9" y="9" width="6" height="6" rx="1" />
-    </svg>
-  );
-}
-
 function IconList() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round">
       <line x1="2" y1="4" x2="14" y2="4" />
       <line x1="2" y1="8" x2="14" y2="8" />
       <line x1="2" y1="12" x2="14" y2="12" />
-    </svg>
-  );
-}
-
-function IconShield() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M8 1.5L2 4v4c0 3.3 2.5 5.7 6 6.5 3.5-.8 6-3.2 6-6.5V4L8 1.5z" />
     </svg>
   );
 }
@@ -48,28 +29,11 @@ function IconDatabase() {
   );
 }
 
-function IconCompass() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="8" cy="8" r="6.5" />
-      <polygon points="10.5,5.5 6.5,8 5.5,10.5 9.5,8" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
-
 function IconClock() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="8" cy="8" r="6.5" />
       <polyline points="8,4.5 8,8 10.5,10" />
-    </svg>
-  );
-}
-
-function IconActivity() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="1,8 4,4 6,11 9,5 11,9 15,8" />
     </svg>
   );
 }
@@ -81,28 +45,6 @@ function IconGlobe() {
       <line x1="1.5" y1="8" x2="14.5" y2="8" />
       <path d="M8 1.5a9.5 9.5 0 0 1 0 13" />
       <path d="M8 1.5a9.5 9.5 0 0 0 0 13" />
-    </svg>
-  );
-}
-
-function IconWebhook() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="4.5" cy="12.5" r="2" />
-      <circle cx="11.5" cy="12.5" r="2" />
-      <circle cx="8" cy="3.5" r="2" />
-      <path d="M8 5.5L4.5 10.5" />
-      <path d="M8 5.5L11.5 10.5" />
-    </svg>
-  );
-}
-
-function IconCreditCard() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="1" y="3.5" width="14" height="9" rx="1.5" />
-      <line x1="1" y1="7" x2="15" y2="7" />
-      <line x1="4" y1="10.5" x2="7" y2="10.5" />
     </svg>
   );
 }
@@ -199,11 +141,6 @@ interface NavItem {
   to: string;
   label: string;
   Icon: React.FC;
-}
-
-interface NavGroup {
-  section: string;
-  items: NavItem[];
 }
 
 interface NavGroupStyled {

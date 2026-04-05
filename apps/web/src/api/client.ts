@@ -76,13 +76,6 @@ export class ApiError extends Error {
 
 /* ── Core Request Helper ── */
 
-/** Callback invoked when a 401 is received and token refresh fails. */
-let _onAuthFailure: (() => void) | null = null;
-
-export function onAuthFailure(cb: () => void): void {
-  _onAuthFailure = cb;
-}
-
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
