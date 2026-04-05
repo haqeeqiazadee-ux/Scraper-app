@@ -1,24 +1,30 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useNavigate } from "react-router-dom";
 import { useAuthContext } from "../contexts/AuthContext";
 import { SidebarNav } from "./SidebarNav";
 
 export function Layout() {
   const { user, logout } = useAuthContext();
+  const navigate = useNavigate();
 
   return (
     <div className="app-layout">
       <aside className="sidebar">
         <div className="sidebar-header">
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div
+            style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}
+            onClick={() => navigate("/dashboard")}
+            title="Dashboard"
+          >
             <div style={{
-              width: 32, height: 32, borderRadius: 8,
+              width: 34, height: 34, borderRadius: 10,
               background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
               display: "flex", alignItems: "center", justifyContent: "center",
               fontSize: 16, color: "#fff", fontWeight: 700,
+              boxShadow: "0 2px 8px rgba(99, 102, 241, 0.4)",
             }}>S</div>
             <div>
               <h1 style={{ fontSize: 15, fontWeight: 700, margin: 0, lineHeight: 1.2 }}>Scraper</h1>
-              <span style={{ fontSize: 10, color: "var(--color-text-secondary)", letterSpacing: "0.05em", textTransform: "uppercase" }}>AI Platform</span>
+              <span style={{ fontSize: 9, color: "rgba(255,255,255,0.4)", letterSpacing: "0.08em", textTransform: "uppercase" }}>AI Platform</span>
             </div>
           </div>
         </div>

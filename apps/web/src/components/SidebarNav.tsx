@@ -206,50 +206,54 @@ interface NavGroup {
   items: NavItem[];
 }
 
-const NAV_GROUPS: NavGroup[] = [
+interface NavGroupStyled {
+  section: string;
+  color: string;        // Section label accent color
+  items: NavItem[];
+}
+
+const NAV_GROUPS: NavGroupStyled[] = [
   {
-    section: "CORE",
+    section: "SCRAPE",
+    color: "#818cf8",    // Indigo
     items: [
-      { to: "/dashboard", label: "Dashboard", Icon: IconGrid },
-      { to: "/tasks",     label: "Tasks",     Icon: IconList },
-      { to: "/policies",  label: "Policies",  Icon: IconShield },
-      { to: "/results",   label: "Results",   Icon: IconDatabase },
+      { to: "/scrape-test",   label: "Quick Scrape",       Icon: IconSearch },
+      { to: "/crawl",         label: "Web Crawl",          Icon: IconSpider },
+      { to: "/search",        label: "Web Search",         Icon: IconGlobe },
+      { to: "/extract",       label: "Structured Extract", Icon: IconCode },
     ],
   },
   {
-    section: "TOOLS",
+    section: "DATA SOURCES",
+    color: "#34d399",    // Emerald
     items: [
-      { to: "/templates",     label: "Templates",     Icon: IconTemplate },
-      { to: "/route-tester",  label: "Route Tester",  Icon: IconCompass },
-      { to: "/scrape-test",   label: "Scrape Tester", Icon: IconDatabase },
-      { to: "/amazon",        label: "Amazon / Keepa", Icon: IconAmazon },
-      { to: "/google-maps",   label: "Google Maps",   Icon: IconMap },
-      { to: "/facebook-groups", label: "FB Groups",   Icon: IconFacebook },
-      { to: "/crawl",         label: "Crawl",         Icon: IconSpider },
-      { to: "/search",        label: "Search",        Icon: IconSearch },
-      { to: "/extract",       label: "Extract",       Icon: IconCode },
-      { to: "/changes",       label: "Changes",       Icon: IconDiff },
-      { to: "/schedules",     label: "Schedules",     Icon: IconClock },
+      { to: "/amazon",           label: "Amazon",          Icon: IconAmazon },
+      { to: "/google-maps",      label: "Google Maps",     Icon: IconMap },
+      { to: "/facebook-groups",  label: "Facebook Groups",  Icon: IconFacebook },
+      { to: "/templates",        label: "Templates",       Icon: IconTemplate },
     ],
   },
   {
-    section: "MONITORING",
+    section: "ANALYZE",
+    color: "#f59e0b",    // Amber
     items: [
-      { to: "/sessions", label: "Sessions", Icon: IconActivity },
-      { to: "/proxies",  label: "Proxies",  Icon: IconGlobe },
-      { to: "/webhooks", label: "Webhooks", Icon: IconWebhook },
+      { to: "/results",   label: "Results & Export",   Icon: IconDatabase },
+      { to: "/changes",   label: "Change Detection",   Icon: IconDiff },
     ],
   },
   {
-    section: "INTEGRATION",
+    section: "AUTOMATE",
+    color: "#f472b6",    // Pink
     items: [
-      { to: "/mcp", label: "MCP Server", Icon: IconPlug },
+      { to: "/schedules", label: "Schedules",    Icon: IconClock },
+      { to: "/mcp",       label: "MCP Server",   Icon: IconPlug },
     ],
   },
   {
-    section: "ACCOUNT",
+    section: "MANAGE",
+    color: "#94a3b8",    // Slate
     items: [
-      { to: "/billing", label: "Billing", Icon: IconCreditCard },
+      { to: "/tasks",     label: "Tasks",         Icon: IconList },
     ],
   },
 ];
@@ -257,8 +261,6 @@ const NAV_GROUPS: NavGroup[] = [
 /* ── Component ── */
 
 export function SidebarNav() {
-  // useLocation consumed only for re-render on route change; NavLink handles
-  // the active class itself.
   useLocation();
 
   return (
@@ -278,24 +280,42 @@ export function SidebarNav() {
       {NAV_GROUPS.map((group, gi) => (
         <div
           key={group.section}
-          style={{ marginTop: gi === 0 ? 4 : 12, paddingInline: 8 }}
+          style={{ marginTop: gi === 0 ? 4 : 16, paddingInline: 8 }}
         >
-          {/* Section label */}
+          {/* Section label with colored accent dot */}
           <div
             style={{
-              fontSize: 10,
-              fontWeight: 700,
-              color: "rgba(255,255,255,0.3)",
-              letterSpacing: "0.08em",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
               padding: "4px 8px 6px",
-              textTransform: "uppercase",
             }}
           >
-            {group.section}
+            <span
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                background: group.color,
+                flexShrink: 0,
+              }}
+            />
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                color: group.color,
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+                opacity: 0.9,
+              }}
+            >
+              {group.section}
+            </span>
           </div>
 
           {/* Items */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
             {group.items.map(({ to, label, Icon }) => (
               <NavLink
                 key={to}
@@ -304,35 +324,35 @@ export function SidebarNav() {
                   display: "flex",
                   alignItems: "center",
                   gap: 10,
-                  padding: "8px 10px 8px 10px",
-                  borderRadius: "var(--radius-md)",
-                  color: isActive ? "#ffffff" : "rgba(255,255,255,0.65)",
+                  padding: "7px 10px 7px 14px",
+                  borderRadius: 8,
+                  color: isActive ? "#ffffff" : "rgba(255,255,255,0.6)",
                   fontSize: 13,
-                  fontWeight: isActive ? 600 : 500,
+                  fontWeight: isActive ? 600 : 400,
                   textDecoration: "none",
                   background: isActive
-                    ? "rgba(37,99,235,0.5)"
+                    ? `linear-gradient(135deg, ${group.color}33, ${group.color}18)`
                     : "transparent",
                   borderLeft: isActive
-                    ? "2px solid var(--color-primary)"
-                    : "2px solid transparent",
-                  transition:
-                    "background 0.15s, color 0.15s, border-color 0.15s",
-                  marginLeft: isActive ? 0 : 0,
+                    ? `2.5px solid ${group.color}`
+                    : "2.5px solid transparent",
+                  transition: "all 0.2s ease",
                 })}
                 className={({ isActive }) => (isActive ? "active" : "")}
                 onMouseEnter={(e) => {
                   const el = e.currentTarget;
                   if (!el.classList.contains("active")) {
-                    el.style.background = "rgba(255,255,255,0.06)";
+                    el.style.background = "rgba(255,255,255,0.05)";
                     el.style.color = "#ffffff";
+                    el.style.borderLeftColor = `${group.color}66`;
                   }
                 }}
                 onMouseLeave={(e) => {
                   const el = e.currentTarget;
                   if (!el.classList.contains("active")) {
                     el.style.background = "transparent";
-                    el.style.color = "rgba(255,255,255,0.65)";
+                    el.style.color = "rgba(255,255,255,0.6)";
+                    el.style.borderLeftColor = "transparent";
                   }
                 }}
               >
@@ -343,7 +363,7 @@ export function SidebarNav() {
                     alignItems: "center",
                     justifyContent: "center",
                     flexShrink: 0,
-                    opacity: 0.85,
+                    opacity: 0.8,
                   }}
                 >
                   <Icon />
