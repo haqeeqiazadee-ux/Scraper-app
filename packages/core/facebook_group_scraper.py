@@ -222,7 +222,19 @@ class FacebookGroupScraper:
 
     @staticmethod
     def _prepare_cookies(cookies: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        """Ensure each cookie dict has the required fields for Playwright."""
+        """Ensure each cookie dict has the required fields for Playwright.
+
+        EditThisCookie uses ``"no_restriction"`` for SameSite but Playwright
+        expects ``"None"``, ``"Lax"``, or ``"Strict"``.
+        """
+        SAME_SITE_MAP = {
+            "no_restriction": "None",
+            "unspecified": "Lax",
+            "lax": "Lax",
+            "strict": "Strict",
+            "none": "None",
+        }
+
         prepared: list[dict[str, Any]] = []
         for c in cookies:
             entry: dict[str, Any] = {
@@ -231,14 +243,17 @@ class FacebookGroupScraper:
                 "domain": c.get("domain", ".facebook.com"),
                 "path": c.get("path", "/"),
             }
-            if "expires" in c:
+            # Map expiration
+            if "expirationDate" in c:
+                entry["expires"] = c["expirationDate"]
+            elif "expires" in c:
                 entry["expires"] = c["expires"]
             if "httpOnly" in c:
                 entry["httpOnly"] = c["httpOnly"]
-            if "secure" in c:
-                entry["secure"] = c["secure"]
-            if "sameSite" in c:
-                entry["sameSite"] = c["sameSite"]
+            entry["secure"] = c.get("secure", True)
+            # Map sameSite values
+            raw_ss = str(c.get("sameSite", "None")).lower()
+            entry["sameSite"] = SAME_SITE_MAP.get(raw_ss, "None")
             prepared.append(entry)
         return prepared
 

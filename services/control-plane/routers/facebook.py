@@ -133,12 +133,12 @@ async def export_group_results(job_id: str):
         raise HTTPException(status_code=400, detail="No posts to export")
 
     try:
-        from packages.core.ai_providers.social.facebook_group_scraper import (
-            FacebookGroupScraper,
-        )
+        from packages.core.facebook_group_scraper import FacebookGroupScraper
 
         scraper = FacebookGroupScraper()
-        file_path = scraper.export_to_excel(job["posts"], job_id=job_id)
+        import tempfile
+        file_path = os.path.join(tempfile.gettempdir(), f"fb_group_{job_id}.xlsx")
+        scraper.export_to_excel(job["posts"], file_path)
         return FileResponse(
             path=file_path,
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -200,19 +200,16 @@ async def _run_group_scrape(job_id: str) -> None:
         return
 
     try:
-        from packages.core.ai_providers.social.facebook_group_scraper import (
-            FacebookGroupScraper,
-        )
+        from packages.core.facebook_group_scraper import FacebookGroupScraper
 
-        scraper = FacebookGroupScraper(cookies=_facebook_cookies)
-        async for update in scraper.scrape(
+        scraper = FacebookGroupScraper()
+        posts = await scraper.scrape_group(
             url=job["url"],
+            cookies=_facebook_cookies,
             max_posts=job["max_posts"],
-        ):
-            job["posts_found"] = update.get("posts_found", job["posts_found"])
-            job["scroll_count"] = update.get("scroll_count", job["scroll_count"])
-            job["posts"] = update.get("posts", job["posts"])
-
+        )
+        job["posts"] = posts
+        job["posts_found"] = len(posts)
         job["status"] = "completed"
         logger.info(
             "facebook.group_scrape.completed",
