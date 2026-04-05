@@ -1202,3 +1202,12 @@
   - **Blocked (3):** Gymshark (404 URL), eBay Product (bad item ID), Etsy (403 anti-bot)
   - **Empty (1):** YouTube Channel (needs browser for JS rendering)
 - **Dependencies installed:** html2text, h2, curl-cffi, trafilatura, rank-bm25 (were missing in sandbox)
+
+## Work Cycle — 2026-04-05 — Template Automation Round 2 (Browser)
+
+- **Timestamp:** 2026-04-05
+- **Action taken:** Tested hard templates using Playwright CDP browser fallback
+- **Results:** 14/15 passed (combined 29/30 unique templates working)
+  - Browser successes: Amazon, TikTok, Instagram, Shopify, Etsy, YouTube Channel, Walmart, Target
+  - Only failure: Reddit old.reddit.com (403 anti-bot)
+- **Lesson:** HTTP worker handles 79% of sites; browser fallback catches another 18%; only 3% truly blocked
