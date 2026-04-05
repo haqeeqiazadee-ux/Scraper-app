@@ -2,8 +2,8 @@
 Google Maps Connector — scrape business data from Google Maps by keyword.
 
 Three-tier approach for maximum reliability:
-1. Google Places API (primary) — official, structured, reliable ($0.032/request)
-2. SerpAPI (secondary) — third-party proxy to Google Maps ($0.01/search)
+1. Serper Places API (primary) — free with Serper key, fast and reliable
+2. Google Places API (secondary) — official, structured, reliable ($0.032/request)
 3. Direct browser scraping (fallback) — free but harder, uses our stealth stack
 
 The user provides a query like "restaurants in Dubai" and gets structured
@@ -13,8 +13,9 @@ Usage:
     connector = GoogleMapsConnector(google_api_key="your_key")
     results = await connector.search_businesses("plumbers in London", max_results=20)
 
-    # Or with SerpAPI fallback
-    connector = GoogleMapsConnector(serpapi_key="your_key")
+    # Or free with Serper key
+    connector = GoogleMapsConnector()  # uses SERPER_API_KEY env var
+    results = await connector.search_businesses("coffee shops in New York")
 
     # Or free (browser scraping)
     connector = GoogleMapsConnector()
@@ -30,7 +31,7 @@ import os
 import re
 import time
 from typing import Any, Optional
-from urllib.parse import quote_plus, urlencode
+from urllib.parse import quote_plus
 
 from packages.core.interfaces import ConnectorMetrics
 
@@ -40,9 +41,6 @@ logger = logging.getLogger(__name__)
 PLACES_API_BASE = "https://places.googleapis.com/v1/places"
 PLACES_API_SEARCH = f"{PLACES_API_BASE}:searchText"
 PLACES_API_NEARBY = f"{PLACES_API_BASE}:searchNearby"
-
-# SerpAPI base URL
-SERPAPI_BASE = "https://serpapi.com/search.json"
 
 # Fields to request from Places API (controls billing)
 PLACES_BASIC_FIELDS = [
@@ -90,8 +88,8 @@ class GoogleMapsConnector:
     """Google Maps business data connector.
 
     Three tiers:
-    1. Google Places API (needs GOOGLE_MAPS_API_KEY)
-    2. SerpAPI (needs SERPAPI_KEY)
+    1. Serper Places API (needs SERPER_API_KEY, free)
+    2. Google Places API (needs GOOGLE_MAPS_API_KEY)
     3. Direct browser scraping (free, uses our stealth browser stack)
 
     Falls through tiers automatically if a tier is unavailable or fails.
@@ -100,11 +98,9 @@ class GoogleMapsConnector:
     def __init__(
         self,
         google_api_key: Optional[str] = None,
-        serpapi_key: Optional[str] = None,
         max_results: int = 20,
     ) -> None:
         self._google_api_key = google_api_key or os.environ.get("GOOGLE_MAPS_API_KEY", "")
-        self._serpapi_key = serpapi_key or os.environ.get("SERPAPI_KEY", "")
         self._max_results = max_results
         self._metrics = ConnectorMetrics()
         self._http_client = None
@@ -136,8 +132,8 @@ class GoogleMapsConnector:
         """Search for businesses on Google Maps.
 
         Automatically tries tiers in order:
-        1. Google Places API (if key configured)
-        2. SerpAPI (if key configured)
+        1. Serper Places API (free, if SERPER_API_KEY configured)
+        2. Google Places API (if key configured)
         3. Browser scraping (always available)
 
         Args:
@@ -152,7 +148,14 @@ class GoogleMapsConnector:
         max_results = max_results or self._max_results
         full_query = f"{query} {location}" if location and location.lower() not in query.lower() else query
 
-        # Tier 1: Google Places API
+        # Tier 1: Serper Places API (free)
+        logger.info("Google Maps: trying Serper Places for '%s'", full_query)
+        results = await self._search_serper_places(full_query, max_results)
+        if results:
+            return results
+        logger.warning("Serper Places returned no results, falling through")
+
+        # Tier 2: Google Places API
         if self._google_api_key:
             logger.info("Google Maps: trying Places API for '%s'", full_query)
             results = await self._search_places_api(full_query, max_results, language)
@@ -160,20 +163,60 @@ class GoogleMapsConnector:
                 return results
             logger.warning("Places API returned no results, falling through")
 
-        # Tier 2: SerpAPI
-        if self._serpapi_key:
-            logger.info("Google Maps: trying SerpAPI for '%s'", full_query)
-            results = await self._search_serpapi(full_query, max_results)
-            if results:
-                return results
-            logger.warning("SerpAPI returned no results, falling through")
-
         # Tier 3: Browser scraping
         logger.info("Google Maps: trying browser scraping for '%s'", full_query)
         results = await self._search_browser(full_query, max_results)
         return results
 
-    # ---- Tier 1: Google Places API (New) ----------------------------------
+    # ---- Tier 1: Serper Places API (free) ----------------------------------
+
+    async def _search_serper_places(self, query: str, max_results: int) -> list[dict]:
+        """Search via Serper.dev Places API (free, included with Serper key)."""
+        api_key = os.environ.get("SERPER_API_KEY", "")
+        if not api_key:
+            return []
+
+        try:
+            client, client_type = await self._get_http_client()
+            if client_type == "curl_cffi":
+                resp = await client.post(
+                    "https://google.serper.dev/places",
+                    headers={"X-API-KEY": api_key, "Content-Type": "application/json"},
+                    json={"q": query, "num": min(max_results, 20)},
+                )
+            else:
+                resp = await client.post(
+                    "https://google.serper.dev/places",
+                    headers={"X-API-KEY": api_key, "Content-Type": "application/json"},
+                    json={"q": query, "num": min(max_results, 20)},
+                )
+            if resp.status_code != 200:
+                return []
+
+            data = resp.json() if hasattr(resp, 'json') and callable(resp.json) else json.loads(resp.text)
+            places = data.get("places", [])
+            results = []
+            for p in places[:max_results]:
+                results.append({
+                    "name": p.get("title", ""),
+                    "address": p.get("address", ""),
+                    "rating": p.get("rating"),
+                    "reviews_count": p.get("ratingCount"),
+                    "phone": p.get("phoneNumber", ""),
+                    "website": p.get("website", ""),
+                    "category": p.get("category", ""),
+                    "hours": p.get("openingHours", ""),
+                    "latitude": p.get("latitude"),
+                    "longitude": p.get("longitude"),
+                    "place_id": p.get("cid", ""),
+                    "source": "serper_places",
+                })
+            return results
+        except Exception as e:
+            logger.warning("Serper Places search failed: %s", e)
+            return []
+
+    # ---- Tier 2: Google Places API (New) ----------------------------------
 
     async def _search_places_api(
         self,
@@ -300,79 +343,6 @@ class GoogleMapsConnector:
                 entry["close"] = f"{close_info.get('hour', 0):02d}:{close_info.get('minute', 0):02d}"
             formatted.append(entry)
         return formatted
-
-    # ---- Tier 2: SerpAPI --------------------------------------------------
-
-    async def _search_serpapi(self, query: str, max_results: int) -> list[dict]:
-        """Search using SerpAPI's Google Maps endpoint.
-
-        Pricing: ~$0.01 per search, returns up to 20 results per page.
-        """
-        self._metrics.total_requests += 1
-        client, client_type = await self._get_http_client()
-
-        params = {
-            "engine": "google_maps",
-            "q": query,
-            "api_key": self._serpapi_key,
-            "type": "search",
-        }
-
-        all_results: list[dict] = []
-
-        try:
-            url = f"{SERPAPI_BASE}?{urlencode(params)}"
-            if client_type == "curl_cffi":
-                resp = await client.get(url)
-            else:
-                resp = await client.get(url)
-
-            if resp.status_code != 200:
-                logger.warning("SerpAPI error: %d", resp.status_code)
-                self._metrics.failed_requests += 1
-                return []
-
-            data = json.loads(resp.text) if isinstance(resp.text, str) else resp.json()
-            local_results = data.get("local_results", [])
-
-            for item in local_results[:max_results]:
-                business = self._transform_serpapi_result(item)
-                all_results.append(business)
-
-            self._metrics.successful_requests += 1
-            logger.info("SerpAPI returned %d businesses for '%s'", len(all_results), query)
-            return all_results
-
-        except Exception as e:
-            self._metrics.failed_requests += 1
-            self._metrics.last_error = str(e)
-            logger.warning("SerpAPI request failed: %s", e)
-            return []
-
-    def _transform_serpapi_result(self, item: dict) -> dict:
-        """Transform SerpAPI Google Maps result to our standard format."""
-        gps = item.get("gps_coordinates", {})
-
-        return {
-            "name": item.get("title", ""),
-            "place_id": item.get("place_id", ""),
-            "address": item.get("address", ""),
-            "latitude": gps.get("latitude"),
-            "longitude": gps.get("longitude"),
-            "phone": item.get("phone", ""),
-            "website": item.get("website", ""),
-            "rating": item.get("rating"),
-            "review_count": item.get("reviews"),
-            "business_status": "OPERATIONAL" if not item.get("permanently_closed") else "CLOSED",
-            "price_level": item.get("price", ""),
-            "types": [item.get("type", "")],
-            "primary_type": item.get("type", ""),
-            "google_maps_url": item.get("link", ""),
-            "open_now": item.get("open_state", {}).get("is_open") if isinstance(item.get("open_state"), dict) else None,
-            "hours_text": item.get("hours", []),
-            "thumbnail": item.get("thumbnail", ""),
-            "source": "serpapi",
-        }
 
     # ---- Tier 3: Browser Scraping -----------------------------------------
 
@@ -670,7 +640,7 @@ class GoogleMapsConnector:
 
     async def health_check(self) -> bool:
         """Check if at least one tier is available."""
-        return bool(self._google_api_key or self._serpapi_key or True)  # Browser always available
+        return bool(os.environ.get("SERPER_API_KEY") or self._google_api_key or True)  # Browser always available
 
     async def close(self) -> None:
         """Clean up resources."""
