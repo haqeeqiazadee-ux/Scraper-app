@@ -1969,3 +1969,74 @@ Total: ~$163-183/mo covering ALL major platforms (down from initial $421 estimat
 6. `f7c8475` — Post-task auto-update (12 COMP tasks, trace, 8 lessons)
 7. `6408e46` — Deep verification pass (fix 27 currencies, 5 social platforms)
 8. `ac18d50` — Add HYDRA revision spec prompt (751 lines, 10 modules, 7 sprints)
+
+---
+
+## Session — 2026-04-05 — HYDRA Phase 9 Full Execution + UI + E2E
+
+### Summary
+Executed the entire HYDRA Phase 9 spec in a single session. 26 agents deployed across 7 sprints.
+Built 18 new files + modified 15 existing = 33 backend files (7,239 lines).
+Built 5 new UI pages + modified 6 frontend files (1,817 lines).
+Built 11 E2E test files + CI workflow (1,400 lines).
+Fixed 12 bugs found during E2E testing.
+Added Verify-Before-Done loop to CLAUDE.md.
+
+### New Backend Modules
+- `packages/core/markdown_converter.py` — trafilatura + html2text (11.5KB)
+- `packages/core/content_filter.py` — BM25 relevance scoring (9.5KB)
+- `packages/core/crawl_manager.py` — BFS recursive crawler (21.8KB)
+- `packages/core/adaptive_selectors.py` — self-healing CSS selectors (20KB)
+- `packages/core/change_detector.py` — content diff + price alerts (16.3KB)
+- `packages/core/mcp_server.py` — MCP server, 5 tools (19.5KB)
+- `packages/core/ai_providers/social/twitter.py` — Twitter/X extractor (26KB)
+- `packages/core/ai_providers/social/linkedin.py` — LinkedIn extractor (32.5KB)
+- `services/control-plane/routers/crawl.py` — /crawl endpoints (6.6KB)
+- `services/control-plane/routers/search.py` — /search endpoint (6.6KB)
+- `services/control-plane/routers/extract.py` — /extract endpoint (5.7KB)
+- `scripts/cli.py` — CLI tool with Click (4.4KB)
+- 5 test files: test_markdown_converter, test_content_filter, test_crawl_manager, test_adaptive_selectors, test_change_detector
+
+### Modified Backend Files
+- 4 workers: output_format + MarkdownConverter
+- deterministic.py: 10-tier extraction cascade
+- device_profiles.py: 14→24 profiles
+- hard_target_worker.py: fingerprint noise injection
+- router.py: reclassification + cost-aware routing
+- dispatcher.py: Twitter + LinkedIn registration
+- requirements.txt: 5 new deps (trafilatura, html2text, rank-bm25, mcp, click)
+- app.py: 3 new router registrations
+
+### Frontend Changes
+- Login disabled: AuthContext auto-authenticates as admin
+- 5 new pages: CrawlPage, SearchPage, ExtractPage, ChangesPage, McpPage
+- Sidebar: 4 new TOOLS items + INTEGRATION group
+- Dashboard: 3 new quick actions
+- API client: crawl/search/extract modules, Cache-Control: no-store
+- React Query: staleTime=0, refetchOnMount=true (always server-fresh)
+
+### E2E Testing
+- 11 Playwright browser test files (83 tests)
+- 1 API backend test file (18 tests)
+- Total: 101/101 passing
+- CI: .github/workflows/claude-e2e.yml with Claude Code Action self-healing
+- Excel tracker: docs/E2E_TEST_RESULTS.xlsx (3 sheets, 104 rows)
+
+### Bugs Found & Fixed
+1. Crawl router: CrawlConfig wiring (500→201)
+2. conftest.py: os.setsid Windows compat
+3. conftest.py: base_url scope mismatch
+4. Module imports: Windows symlink fix for hyphenated dirs
+5-12. Playwright selector ambiguities (12 fixes: scoping, exact match, .first)
+13. Changes page: price parsing (parseFloat vs $ prefix)
+14. Vite proxy: VITE_BACKEND_URL not set
+
+### Git Commits This Session
+1. `a0d5e0e` — HYDRA Phase 9 backend (33 files, +7,239)
+2. `5cfaf0b` — UI update: 5 pages, login disabled (+1,817)
+3. `7f89f7d` — E2E test suite + CI + tracker (+1,400)
+4. `2e96e4d` — Fix crawl router + Windows compat
+5. `d206071` — Fix all E2E tests (101/101 pass)
+6. `920eeca` — Update todo.md (33/33 HYDRA tasks complete)
+7. `69d0524` — Add Verify-Before-Done loop to CLAUDE.md
+8. `4157c70` — Always fetch fresh from server (no-cache)

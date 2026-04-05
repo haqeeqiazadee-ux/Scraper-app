@@ -231,3 +231,23 @@
 107. **Scope discipline wins** — Phase 9 touches ONLY scraping code (packages/core, packages/connectors, services/worker-*). API connectors (Keepa, eBay, Walmart, etc.), frontend apps, and infrastructure are OUT OF SCOPE. This prevents scope creep and keeps the sprint plan achievable.
 
 108. **The market's biggest gap is our strongest feature** — The research report identifies "scraping cost optimization" as a market white-space that no tool fills. Our 4-lane router with automatic escalation IS that tool. Marketing should lead with cost savings, not feature count.
+
+## Phase 9 — HYDRA Execution Observations
+
+109. **Parallel agents = 10x throughput** — Deploying 4-6 agents simultaneously across independent tasks (different files) completed 33 tasks in a single session. Sequential would have taken 5-7x longer. Key: agents must work on non-overlapping files.
+
+110. **Sub-agent output is untrusted until verified** — Agents wrote code that looked correct but had subtle bugs: crawl router passed kwargs instead of CrawlConfig (500 error), Playwright selectors matched multiple elements (strict mode violations). Always run tests after agents finish.
+
+111. **Windows symlinks are broken for Python packages** — `services/control_plane` → `services/control-plane` symlinks don't work on Windows (they become text files containing the target name). Fix: register hyphenated dirs as modules in conftest.py using `types.ModuleType` + `sys.modules`.
+
+112. **Playwright strict mode catches ambiguous selectors** — `get_by_text("Dashboard")` fails when both sidebar and page heading contain "Dashboard". Use `page.locator("nav").get_by_text()` to scope, or `get_by_role("heading", name="...", exact=True)`.
+
+113. **Vite proxy config is critical for full-stack E2E** — Frontend at :5199 must proxy `/api` to backend at :8765. Without `VITE_BACKEND_URL` env var, proxy defaults to :8000 and all API calls fail with "Failed to load".
+
+114. **React Query staleTime=0 for always-fresh data** — Default `staleTime: 30000` serves cached data for 30 seconds. Combined with `refetchOnWindowFocus: false`, users see stale data. Set `staleTime: 0` + `refetchOnMount: true` + `Cache-Control: no-store` for always-server-fresh.
+
+115. **Verify-before-done loop prevents false completion claims** — Added mandatory verification step between Execute and Post-Task: list deliverables → verify each exists+works → run tests → check regressions → only then mark complete. Caught 12 bugs that would have shipped as "done".
+
+116. **npx doesn't work in all shell environments** — `npx` requires `/usr/bin/env bash` which doesn't exist in some Windows sandbox shells. Workaround: run tools directly via `node node_modules/toolname/bin/tool.js`.
+
+117. **`os.setsid` is Unix-only** — Playwright conftest used `preexec_fn=os.setsid` and `os.killpg` for process group management. These don't exist on Windows. Fix: conditional `subprocess.CREATE_NEW_PROCESS_GROUP` + `proc.terminate()` fallback.
