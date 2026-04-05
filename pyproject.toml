@@ -89,6 +89,21 @@ markers = [
     "unit: Unit tests (fast, no external deps)",
     "integration: Integration tests (require Docker services)",
     "e2e: End-to-end tests (full stack)",
+    "live: Live deployment tests",
+    "api: API-only tests (httpx)",
+    "ui: Browser tests (Playwright)",
+    "quick_scrape: Quick Scrape workflow",
+    "web_crawl: Web Crawl workflow",
+    "web_search: Web Search workflow",
+    "structured_extract: Structured Extract workflow",
+    "amazon: Amazon/Keepa workflow",
+    "google_maps: Google Maps workflow",
+    "facebook: Facebook Groups workflow",
+    "templates: Templates workflow",
+    "results: Results & Export workflow",
+    "change_detection: Change Detection workflow",
+    "schedules: Schedules workflow",
+    "mcp_server: MCP Server workflow",
 ]
 
 [tool.mypy]
