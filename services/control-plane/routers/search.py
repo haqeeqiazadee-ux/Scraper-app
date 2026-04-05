@@ -19,7 +19,7 @@ logger = structlog.get_logger(__name__)
 # Pydantic v2 request / response models
 # ---------------------------------------------------------------------------
 
-BRAVE_SEARCH_URL = "https://api.search.brave.com/res/v1/web/search"
+SERPER_SEARCH_URL = "https://google.serper.dev/search"
 _SCRAPE_SEMAPHORE_LIMIT = 3
 
 
@@ -54,7 +54,7 @@ class SearchResponse(BaseModel):
     query: str
     results: list[SearchResultItem]
     total_results: int
-    search_provider: str = "brave"
+    search_provider: str = "serper"
 
 
 # ---------------------------------------------------------------------------
@@ -79,35 +79,34 @@ def _get_http_worker():
 # ---------------------------------------------------------------------------
 
 
-async def _brave_search(query: str, count: int, api_key: str) -> list[dict[str, str]]:
-    """Call Brave Search API and return a list of {url, title} dicts."""
+async def _serper_search(query: str, count: int, api_key: str) -> list[dict[str, str]]:
+    """Call Serper.dev Google Search API and return a list of {url, title} dicts."""
     headers = {
-        "Accept": "application/json",
-        "Accept-Encoding": "gzip",
-        "X-Subscription-Token": api_key,
+        "X-API-KEY": api_key,
+        "Content-Type": "application/json",
     }
-    params = {"q": query, "count": min(count, 20)}
+    payload = {"q": query, "num": min(count, 20)}
 
     async with httpx.AsyncClient(timeout=15.0) as client:
-        resp = await client.get(BRAVE_SEARCH_URL, headers=headers, params=params)
+        resp = await client.post(SERPER_SEARCH_URL, headers=headers, json=payload)
 
     if resp.status_code != 200:
         logger.error(
-            "brave_search.failed",
+            "serper_search.failed",
             status_code=resp.status_code,
             body=resp.text[:500],
         )
         raise HTTPException(
             status_code=502,
-            detail=f"Brave Search API returned {resp.status_code}",
+            detail=f"Serper Search API returned {resp.status_code}",
         )
 
     data = resp.json()
-    web_results = data.get("web", {}).get("results", [])
+    organic = data.get("organic", [])
     return [
-        {"url": r["url"], "title": r.get("title", "")}
-        for r in web_results
-        if r.get("url")
+        {"url": r["link"], "title": r.get("title", "")}
+        for r in organic
+        if r.get("link")
     ]
 
 
@@ -142,22 +141,22 @@ search_router = APIRouter(prefix="/search", tags=["Search"])
 
 @search_router.post("", status_code=200)
 async def search_and_scrape(request: SearchRequest) -> SearchResponse:
-    """Search the web via Brave and scrape the top results."""
-    api_key = os.environ.get("BRAVE_SEARCH_API_KEY", "").strip()
+    """Search the web via Serper (Google) and scrape the top results."""
+    api_key = os.environ.get("SERPER_API_KEY", "").strip()
     if not api_key:
         raise HTTPException(
             status_code=503,
             detail=(
-                "Brave Search API key is not configured. "
-                "Set the BRAVE_SEARCH_API_KEY environment variable. "
-                "Get a free key at https://brave.com/search/api/ (2 000 queries/month)."
+                "Serper API key is not configured. "
+                "Set the SERPER_API_KEY environment variable. "
+                "Get a free key at https://serper.dev (2,500 queries free)."
             ),
         )
 
     logger.info("search.start", query=request.query, max_results=request.max_results)
 
-    # Step 1 — search
-    search_hits = await _brave_search(request.query, request.max_results, api_key)
+    # Step 1 — search via Serper
+    search_hits = await _serper_search(request.query, request.max_results, api_key)
     if not search_hits:
         return SearchResponse(
             query=request.query,
