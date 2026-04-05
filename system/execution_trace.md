@@ -1211,3 +1211,24 @@
   - Browser successes: Amazon, TikTok, Instagram, Shopify, Etsy, YouTube Channel, Walmart, Target
   - Only failure: Reddit old.reddit.com (403 anti-bot)
 - **Lesson:** HTTP worker handles 79% of sites; browser fallback catches another 18%; only 3% truly blocked
+
+## Work Cycle — 2026-04-05 — Sidebar Redesign + Browser Journey Testing
+
+- **Timestamp:** 2026-04-05
+- **Action taken:** Redesigned sidebar to professional SaaS layout, fixed dark mode text, ran full browser journey testing on live Netlify site
+- **Sidebar redesign:**
+  - 5 groups (24 items) → 5 focused groups (13 items): SCRAPE, DATA SOURCES, ANALYZE, AUTOMATE, MANAGE
+  - Removed 11 stub/redundant pages from nav (still accessible via URL)
+  - Colored accent dots + gradient active states per section
+  - Logo clicks to Dashboard
+- **Bugs fixed:**
+  - Quick action card text invisible in dark mode (button color inheritance)
+  - TypeScript build errors (6 unused icons, unused vars, unused types)
+  - Vite cache headers (no-store on all responses)
+- **Browser journey testing (live on myscraper.netlify.app):**
+  - 13/13 journeys PASS via Playwright
+  - Quick Scrape: 20 items from books.toscrape.com, 90% confidence
+  - Templates: 55 templates rendering with category filters
+  - All forms, navigation, empty states working correctly
+  - Known: Web Crawl shows 0 pages on Netlify (serverless limitation)
+- **Git commits:** f4fcafe (sidebar), d3e234d (colors), 69a4f82 (cache), 486ebf1 (TS fix), 672484c (dark mode text)

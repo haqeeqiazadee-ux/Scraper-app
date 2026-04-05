@@ -1558,6 +1558,32 @@ VERIFIED:
 
 - **Final Status:** FACEBOOK GROUP EXTRACTOR COMPLETE
 
+---
+
+## 2026-04-05 — Sidebar Redesign + Browser Journey Testing
+
+| # | Task | Result |
+|---|------|--------|
+| 1 | Sidebar redesign (24→13 items, 5 SaaS groups) | PASS |
+| 2 | Fix dark mode button text | PASS |
+| 3 | Fix TypeScript build (6 unused icons/vars) | PASS |
+| 4 | Fix Vite cache headers | PASS |
+| 5 | Journey: Quick Scrape (20 items) | PASS |
+| 6 | Journey: Web Crawl (form + status) | PASS |
+| 7 | Journey: Web Search | PASS |
+| 8 | Journey: Structured Extract | PASS |
+| 9 | Journey: Amazon (6 query types) | PASS |
+| 10 | Journey: Google Maps (6 categories) | PASS |
+| 11 | Journey: Facebook Groups (cookie + scrape) | PASS |
+| 12 | Journey: Templates (55 templates) | PASS |
+| 13 | Journey: Results & Export | PASS |
+| 14 | Journey: Change Detection | PASS |
+| 15 | Journey: Schedules | PASS |
+| 16 | Journey: MCP Server | PASS |
+| 17 | Journey: Tasks (CRUD + filters) | PASS |
+
+- **Final Status:** ALL JOURNEYS PASS — PLATFORM LIVE
+
 ### Step 13: Smart Text Parsing
 - **Task:** Parse raw textContent dump into structured description + listing_title columns
 - **Fix:** Strip noise (timestamp junk, UI labels), split at price boundary

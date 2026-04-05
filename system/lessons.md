@@ -271,3 +271,7 @@
 125. **HTTP worker handles 79% of templates without a browser** — Of 19 tested templates, 15 returned data via pure HTTP (curl_cffi). Only 3 were blocked (anti-bot 403) and 1 needed JS rendering. Always try HTTP first — it's 10x cheaper and faster than browser lane.
 
 126. **Playwright CDP as universal browser fallback** — Connecting to an existing Chrome via `connect_over_cdp` solves anti-bot (Etsy 403), JS rendering (YouTube Channel), and sandbox restrictions (can't spawn Chrome). Combined HTTP+browser covers 97% of templates (29/30).
+
+127. **Button elements don't inherit color in dark mode** — `<button>` text defaults to black regardless of CSS custom properties. Must set `color: var(--color-text)` explicitly on button elements and their children for dark theme compatibility.
+
+128. **Remove unused code before Netlify deploy** — TypeScript `noUnusedLocals` is strict. Sidebar redesign left 6 orphaned icon components + unused variables. Always run `tsc --noEmit` locally before pushing to catch these.

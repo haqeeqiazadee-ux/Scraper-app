@@ -2080,3 +2080,29 @@ DOM virtualization), and exports to Excel with dynamic columns.
 3. `19d2fd9` — Live test (7 posts via CDP)
 4. `5829104` — Full automation rewrite (996 posts)
 5. `4c3fa85` — Smart text parsing (description + listing_title columns)
+
+---
+
+## Session — 2026-04-05 — Sidebar Redesign + Journey Testing
+
+### Summary
+Redesigned sidebar from 24 items to 13 (professional SaaS layout), fixed dark mode
+bugs, resolved TypeScript build errors for Netlify, tested all 13 journeys live.
+
+### Changes
+- Sidebar: 5 groups (SCRAPE, DATA SOURCES, ANALYZE, AUTOMATE, MANAGE)
+- Removed stubs: Policies, Route Tester, Sessions, Proxies, Webhooks, Billing
+- Colored section dots with glow effects
+- Dark mode: fixed invisible button text
+- Cache: no-store headers on Vite server + HTML meta tags
+- TypeScript: removed 6 unused icons + unused vars
+
+### Journey Test Results (13/13 PASS)
+All pages load, render, navigate, and accept input on myscraper.netlify.app
+
+### Git Commits
+1. `f4fcafe` — Sidebar redesign
+2. `d3e234d` — Brighter section colors
+3. `69a4f82` — Cache headers fix
+4. `486ebf1` — TypeScript build fix
+5. `672484c` — Dark mode button text fix
