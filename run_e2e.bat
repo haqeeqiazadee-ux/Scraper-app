@@ -1,3 +1,6 @@
 @echo off
 cd /d "%~dp0"
+echo Installing Playwright browsers (if needed)...
+C:\Python314\python.exe -m playwright install chromium >nul 2>&1
+echo Running E2E tests...
 C:\Python314\python.exe -m pytest tests/e2e/test_live_e2e.py -v --tb=short %*
