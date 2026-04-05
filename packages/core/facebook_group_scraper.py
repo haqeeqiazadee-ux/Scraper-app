@@ -1,8 +1,15 @@
 """
-Facebook Group Scraper — extracts all posts from a Facebook group feed.
+Facebook Group Scraper -- extracts all posts from a Facebook group feed.
 
-Pipeline: authenticate via cookies → navigate to group URL → scroll to load all posts →
-extract each post in structured format → export to Excel with dynamic columns.
+Pipeline: authenticate via cookies -> navigate to group URL -> scroll to load all posts ->
+capture posts into JS memory (Facebook virtualizes DOM!) -> export to Excel with dynamic columns.
+
+Key design decisions driven by live-testing on Facebook:
+  1. Uses textContent everywhere (innerText returns "" due to Facebook CSS tricks).
+  2. Scrolls the overflow container, not window (Facebook uses custom scroll containers).
+  3. Captures posts into JS memory during scrolling (DOM virtualization removes old posts).
+  4. Maps EditThisCookie's sameSite:"no_restriction" -> "None" and expirationDate -> expires.
+  5. Supports CDP connection as fallback when chromium.launch() fails in sandboxes.
 
 Usage:
     scraper = FacebookGroupScraper()
@@ -76,6 +83,7 @@ _CONDITION_PATTERNS = re.compile(
 _COLUMN_PRIORITY = [
     "post_id",
     "author_name",
+    "author",
     "timestamp",
     "text",
     "post_type",
@@ -92,12 +100,125 @@ _COLUMN_PRIORITY = [
     "author_profile_url",
 ]
 
+# ---------------------------------------------------------------------------
+# JavaScript constants for in-browser post collection
+#
+# CRITICAL: Facebook virtualizes the DOM -- posts disappear when scrolled
+# past. We inject JS that captures posts into window.__fbPosts as they
+# appear, BEFORE they get recycled out of DOM.
+#
+# CRITICAL: Facebook uses CSS tricks that make innerText return "".
+# We use textContent everywhere.
+#
+# CRITICAL: Facebook uses a custom overflow scroll container (div with
+# overflow-y: auto). We find this container and scrollBy on IT, not window.
+# ---------------------------------------------------------------------------
+
+COLLECTOR_INIT_JS = """
+() => {
+    window.__fbPosts = [];
+    window.__fbSeen = new Set();
+}
+"""
+
+CAPTURE_JS = """
+() => {
+    const feed = document.querySelector('div[role="feed"]');
+    if (!feed) return { newPosts: 0, total: 0 };
+
+    // Find content divs using textContent (NOT innerText -- Facebook makes innerText empty)
+    const allDivs = feed.querySelectorAll('div');
+    let n = 0;
+
+    allDivs.forEach(d => {
+        const t = d.textContent;
+        if (!t || t.length < 40 || t.length > 3000) return;
+        // Skip containers that have too many children (parent wrappers)
+        if (d.childElementCount > 15) return;
+
+        // Clean Facebook repeated text
+        const clean = t.replace(/Facebook/g, '').trim();
+        if (clean.length < 30) return;
+
+        // Dedup by content signature
+        const sig = clean.substring(0, 100);
+        if (window.__fbSeen.has(sig)) return;
+        window.__fbSeen.add(sig);
+
+        // Extract structured fields
+        const post = {};
+
+        // Author: first multi-word capitalized name
+        const authorMatch = clean.match(/^([A-Z][a-z]+(?:\\s+[A-Z][a-z]+)+)/);
+        if (authorMatch) post.author = authorMatch[1];
+
+        // Price
+        const priceMatch = clean.match(/[\\u00a3$\\u20ac]\\s*[\\d,]+(?:\\.\\d{2})?/);
+        if (priceMatch) {
+            post.price = priceMatch[0];
+            post.post_type = 'sale_listing';
+        } else {
+            post.post_type = 'discussion';
+        }
+
+        // Location: City, County/Region pattern
+        const locMatch = clean.match(/([A-Z][a-z]+(?:\\s+[A-Z][a-z]+)*,\\s*[A-Z][a-z]+(?:\\s+[A-Z][a-z]+)*)/);
+        if (locMatch) post.location = locMatch[1];
+
+        // Images in this area
+        const imgs = d.querySelectorAll('img[src*="scontent"]');
+        post.image_count = imgs.length;
+        if (imgs.length > 0) {
+            post.image_urls = Array.from(imgs).map(i => i.src);
+        }
+
+        // Full text
+        post.text = clean.substring(0, 800);
+
+        // Only keep posts that have author OR price (skip UI chrome)
+        if (post.author || post.price) {
+            window.__fbPosts.push(post);
+            n++;
+        }
+    });
+
+    return { newPosts: n, total: window.__fbPosts.length };
+}
+"""
+
+SCROLL_JS = """
+() => {
+    // Facebook uses a custom scroll container, not window scroll
+    const feed = document.querySelector('div[role="feed"]');
+    let el = feed;
+    while (el && el !== document.body) {
+        const s = getComputedStyle(el);
+        if (s.overflowY === 'auto' || s.overflowY === 'scroll' || s.overflow === 'auto') {
+            el.scrollBy(0, 1200);
+            return 'container';
+        }
+        el = el.parentElement;
+    }
+    // Fallback to window scroll
+    window.scrollBy(0, 1200);
+    return 'window';
+}
+"""
+
 
 class FacebookGroupScraper:
-    """Scrape all posts from a Facebook group and export to Excel."""
+    """Scrape all posts from a Facebook group and export to Excel.
 
-    def __init__(self, headless: bool = True) -> None:
+    Supports three browser modes:
+      1. CDP -- connect to an existing Chrome via --remote-debugging-port
+      2. Camoufox -- best stealth (if installed)
+      3. Playwright Chromium -- fallback
+    """
+
+    def __init__(self, headless: bool = True, cdp_url: str | None = None) -> None:
         self._headless = headless
+        self._cdp_url = cdp_url  # e.g. "http://127.0.0.1:9222" for CDP mode
+        self._pw = None  # Playwright instance (kept alive for CDP cleanup)
 
     # ------------------------------------------------------------------
     # Public API
@@ -110,7 +231,7 @@ class FacebookGroupScraper:
         max_posts: int = 0,
         output_path: Optional[str] = None,
     ) -> list[dict[str, Any]]:
-        """Full pipeline: browser setup → navigate → scroll → extract → export.
+        """Full pipeline: browser setup -> navigate -> scroll+capture -> export.
 
         Args:
             url: Facebook group URL.
@@ -123,8 +244,12 @@ class FacebookGroupScraper:
         """
         browser, context, page = await self._setup_browser(cookies)
         try:
-            html = await self._scroll_and_collect(page, url, max_posts)
-            posts = self.extract_posts(html, url)
+            posts_json = await self._scroll_and_collect(page, url, max_posts)
+            posts = json.loads(posts_json) if isinstance(posts_json, str) else posts_json
+
+            # Deduplicate by author+price+text[:50]
+            posts = self._deduplicate(posts)
+
             logger.info(
                 "Extraction complete: %d posts from %s", len(posts), url,
             )
@@ -132,42 +257,77 @@ class FacebookGroupScraper:
                 self.export_to_excel(posts, output_path)
             return posts
         finally:
-            await context.close()
-            await browser.close()
+            await page.close()
+            # Don't close browser if CDP mode (we didn't create it)
+            if not self._cdp_url:
+                await context.close()
+                await browser.close()
+            if self._pw:
+                await self._pw.stop()
+                self._pw = None
 
     # ------------------------------------------------------------------
-    # Browser setup
+    # Browser setup -- 3 modes
     # ------------------------------------------------------------------
 
     async def _setup_browser(
         self,
         cookies: list[dict[str, Any]],
     ) -> tuple[Any, Any, Any]:
-        """Launch a stealth browser, inject cookies, and return (browser, context, page).
+        """Try in order: CDP connect -> Camoufox launch -> Playwright launch.
 
-        Tries Camoufox first for C++-level stealth; falls back to Playwright
-        Chromium with basic anti-detection args.
+        Returns (browser, context, page).
         """
-        profile = DeviceProfile.random()
+        # Mode 1: CDP (connect to existing Chrome)
+        if self._cdp_url:
+            return await self._connect_cdp(cookies)
 
+        # Mode 2: Camoufox (best stealth)
         if _HAS_CAMOUFOX:
-            browser, context, page = await self._launch_camoufox(profile)
-        else:
-            browser, context, page = await self._launch_playwright(profile)
+            try:
+                return await self._launch_camoufox(cookies)
+            except Exception as exc:
+                logger.warning("Camoufox launch failed, falling back: %s", exc)
 
-        # Inject cookies before any navigation
+        # Mode 3: Playwright Chromium (fallback)
+        try:
+            return await self._launch_playwright(cookies)
+        except Exception as e:
+            if "spawn" in str(e).lower():
+                raise RuntimeError(
+                    "Cannot launch browser. Either:\n"
+                    "1. Start Chrome with: chrome.exe --remote-debugging-port=9222\n"
+                    "2. Pass cdp_url='http://127.0.0.1:9222' to FacebookGroupScraper\n"
+                    f"Original error: {e}"
+                )
+            raise
+
+    async def _connect_cdp(
+        self,
+        cookies: list[dict[str, Any]],
+    ) -> tuple[Any, Any, Any]:
+        """Connect to existing Chrome via CDP."""
+        from playwright.async_api import async_playwright
+
+        self._pw = await async_playwright().start()
+        browser = await self._pw.chromium.connect_over_cdp(self._cdp_url)
+        context = browser.contexts[0] if browser.contexts else await browser.new_context()
+
         prepared = self._prepare_cookies(cookies)
         await context.add_cookies(prepared)
-        logger.info("Injected %d cookies", len(prepared))
+        logger.info("CDP: injected %d cookies via %s", len(prepared), self._cdp_url)
 
+        page = await context.new_page()
         return browser, context, page
 
     async def _launch_camoufox(
-        self, profile: DeviceProfile,
+        self,
+        cookies: list[dict[str, Any]],
     ) -> tuple[Any, Any, Any]:
         """Launch Camoufox with C++-level stealth."""
         from camoufox.async_api import AsyncCamoufox
 
+        profile = DeviceProfile.random()
         cm = AsyncCamoufox(headless=self._headless, geoip=True)
         browser = await cm.__aenter__()
         # Store the context manager so we can close properly
@@ -181,18 +341,25 @@ class FacebookGroupScraper:
             screen=profile.screen,
             color_scheme="light",
         )
+
+        # Inject cookies before any navigation
+        prepared = self._prepare_cookies(cookies)
+        await context.add_cookies(prepared)
+        logger.info("Camoufox: injected %d cookies (headless=%s)", len(prepared), self._headless)
+
         page = await context.new_page()
-        logger.info("Launched Camoufox (headless=%s)", self._headless)
         return browser, context, page
 
     async def _launch_playwright(
-        self, profile: DeviceProfile,
+        self,
+        cookies: list[dict[str, Any]],
     ) -> tuple[Any, Any, Any]:
         """Fallback: launch Playwright Chromium with anti-detection flags."""
         from playwright.async_api import async_playwright
 
-        pw = await async_playwright().start()
-        browser = await pw.chromium.launch(
+        profile = DeviceProfile.random()
+        self._pw = await async_playwright().start()
+        browser = await self._pw.chromium.launch(
             headless=self._headless,
             args=[
                 "--disable-blink-features=AutomationControlled",
@@ -211,13 +378,18 @@ class FacebookGroupScraper:
             screen=profile.screen,
             color_scheme="light",
         )
+
+        # Inject cookies before any navigation
+        prepared = self._prepare_cookies(cookies)
+        await context.add_cookies(prepared)
+        logger.info("Playwright: injected %d cookies (headless=%s)", len(prepared), self._headless)
+
         page = await context.new_page()
 
         # Basic stealth patches for Playwright
         await page.add_init_script(
             "Object.defineProperty(navigator, 'webdriver', {get: () => undefined});"
         )
-        logger.info("Launched Playwright Chromium fallback (headless=%s)", self._headless)
         return browser, context, page
 
     @staticmethod
@@ -226,6 +398,7 @@ class FacebookGroupScraper:
 
         EditThisCookie uses ``"no_restriction"`` for SameSite but Playwright
         expects ``"None"``, ``"Lax"``, or ``"Strict"``.
+        Also maps ``expirationDate`` -> ``expires``.
         """
         SAME_SITE_MAP = {
             "no_restriction": "None",
@@ -243,7 +416,7 @@ class FacebookGroupScraper:
                 "domain": c.get("domain", ".facebook.com"),
                 "path": c.get("path", "/"),
             }
-            # Map expiration
+            # Map expirationDate -> expires (EditThisCookie format)
             if "expirationDate" in c:
                 entry["expires"] = c["expirationDate"]
             elif "expires" in c:
@@ -251,14 +424,14 @@ class FacebookGroupScraper:
             if "httpOnly" in c:
                 entry["httpOnly"] = c["httpOnly"]
             entry["secure"] = c.get("secure", True)
-            # Map sameSite values
+            # Map sameSite values (no_restriction -> None)
             raw_ss = str(c.get("sameSite", "None")).lower()
             entry["sameSite"] = SAME_SITE_MAP.get(raw_ss, "None")
             prepared.append(entry)
         return prepared
 
     # ------------------------------------------------------------------
-    # Scroll and collect
+    # Scroll and collect -- captures posts into JS memory during scrolling
     # ------------------------------------------------------------------
 
     async def _scroll_and_collect(
@@ -267,10 +440,14 @@ class FacebookGroupScraper:
         url: str,
         max_posts: int,
     ) -> str:
-        """Navigate to the group URL, scroll to load posts, return final HTML.
+        """Navigate, inject post collector, scroll, return collected posts as JSON.
 
-        Uses a stale-count approach: stop scrolling after 3 consecutive
-        scroll attempts that load no new posts.
+        Key insight: Facebook virtualizes DOM -- posts disappear when scrolled past.
+        We inject JS that captures posts into window.__fbPosts as they appear,
+        BEFORE they get recycled out of DOM.
+
+        Uses textContent (NOT innerText -- Facebook CSS makes innerText empty).
+        Scrolls the overflow container (NOT window -- Facebook uses custom scroll).
         """
         logger.info("Navigating to %s", url)
 
@@ -281,28 +458,19 @@ class FacebookGroupScraper:
         try:
             await page.wait_for_load_state("networkidle", timeout=15000)
         except Exception:
-            await page.wait_for_timeout(5000)
+            await page.wait_for_timeout(8000)
 
-        # Wait for at least one article to appear
+        # Wait for the feed container to appear
         try:
-            await page.wait_for_selector(
-                'div[role="article"]', timeout=15000,
-            )
+            await page.wait_for_selector('div[role="feed"]', timeout=15000)
         except Exception:
-            logger.warning("No article elements found after initial load")
+            logger.warning("No feed container found after initial load")
 
-        # Scroll loop
-        stale_count = 0
-        while stale_count < 3:
-            prev_count = await page.evaluate(
-                'document.querySelectorAll(\'div[role="article"]\').length'
-            )
+        # Inject persistent post collector using textContent (NOT innerText)
+        await page.evaluate(COLLECTOR_INIT_JS)
 
-            # Scroll to bottom
-            await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-            await page.wait_for_timeout(2000 + int(asyncio.get_event_loop().time() * 1000) % 1000 % 1000)
-
-            # Click any "See more" buttons to expand truncated post text
+        # Click any "See more" buttons to expand truncated post text
+        async def _click_see_more():
             try:
                 see_more_buttons = await page.query_selector_all(
                     'div[role="button"]:has-text("See more"), '
@@ -317,34 +485,73 @@ class FacebookGroupScraper:
             except Exception:
                 pass
 
-            new_count = await page.evaluate(
-                'document.querySelectorAll(\'div[role="article"]\').length'
+        # Scroll loop: scroll the overflow container, capture after each scroll
+        stale = 0
+        for scroll_num in range(1, 100):
+            # Try expanding truncated posts
+            await _click_see_more()
+
+            # Capture visible posts into JS memory
+            result = await page.evaluate(CAPTURE_JS)
+            new_posts = result.get("newPosts", 0)
+            total = result.get("total", 0)
+
+            if new_posts == 0:
+                stale += 1
+            else:
+                stale = 0
+
+            logger.info(
+                "Scroll %d: +%d new, %d total, stale=%d",
+                scroll_num, new_posts, total, stale,
             )
 
-            if new_count == prev_count:
-                stale_count += 1
-                logger.debug(
-                    "Scroll stale (%d/3) — %d posts loaded", stale_count, new_count,
-                )
-            else:
-                stale_count = 0
-                logger.info("Loaded %d posts (was %d)", new_count, prev_count)
-
-            if max_posts > 0 and new_count >= max_posts:
-                logger.info(
-                    "Reached max_posts limit (%d), stopping scroll", max_posts,
-                )
+            if stale >= 4:
+                logger.info("Stopping: %d consecutive stale scrolls", stale)
+                break
+            if max_posts > 0 and total >= max_posts:
+                logger.info("Reached max_posts limit (%d), stopping scroll", max_posts)
                 break
 
-        final_count = await page.evaluate(
-            'document.querySelectorAll(\'div[role="article"]\').length'
-        )
-        logger.info("Scrolling complete — %d article elements in DOM", final_count)
+            # Scroll the overflow container (NOT window)
+            scroll_target = await page.evaluate(SCROLL_JS)
+            logger.debug("Scrolled via: %s", scroll_target)
+            await page.wait_for_timeout(2500)
 
-        return await page.content()
+        # Final capture pass
+        await page.evaluate(CAPTURE_JS)
+
+        # Get all collected posts from JS memory
+        posts_json = await page.evaluate("JSON.stringify(window.__fbPosts)")
+        total_collected = await page.evaluate("window.__fbPosts.length")
+        logger.info("Scrolling complete -- %d posts collected from JS memory", total_collected)
+
+        return posts_json  # Return JSON string, not HTML
 
     # ------------------------------------------------------------------
-    # Post extraction
+    # Deduplication
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _deduplicate(posts: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Deduplicate posts by author + price + text[:50]."""
+        seen: set[str] = set()
+        unique: list[dict[str, Any]] = []
+        for post in posts:
+            key_parts = [
+                post.get("author", post.get("author_name", "")),
+                post.get("price", ""),
+                post.get("text", "")[:50],
+            ]
+            key = "|".join(str(p) for p in key_parts)
+            if key in seen:
+                continue
+            seen.add(key)
+            unique.append(post)
+        return unique
+
+    # ------------------------------------------------------------------
+    # Post extraction (for non-browser / API fallback)
     # ------------------------------------------------------------------
 
     def extract_posts(self, html: str, url: str) -> list[dict[str, Any]]:
@@ -354,6 +561,10 @@ class FacebookGroupScraper:
         1. Try embedded JSON (ScheduledServerJS / Relay) for rich data.
         2. Fall back to DOM-based extraction from div[role="article"].
         3. Deduplicate by post_id.
+
+        NOTE: This is the fallback path for when we have raw HTML (e.g. from
+        an API response). The primary path uses JS-injected collection via
+        _scroll_and_collect which handles DOM virtualization.
         """
         posts: list[dict[str, Any]] = []
 
@@ -570,12 +781,17 @@ class FacebookGroupScraper:
         """Parse a single div[role="article"] into a post dict."""
         post: dict[str, Any] = {}
 
-        # Post ID — from data attributes or permalink
+        # Skip loading placeholders
+        aria_label = article.get("aria-label", "")
+        if aria_label and "loading" in aria_label.lower():
+            return None
+
+        # Post ID -- from data attributes or permalink
         post_id = self._extract_post_id_from_element(article)
         if post_id:
             post["post_id"] = post_id
 
-        # Author name — typically in strong, h4, or aria-label
+        # Author name -- typically in strong, h4, or aria-label
         author_el = (
             article.find("strong")
             or article.find("h4")
@@ -592,15 +808,15 @@ class FacebookGroupScraper:
         # If no author from strong/h4, try aria-label on the article
         if not post.get("author_name"):
             aria = article.get("aria-label", "")
-            if aria:
+            if aria and "loading" not in aria.lower():
                 post["author_name"] = aria
 
-        # Timestamp — from <abbr> or datetime attributes or relative text
+        # Timestamp -- from <abbr> or datetime attributes or relative text
         timestamp_str = self._extract_timestamp_from_element(article)
         if timestamp_str:
             post["timestamp"] = timestamp_str
 
-        # Post URL — from timestamp/permalink link
+        # Post URL -- from timestamp/permalink link
         post_url = self._extract_post_url_from_element(article, group_url)
         if post_url:
             post["post_url"] = post_url
@@ -610,7 +826,7 @@ class FacebookGroupScraper:
                 if url_id:
                     post["post_id"] = url_id
 
-        # Text content — main post body
+        # Text content -- main post body
         text = self._extract_text_from_element(article)
         if text:
             post["text"] = text
@@ -764,7 +980,11 @@ class FacebookGroupScraper:
                 "1x1", "blank.gif",
             )):
                 continue
-            # Only include images that look like content
+            # Prefer scontent images (actual Facebook content images)
+            if "scontent" in src:
+                urls.append(src)
+                continue
+            # Only include other images that look like content
             width = img.get("width")
             height = img.get("height")
             if width and height:

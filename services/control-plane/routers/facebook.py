@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import uuid
 from typing import Any
 
@@ -202,7 +203,17 @@ async def _run_group_scrape(job_id: str) -> None:
     try:
         from packages.core.facebook_group_scraper import FacebookGroupScraper
 
-        scraper = FacebookGroupScraper()
+        # Try CDP connection first (if Chrome is running with --remote-debugging-port)
+        cdp_url = None
+        try:
+            import httpx
+            httpx.get("http://127.0.0.1:9222/json/version", timeout=2)
+            cdp_url = "http://127.0.0.1:9222"
+            logger.info("facebook.group_scrape.cdp_detected", cdp_url=cdp_url)
+        except Exception:
+            pass
+
+        scraper = FacebookGroupScraper(cdp_url=cdp_url)
         posts = await scraper.scrape_group(
             url=job["url"],
             cookies=_facebook_cookies,
