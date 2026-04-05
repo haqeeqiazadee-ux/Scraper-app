@@ -168,7 +168,7 @@ export default function ScrapeTestPage() {
               </div>
               <div className="stat-card">
                 <div className="stat-label">Method</div>
-                <div className="stat-value" style={{ fontSize: 20, textTransform: "capitalize", fontSize: 14 }}>
+                <div className="stat-value" style={{ fontSize: 14, textTransform: "capitalize" }}>
                   {result.extraction_method ?? "N/A"}
                 </div>
               </div>
