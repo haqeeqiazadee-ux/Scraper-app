@@ -420,7 +420,33 @@ find src -name '*.ts' -o -name '*.tsx' | wc -l       # Total src files
 │                                                              │
 │  6. ONLY THEN → EXECUTE with full autonomy                   │
 │                                                              │
-│  7. POST-TASK → auto-update system files + claude-mem + push │
+│  7. VERIFY-BEFORE-DONE LOOP (MANDATORY — NO EXCEPTIONS)     │
+│     ┌────────────────────────────────────────────────────┐   │
+│     │ DO NOT claim completion until this loop passes:    │   │
+│     │                                                    │   │
+│     │ WHILE not_verified:                                │   │
+│     │   a. LIST every deliverable promised               │   │
+│     │   b. VERIFY each one exists and works:             │   │
+│     │      → File exists? (ls/stat the path)             │   │
+│     │      → Code works? (grep key function/class)       │   │
+│     │      → Tests pass? (run pytest on changed files)   │   │
+│     │      → API works? (curl/httpx the endpoint)        │   │
+│     │      → No regressions? (existing tests still pass) │   │
+│     │   c. If ANY check fails:                           │   │
+│     │      → Fix the issue                               │   │
+│     │      → GOTO (a) — re-verify everything             │   │
+│     │   d. If ALL pass → log evidence, proceed to 8      │   │
+│     │                                                    │   │
+│     │ HARD RULES:                                        │   │
+│     │ - "Code written" ≠ done. Code must WORK.           │   │
+│     │ - "Agent deployed" ≠ done. Verify agent output.    │   │
+│     │ - "Tests written" ≠ done. Tests must PASS.         │   │
+│     │ - Sub-agent work is UNTRUSTED until verified.      │   │
+│     │ - 8/10 passing = NOT done. Fix the 2 failures.    │   │
+│     └────────────────────────────────────────────────────┘   │
+│                                                              │
+│  8. POST-TASK → auto-update system files + claude-mem + push │
+│     → Include VERIFIED evidence block in commit/report       │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -432,6 +458,7 @@ Without this gate, Claude Code:
 - Picks random/wrong tools instead of the best ones from 1,260+ available
 - Misses agent orchestration — runs single-threaded instead of parallel agents
 - Ignores lessons learned — repeats past mistakes documented in system/lessons.md
+- Claims tasks are "done" when they're not — code has import errors, tests fail, files are missing
 - Skips post-task updates — breaks session continuity and audit trail
 - Doesn't persist findings — loses cross-session knowledge
 

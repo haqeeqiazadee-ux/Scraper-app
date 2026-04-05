@@ -56,6 +56,56 @@ BEFORE ANY WORK:
   └──────────────────────┬──────────────────────────────────┘
                          ▼
   ┌─────────────────────────────────────────────────────────┐
+  │ STEP 4b: VERIFY-BEFORE-DONE LOOP (MANDATORY)           │
+  │                                                         │
+  │   DO NOT claim "done" until this loop passes.           │
+  │                                                         │
+  │   WHILE not_verified:                                   │
+  │     1. LIST all deliverables promised for this task     │
+  │     2. CHECK each deliverable exists:                   │
+  │        → File created? ls/stat the path                │
+  │        → Code written? grep for key function/class     │
+  │        → Tests pass? Run pytest on affected files      │
+  │        → API works? curl/httpx the endpoint            │
+  │        → UI renders? Playwright or manual check        │
+  │     3. RUN any relevant test suite (unit, integration,  │
+  │        e2e) — at minimum run tests for changed files   │
+  │     4. CHECK for regressions — existing tests still    │
+  │        pass after changes                               │
+  │     5. If ANY check fails:                              │
+  │        → DO NOT mark as complete                        │
+  │        → Fix the issue                                  │
+  │        → GOTO step 1 (re-verify everything)            │
+  │     6. If ALL checks pass:                              │
+  │        → Log evidence: "Verified: X tests pass,        │
+  │          Y files created, Z endpoints responding"       │
+  │        → ONLY THEN proceed to STEP 5                   │
+  │                                                         │
+  │   HARD RULES:                                           │
+  │   - "I wrote the code" ≠ done. Code must WORK.         │
+  │   - "Agent was deployed" ≠ done. Agent output must     │
+  │     be verified (read the file, run the test).          │
+  │   - "Tests were written" ≠ done. Tests must PASS.      │
+  │   - "File was created" ≠ done. File must be correct    │
+  │     (no import errors, no syntax errors).               │
+  │   - Sub-agent work is UNTRUSTED until verified.         │
+  │     Always spot-check agent outputs before claiming     │
+  │     completion.                                         │
+  │   - Partial completion = NOT complete. If 8/10 tasks    │
+  │     pass, fix the 2 failures before reporting done.     │
+  │                                                         │
+  │   EVIDENCE FORMAT (include in completion report):       │
+  │   ```                                                   │
+  │   VERIFIED:                                             │
+  │     Files: 12 created, 5 modified (ls confirmed)       │
+  │     Tests: 101/101 pass (pytest output attached)       │
+  │     API: 18/18 endpoints responding (httpx verified)   │
+  │     Build: No errors (ruff/mypy clean)                 │
+  │     Regressions: 0 (existing tests unaffected)         │
+  │   ```                                                   │
+  └──────────────────────┬──────────────────────────────────┘
+                         ▼
+  ┌─────────────────────────────────────────────────────────┐
   │ STEP 5: POST-TASK AUTO-UPDATE                          │
   │   → Update system/todo.md                              │
   │   → Update system/execution_trace.md                   │
