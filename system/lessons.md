@@ -251,3 +251,17 @@
 116. **npx doesn't work in all shell environments** — `npx` requires `/usr/bin/env bash` which doesn't exist in some Windows sandbox shells. Workaround: run tools directly via `node node_modules/toolname/bin/tool.js`.
 
 117. **`os.setsid` is Unix-only** — Playwright conftest used `preexec_fn=os.setsid` and `os.killpg` for process group management. These don't exist on Windows. Fix: conditional `subprocess.CREATE_NEW_PROCESS_GROUP` + `proc.terminate()` fallback.
+
+## Facebook Group Scraper Observations
+
+118. **Facebook hides `innerText` via CSS** — `div[role="article"]` elements have `innerText.length === 0` even when content is visible. Facebook uses CSS visibility tricks. Always use `textContent` for Facebook DOM extraction.
+
+119. **Facebook uses overflow scroll containers, not window scroll** — `window.scrollBy()` does nothing on Facebook group feeds. Must find the parent `div` with `overflow-y: auto` and call `scrollBy` on that element directly.
+
+120. **Facebook virtualizes the DOM** — old posts are REMOVED from the DOM tree as you scroll past them (only ~3 article nodes exist at any time). Must capture post data into JavaScript memory (`window.__fbPosts`) during scrolling, before nodes get recycled.
+
+121. **CDP `connect_over_cdp` beats `chromium.launch`** — When Playwright can't spawn Chrome (sandbox, permissions), connect to an existing Chrome via `--remote-debugging-port=9222`. This also preserves the user's login state, cookies, and extensions.
+
+122. **EditThisCookie format needs translation** — `sameSite: "no_restriction"` must map to `"None"` for Playwright. `expirationDate` must map to `expires`. Always build a translation layer for cookie import.
+
+123. **Don't trust "done" without live testing** — The scraper passed all code checks (import, class exists, methods exist) but returned 0 posts in live testing. Three rounds of debugging (innerText, scroll container, DOM virtualization) were needed. Live E2E is the only real verification for scraping code.

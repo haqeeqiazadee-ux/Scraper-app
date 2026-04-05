@@ -1161,3 +1161,26 @@
 - **Verify loop:** ALL deliverables verified — 101/101 E2E pass, 17/17 API proxy pass, 8/8 pages load, 6/6 cache bypass checks
 - **Blockers found:** npm/npx can't run in sandbox (no /usr/bin/env bash) — fixed by running vite via `node node_modules/vite/bin/vite.js`
 - **Next action:** Phase 9 COMPLETE — platform ready for production deployment
+
+## Work Cycle — 2026-04-05 — Facebook Group Extractor
+
+- **Timestamp:** 2026-04-05
+- **Active Task IDs:** FB-GROUP-EXTRACTOR
+- **Action taken:** Built Facebook Group scraper with cookie auth, CDP browser connection, infinite scroll, and Excel export
+- **Outputs produced:**
+  - `packages/core/facebook_group_scraper.py` (46.7KB) — full pipeline: CDP/Camoufox/Playwright, cookie injection, overflow container scroll, textContent extraction, in-memory post capture, dynamic Excel export
+  - `services/control-plane/routers/facebook.py` (7.8KB) — 5 API endpoints (cookies, scrape, status, results, export)
+  - `apps/web/src/pages/FacebookGroupPage.tsx` (17.3KB) — UI with cookie upload, live progress, results table
+  - `packages/core/ai_providers/social/facebook.py` — added `/groups/` URL routing + `_extract_group_feed()`
+  - `scripts/fb_live_scrape.py` — standalone live scrape script
+  - `docs/FB_Group_AUTOMATED.xlsx` — 996 posts from "Pc parts UK only" group
+- **Bugs found & fixed during live E2E:**
+  1. `innerText` returns empty on Facebook → use `textContent`
+  2. `window.scrollBy` doesn't work → scroll the overflow container
+  3. Router import path wrong (`social/` subdirectory)
+  4. Cookie `sameSite: "no_restriction"` → Playwright needs `"None"`
+  5. Cookie `expirationDate` → Playwright expects `expires`
+  6. Playwright `spawn UNKNOWN` in sandbox → use CDP `connect_over_cdp`
+  7. Facebook DOM virtualization → capture posts in JS memory during scroll
+- **Live test result:** 996 posts extracted from group 367202228711807
+- **Git commits:** fb57221 (initial), dc49091 (fixes), 19d2fd9 (live test), 5829104 (full automation)

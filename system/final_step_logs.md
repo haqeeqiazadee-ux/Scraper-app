@@ -1527,3 +1527,33 @@ VERIFIED:
 ```
 
 - **Final Status:** HYDRA PHASE 9 COMPLETE
+
+---
+
+## 2026-04-05 — Facebook Group Extractor
+
+| # | Task | Result |
+|---|------|--------|
+| 1 | Build facebook_group_scraper.py | PASS (46.7KB) |
+| 2 | Build routers/facebook.py (5 endpoints) | PASS (7.8KB) |
+| 3 | Build FacebookGroupPage.tsx UI | PASS (17.3KB) |
+| 4 | Update facebook.py /groups/ routing | PASS |
+| 5 | Wire app.py + App.tsx + SidebarNav + client.ts | PASS |
+| 6 | Fix: innerText→textContent | PASS (live verified) |
+| 7 | Fix: window.scrollBy→overflow container | PASS (live verified) |
+| 8 | Fix: CDP connect_over_cdp fallback | PASS (live verified) |
+| 9 | Fix: cookie sameSite + expirationDate mapping | PASS (live verified) |
+| 10 | Fix: DOM virtualization→in-memory capture | PASS (live verified) |
+| 11 | Live E2E: scrape Pc parts UK only group | PASS (996 posts) |
+| 12 | Excel export: FB_Group_AUTOMATED.xlsx | PASS |
+
+```
+VERIFIED:
+  Live scrape: 996 posts from Facebook group
+  Sellers: 30+ unique
+  Price range: GBP 10 - GBP 3,200
+  Excel: docs/FB_Group_AUTOMATED.xlsx
+  Bugs fixed: 7 (all verified live)
+```
+
+- **Final Status:** FACEBOOK GROUP EXTRACTOR COMPLETE

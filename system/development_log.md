@@ -2040,3 +2040,42 @@ Added Verify-Before-Done loop to CLAUDE.md.
 6. `920eeca` — Update todo.md (33/33 HYDRA tasks complete)
 7. `69d0524` — Add Verify-Before-Done loop to CLAUDE.md
 8. `4157c70` — Always fetch fresh from server (no-cache)
+
+---
+
+## Session — 2026-04-05 — Facebook Group Extractor (continued)
+
+### Summary
+Built a fully automated Facebook Group scraper that extracts structured post data
+from any Facebook group. Uses Playwright CDP to connect to user's Chrome, injects
+cookies, scrolls through the feed, captures posts in-memory (defeating Facebook's
+DOM virtualization), and exports to Excel with dynamic columns.
+
+### Live E2E Result
+- Group: "Pc parts UK only" (367202228711807)
+- Posts extracted: 996
+- Sellers found: Mithul Suresh, Paul Turton, Josh Taylor, Chris Yan, +dozens more
+- Price range: GBP 10 — GBP 3,200
+- Locations: London, Darlington, Cardiff, Paisley, Coventry, Slough, etc.
+
+### Files Created
+- `packages/core/facebook_group_scraper.py` (46.7KB) — core scraper
+- `services/control-plane/routers/facebook.py` (7.8KB) — API endpoints
+- `apps/web/src/pages/FacebookGroupPage.tsx` (17.3KB) — UI page
+- `scripts/fb_live_scrape.py` — standalone scrape script
+- `docs/FB_Group_AUTOMATED.xlsx` — live results
+
+### Bugs Fixed During Live Testing
+1. innerText empty → textContent
+2. window.scrollBy fails → overflow container scroll
+3. Import path wrong → packages.core not social/
+4. Cookie sameSite mapping → no_restriction→None
+5. Cookie expirationDate → expires
+6. Playwright spawn fails → CDP connect_over_cdp
+7. DOM virtualization → in-memory capture during scroll
+
+### Git Commits
+1. `fb57221` — Initial Facebook Group Extractor
+2. `dc49091` — Fix import path + cookie mapping
+3. `19d2fd9` — Live test (7 posts via CDP)
+4. `5829104` — Full automation rewrite (996 posts)
