@@ -86,6 +86,8 @@ export function onAuthFailure(cb: () => void): void {
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
+    "Cache-Control": "no-cache, no-store",
+    "Pragma": "no-cache",
     ...(init?.headers as Record<string, string> | undefined),
   };
 
@@ -93,6 +95,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, {
     ...init,
     headers,
+    cache: "no-store",
   });
 
   if (!response.ok) {

@@ -9,9 +9,12 @@ import "./styles/globals.css";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 30_000,
+      staleTime: 0,              // Always fetch fresh from server
+      gcTime: 5 * 60 * 1000,     // Garbage collect after 5 min
       retry: 1,
-      refetchOnWindowFocus: false,
+      refetchOnWindowFocus: true, // Re-fetch when tab regains focus
+      refetchOnMount: true,       // Always fetch on component mount
+      refetchOnReconnect: true,   // Re-fetch on network reconnect
     },
   },
 });
