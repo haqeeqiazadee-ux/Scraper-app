@@ -215,7 +215,7 @@ interface NavGroupStyled {
 const NAV_GROUPS: NavGroupStyled[] = [
   {
     section: "SCRAPE",
-    color: "#818cf8",    // Indigo
+    color: "#a5b4fc",    // Bright indigo
     items: [
       { to: "/scrape-test",   label: "Quick Scrape",       Icon: IconSearch },
       { to: "/crawl",         label: "Web Crawl",          Icon: IconSpider },
@@ -225,7 +225,7 @@ const NAV_GROUPS: NavGroupStyled[] = [
   },
   {
     section: "DATA SOURCES",
-    color: "#34d399",    // Emerald
+    color: "#6ee7b7",    // Bright emerald
     items: [
       { to: "/amazon",           label: "Amazon",          Icon: IconAmazon },
       { to: "/google-maps",      label: "Google Maps",     Icon: IconMap },
@@ -235,7 +235,7 @@ const NAV_GROUPS: NavGroupStyled[] = [
   },
   {
     section: "ANALYZE",
-    color: "#f59e0b",    // Amber
+    color: "#fbbf24",    // Bright amber
     items: [
       { to: "/results",   label: "Results & Export",   Icon: IconDatabase },
       { to: "/changes",   label: "Change Detection",   Icon: IconDiff },
@@ -243,7 +243,7 @@ const NAV_GROUPS: NavGroupStyled[] = [
   },
   {
     section: "AUTOMATE",
-    color: "#f472b6",    // Pink
+    color: "#f9a8d4",    // Bright pink
     items: [
       { to: "/schedules", label: "Schedules",    Icon: IconClock },
       { to: "/mcp",       label: "MCP Server",   Icon: IconPlug },
@@ -251,7 +251,7 @@ const NAV_GROUPS: NavGroupStyled[] = [
   },
   {
     section: "MANAGE",
-    color: "#94a3b8",    // Slate
+    color: "#cbd5e1",    // Bright slate
     items: [
       { to: "/tasks",     label: "Tasks",         Icon: IconList },
     ],
@@ -293,21 +293,21 @@ export function SidebarNav() {
           >
             <span
               style={{
-                width: 6,
-                height: 6,
+                width: 7,
+                height: 7,
                 borderRadius: "50%",
                 background: group.color,
                 flexShrink: 0,
+                boxShadow: `0 0 6px ${group.color}80`,
               }}
             />
             <span
               style={{
-                fontSize: 10,
-                fontWeight: 700,
+                fontSize: 10.5,
+                fontWeight: 800,
                 color: group.color,
-                letterSpacing: "0.1em",
+                letterSpacing: "0.12em",
                 textTransform: "uppercase",
-                opacity: 0.9,
               }}
             >
               {group.section}
