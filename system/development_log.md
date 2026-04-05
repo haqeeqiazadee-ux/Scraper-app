@@ -2079,3 +2079,4 @@ DOM virtualization), and exports to Excel with dynamic columns.
 2. `dc49091` — Fix import path + cookie mapping
 3. `19d2fd9` — Live test (7 posts via CDP)
 4. `5829104` — Full automation rewrite (996 posts)
+5. `4c3fa85` — Smart text parsing (description + listing_title columns)

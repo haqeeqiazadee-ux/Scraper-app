@@ -1557,3 +1557,9 @@ VERIFIED:
 ```
 
 - **Final Status:** FACEBOOK GROUP EXTRACTOR COMPLETE
+
+### Step 13: Smart Text Parsing
+- **Task:** Parse raw textContent dump into structured description + listing_title columns
+- **Fix:** Strip noise (timestamp junk, UI labels), split at price boundary
+- **Result:** Clean Excel: author | listing_title | description | price | location
+- **Pass/Fail:** PASS (verified live with 14 posts)

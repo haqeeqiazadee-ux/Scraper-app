@@ -265,3 +265,5 @@
 122. **EditThisCookie format needs translation** — `sameSite: "no_restriction"` must map to `"None"` for Playwright. `expirationDate` must map to `expires`. Always build a translation layer for cookie import.
 
 123. **Don't trust "done" without live testing** — The scraper passed all code checks (import, class exists, methods exist) but returned 0 posts in live testing. Three rounds of debugging (innerText, scroll container, DOM virtualization) were needed. Live E2E is the only real verification for scraping code.
+
+124. **Raw textContent needs intelligent parsing** — Facebook's `textContent` dumps author, scrambled timestamps, post content, prices, UI labels ("Message", "Like", "Comment") into one blob. Parse it by: strip before "Shared with Public group", strip after "Message", remove "See more"/"Like"/"Comment", split at price into description + listing_title. Never dump raw textContent into a spreadsheet column.

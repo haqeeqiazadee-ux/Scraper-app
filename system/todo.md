@@ -319,6 +319,6 @@ Full spec: `HYDRA_REVISION_SPEC_PROMPT.md` (751 lines)
 - **HYDRA E2E tests:** 101 passing (83 Playwright + 18 API)
 - **Facebook Group Extractor:** COMPLETE — 996 posts extracted live via CDP
 - **UI pages:** 5 HYDRA pages + Facebook Groups page (24 total routes)
-- **Lessons learned:** 117+
+- **Lessons learned:** 124
 - **Unit tests passing:** 706+ (original) + 80 new HYDRA tests
 - **Platform status:** ALL PHASES COMPLETE — HYDRA + Facebook Groups shipped

@@ -1183,4 +1183,4 @@
   6. Playwright `spawn UNKNOWN` in sandbox → use CDP `connect_over_cdp`
   7. Facebook DOM virtualization → capture posts in JS memory during scroll
 - **Live test result:** 996 posts extracted from group 367202228711807
-- **Git commits:** fb57221 (initial), dc49091 (fixes), 19d2fd9 (live test), 5829104 (full automation)
+- **Git commits:** fb57221 (initial), dc49091 (fixes), 19d2fd9 (live test), 5829104 (full automation), 4c3fa85 (smart text parsing)
