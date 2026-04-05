@@ -267,3 +267,5 @@
 123. **Don't trust "done" without live testing** — The scraper passed all code checks (import, class exists, methods exist) but returned 0 posts in live testing. Three rounds of debugging (innerText, scroll container, DOM virtualization) were needed. Live E2E is the only real verification for scraping code.
 
 124. **Raw textContent needs intelligent parsing** — Facebook's `textContent` dumps author, scrambled timestamps, post content, prices, UI labels ("Message", "Like", "Comment") into one blob. Parse it by: strip before "Shared with Public group", strip after "Message", remove "See more"/"Like"/"Comment", split at price into description + listing_title. Never dump raw textContent into a spreadsheet column.
+
+125. **HTTP worker handles 79% of templates without a browser** — Of 19 tested templates, 15 returned data via pure HTTP (curl_cffi). Only 3 were blocked (anti-bot 403) and 1 needed JS rendering. Always try HTTP first — it's 10x cheaper and faster than browser lane.

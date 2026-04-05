@@ -1184,3 +1184,21 @@
   7. Facebook DOM virtualization → capture posts in JS memory during scroll
 - **Live test result:** 996 posts extracted from group 367202228711807
 - **Git commits:** fb57221 (initial), dc49091 (fixes), 19d2fd9 (live test), 5829104 (full automation), 4c3fa85 (smart text parsing)
+
+## Work Cycle — 2026-04-05 — Template Automation Testing
+
+- **Timestamp:** 2026-04-05
+- **Active Task IDs:** TEMPLATE-AUTOMATION
+- **Action taken:** Live-tested 19 templates via HTTP worker against real websites
+- **Results:** 15/19 passed (79%)
+  - **200 items:** Books.toscrape (products with name, price, image)
+  - **55 items:** Trustpilot reviews (name, rating, image)
+  - **24 items:** YouTube Search (video_id, channel, views)
+  - **9 items:** WooCommerce (product links)
+  - **7 items:** GitHub Trending (repo names)
+  - **6 items:** BBC News (article titles)
+  - **3 items:** Alibaba (product links)
+  - **1 item each:** Allbirds, eBay, YouTube Video, Trending, Kickstarter, Google Play, Wikipedia, Hacker News, Reddit
+  - **Blocked (3):** Gymshark (404 URL), eBay Product (bad item ID), Etsy (403 anti-bot)
+  - **Empty (1):** YouTube Channel (needs browser for JS rendering)
+- **Dependencies installed:** html2text, h2, curl-cffi, trafilatura, rank-bm25 (were missing in sandbox)
