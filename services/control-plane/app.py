@@ -26,6 +26,7 @@ from services.control_plane.routers import health, tasks, policies, results, exe
 from services.control_plane.routers.crawl import crawl_router
 from services.control_plane.routers.search import search_router
 from services.control_plane.routers.extract import extract_router
+from services.control_plane.routers.facebook import facebook_router
 from services.control_plane.middleware.metrics import MetricsMiddleware
 from services.control_plane.middleware.rate_limit import RateLimitMiddleware
 from services.control_plane.middleware.quota import QuotaMiddleware
@@ -214,6 +215,7 @@ def create_app() -> FastAPI:
     app.include_router(crawl_router, prefix="/api/v1")
     app.include_router(search_router, prefix="/api/v1")
     app.include_router(extract_router, prefix="/api/v1")
+    app.include_router(facebook_router, prefix="/api/v1")
     from services.control_plane.routers import keepa
     app.include_router(keepa.router, prefix="/api/v1", tags=["Keepa"])
     from services.control_plane.routers import maps

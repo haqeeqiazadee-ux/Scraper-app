@@ -735,6 +735,36 @@ export interface MapsSearchResponse {
   count: number;
 }
 
+/* ── Facebook Groups ── */
+
+export const facebookGroups = {
+  uploadCookies(cookies: any[]): Promise<any> {
+    return request("/facebook/cookies", {
+      method: "POST",
+      body: JSON.stringify(cookies),
+    });
+  },
+
+  scrape(data: { url: string; max_posts?: number }): Promise<any> {
+    return request("/facebook/group/scrape", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
+  status(jobId: string): Promise<any> {
+    return request(`/facebook/group/${jobId}`);
+  },
+
+  results(jobId: string): Promise<any> {
+    return request(`/facebook/group/${jobId}/results`);
+  },
+
+  exportUrl(jobId: string): string {
+    return `${BASE}/facebook/group/${jobId}/export`;
+  },
+};
+
 export const maps = {
   search(query: string, maxResults: number = 20): Promise<MapsSearchResponse> {
     return request("/maps/search", {

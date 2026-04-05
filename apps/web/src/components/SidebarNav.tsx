@@ -136,6 +136,14 @@ function IconMap() {
   );
 }
 
+function IconFacebook() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 1.5H10.5a3 3 0 00-3 3V7H5.5v2.5H7.5V14.5h2.5V9.5H12l.5-2.5H10V4.5a.5.5 0 01.5-.5H12V1.5z" />
+    </svg>
+  );
+}
+
 function IconSpider() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
@@ -216,6 +224,7 @@ const NAV_GROUPS: NavGroup[] = [
       { to: "/scrape-test",   label: "Scrape Tester", Icon: IconDatabase },
       { to: "/amazon",        label: "Amazon / Keepa", Icon: IconAmazon },
       { to: "/google-maps",   label: "Google Maps",   Icon: IconMap },
+      { to: "/facebook-groups", label: "FB Groups",   Icon: IconFacebook },
       { to: "/crawl",         label: "Crawl",         Icon: IconSpider },
       { to: "/search",        label: "Search",        Icon: IconSearch },
       { to: "/extract",       label: "Extract",       Icon: IconCode },

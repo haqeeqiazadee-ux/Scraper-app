@@ -18,6 +18,7 @@ import ScrapeTestPage from "./pages/ScrapeTestPage";
 import { TemplatesPage } from "./pages/TemplatesPage";
 import { AmazonPage } from "./pages/AmazonPage";
 import { GoogleMapsPage } from "./pages/GoogleMapsPage";
+import { FacebookGroupPage } from "./pages/FacebookGroupPage";
 import { CrawlPage } from "./pages/CrawlPage";
 import { SearchPage } from "./pages/SearchPage";
 import { ExtractPage } from "./pages/ExtractPage";
@@ -55,6 +56,7 @@ export function App() {
         <Route path="/templates" element={<TemplatesPage />} />
         <Route path="/amazon" element={<AmazonPage />} />
         <Route path="/google-maps" element={<GoogleMapsPage />} />
+        <Route path="/facebook-groups" element={<FacebookGroupPage />} />
         <Route path="/sessions" element={<SessionsPage />} />
         <Route path="/proxies" element={<ProxyPage />} />
         <Route path="/webhooks" element={<WebhookHistoryPage />} />

@@ -56,6 +56,8 @@ class FacebookExtractor:
             return self._extract_marketplace(html, url)
         elif "/videos/" in path or "fb.watch" in (urlparse(url).hostname or ""):
             return self._extract_video(html, url)
+        elif "/groups/" in path:
+            return self._extract_group_feed(html, url)
         else:
             # For non-specific URLs, extract as page/profile
             return self._extract_page(html, url)
@@ -318,6 +320,258 @@ class FacebookExtractor:
 
         page = {k: v for k, v in page.items() if v is not None}
         return [page] if page.get("name") else []
+
+    # -------------------------------------------------------------------
+    # Group feed extraction
+    # -------------------------------------------------------------------
+
+    def _extract_group_feed(self, html: str, url: str) -> list[dict]:
+        """Extract posts from a Facebook group feed.
+
+        Strategy:
+        1. Try embedded JSON (ScheduledServerJS + Relay) for structured data
+        2. Fall back to DOM-based extraction (div[role="article"])
+        """
+        posts: list[dict] = []
+
+        # --- Strategy 1: Embedded JSON ---
+        posts = self._extract_group_posts_from_json(html, url)
+        if posts:
+            return posts
+
+        # --- Strategy 2: DOM-based fallback ---
+        posts = self._extract_group_posts_from_dom(html, url)
+        return posts
+
+    def _extract_group_posts_from_json(self, html: str, url: str) -> list[dict]:
+        """Extract group posts from ScheduledServerJS and Relay preloader data."""
+        posts: list[dict] = []
+
+        # Gather all embedded JSON blobs
+        server_js_blobs = self._get_server_js_data(html)
+        relay_data = self._get_relay_preloader(html)
+        if relay_data:
+            server_js_blobs.append(relay_data)
+
+        # Search for group feed story nodes in all blobs
+        for blob in server_js_blobs:
+            edges = find_key_recursive(blob, "edges")
+            if not isinstance(edges, list):
+                continue
+            for edge in edges:
+                node = edge.get("node", edge) if isinstance(edge, dict) else {}
+                # Facebook stores group posts under various keys; look for story/post shapes
+                story = node if "message" in node or "creation_story" in node else None
+                if story is None:
+                    story = node.get("comet_sections") and node
+                if story is None:
+                    continue
+
+                post = self._parse_group_post_node(story, url)
+                if post:
+                    posts.append(post)
+
+        return posts
+
+    def _parse_group_post_node(self, node: dict, group_url: str) -> dict | None:
+        """Parse a single group post node from embedded JSON into a post dict."""
+        post: dict[str, Any] = {}
+
+        # Post ID
+        post_id = (
+            node.get("post_id")
+            or node.get("id")
+            or deep_get(node, "creation_story", "id")
+        )
+        if post_id:
+            post["post_id"] = str(post_id)
+
+        # Author name
+        author = (
+            deep_get(node, "actor", "name")
+            or deep_get(node, "creation_story", "comet_sections", "actor_photo", "story", "actors", "0", "name")
+            or find_key_recursive(node, "actor_name")
+        )
+        if not author:
+            actors = find_key_recursive(node, "actors")
+            if isinstance(actors, list) and actors:
+                author = actors[0].get("name") if isinstance(actors[0], dict) else None
+        post["author_name"] = author
+
+        # Text content
+        message = node.get("message")
+        if isinstance(message, dict):
+            post["text"] = message.get("text", "")
+        elif isinstance(message, str):
+            post["text"] = message
+        else:
+            text = find_key_recursive(node, "text")
+            post["text"] = text if isinstance(text, str) else None
+
+        # Timestamp
+        ts = (
+            node.get("created_time")
+            or deep_get(node, "creation_story", "creation_time")
+            or find_key_recursive(node, "creation_time")
+        )
+        if ts:
+            post["timestamp"] = parse_timestamp(ts)
+
+        # Engagement counts
+        feedback = node.get("feedback") or find_key_recursive(node, "feedback")
+        if isinstance(feedback, dict):
+            reaction_count = deep_get(feedback, "reaction_count", "count")
+            if reaction_count is not None:
+                post["like_count"] = reaction_count
+            comment_count = deep_get(feedback, "comment_count", "total_count")
+            if comment_count is not None:
+                post["comment_count"] = comment_count
+            share_count = deep_get(feedback, "share_count", "count")
+            if share_count is not None:
+                post["share_count"] = share_count
+
+        # Image URLs
+        attachments = find_key_recursive(node, "attachments")
+        image_urls = []
+        if isinstance(attachments, list):
+            for att in attachments:
+                if isinstance(att, dict):
+                    media = att.get("media") or deep_get(att, "styles", "attachment", "media")
+                    if isinstance(media, dict):
+                        img = deep_get(media, "image", "uri") or media.get("uri")
+                        if img:
+                            image_urls.append(img)
+        if not image_urls:
+            # Try photo_image
+            photo_uri = find_key_recursive(node, "photo_image")
+            if isinstance(photo_uri, dict):
+                uri = photo_uri.get("uri")
+                if uri:
+                    image_urls.append(uri)
+        if image_urls:
+            post["image_urls"] = image_urls
+
+        # Post URL
+        post_url = (
+            deep_get(node, "url")
+            or deep_get(node, "creation_story", "url")
+            or find_key_recursive(node, "permalink_url")
+        )
+        if post_url:
+            post["post_url"] = post_url
+        elif post.get("post_id"):
+            post["post_url"] = f"https://www.facebook.com/groups/post/{post['post_id']}"
+
+        # Marketplace-style fields: price and location (buy/sell groups)
+        price = find_key_recursive(node, "listing_price")
+        if isinstance(price, dict):
+            post["price"] = price.get("amount") or price.get("text")
+        elif isinstance(price, (str, int, float)):
+            post["price"] = price
+        else:
+            # Try text-based price extraction
+            text_content = post.get("text") or ""
+            price_match = re.search(r'[\$\£\€\₹]\s*([\d,\.]+)', text_content)
+            if price_match:
+                post["price"] = price_match.group(0).strip()
+
+        location = find_key_recursive(node, "location")
+        if isinstance(location, dict):
+            post["location"] = location.get("name") or deep_get(location, "reverse_geocode", "city_page", "display_name")
+        elif isinstance(location, str):
+            post["location"] = location
+
+        # Clean up None values
+        post = {k: v for k, v in post.items() if v is not None}
+
+        # Must have at least some content to be a valid post
+        if post.get("text") or post.get("post_id") or post.get("image_urls"):
+            return post
+        return None
+
+    def _extract_group_posts_from_dom(self, html: str, url: str) -> list[dict]:
+        """Fall back to DOM-based extraction for group posts using article divs."""
+        posts: list[dict] = []
+
+        # Match div[role="article"] blocks — simplified regex for rendered HTML
+        article_pattern = re.compile(
+            r'<div[^>]*\brole=["\']article["\'][^>]*>(.*?)</div>\s*(?=<div[^>]*\brole=["\']article["\']|$)',
+            re.DOTALL | re.IGNORECASE,
+        )
+
+        for idx, match in enumerate(article_pattern.finditer(html)):
+            block = match.group(1)
+            post: dict[str, Any] = {}
+
+            post["post_id"] = f"dom_{idx}"
+
+            # Extract author — typically first <strong> or <a> with user profile link
+            author_match = re.search(
+                r'<(?:strong|a\s[^>]*href=["\']https?://(?:www\.)?facebook\.com/[^"\']*["\'][^>]*)>([^<]+)</(?:strong|a)>',
+                block, re.IGNORECASE,
+            )
+            if author_match:
+                post["author_name"] = author_match.group(1).strip()
+
+            # Extract text content — look for data-ad-preview or main text div
+            text_match = re.search(
+                r'<div[^>]*(?:data-ad-preview|dir=["\']auto["\'])[^>]*>(.*?)</div>',
+                block, re.DOTALL | re.IGNORECASE,
+            )
+            if text_match:
+                raw_text = re.sub(r'<[^>]+>', ' ', text_match.group(1))
+                post["text"] = re.sub(r'\s+', ' ', raw_text).strip()
+
+            # Extract images
+            img_urls = re.findall(
+                r'<img[^>]*src=["\']([^"\']+)["\']',
+                block, re.IGNORECASE,
+            )
+            # Filter out tracking pixels and small icons
+            image_urls = [
+                u for u in img_urls
+                if "emoji" not in u.lower() and "pixel" not in u.lower() and len(u) > 50
+            ]
+            if image_urls:
+                post["image_urls"] = image_urls
+
+            # Engagement counts from aria-labels or text
+            like_match = re.search(r'([\d,\.]+[KMB]?)\s*(?:likes?|reactions?)', block, re.IGNORECASE)
+            if like_match:
+                post["like_count"] = parse_count(like_match.group(1))
+
+            comment_match = re.search(r'([\d,\.]+[KMB]?)\s*comments?', block, re.IGNORECASE)
+            if comment_match:
+                post["comment_count"] = parse_count(comment_match.group(1))
+
+            share_match = re.search(r'([\d,\.]+[KMB]?)\s*shares?', block, re.IGNORECASE)
+            if share_match:
+                post["share_count"] = parse_count(share_match.group(1))
+
+            # Price (buy/sell groups)
+            text_content = post.get("text", "")
+            price_match = re.search(r'[\$\£\€\₹]\s*([\d,\.]+)', text_content)
+            if price_match:
+                post["price"] = price_match.group(0).strip()
+
+            # Timestamp — look for <abbr> or datetime attributes
+            time_match = re.search(
+                r'(?:data-utime=["\'](\d+)["\']|<abbr[^>]*title=["\']([^"\']+)["\'])',
+                block, re.IGNORECASE,
+            )
+            if time_match:
+                ts_val = time_match.group(1) or time_match.group(2)
+                post["timestamp"] = parse_timestamp(ts_val)
+
+            post["post_url"] = url
+
+            # Clean None values
+            post = {k: v for k, v in post.items() if v is not None}
+
+            if post.get("text") or post.get("image_urls"):
+                posts.append(post)
+
+        return posts
 
     # -------------------------------------------------------------------
     # Helpers
