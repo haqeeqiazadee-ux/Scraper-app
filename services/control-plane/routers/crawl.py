@@ -148,13 +148,28 @@ async def get_crawl_status(crawl_id: str) -> CrawlStatusResponse:
     if crawl is None:
         raise HTTPException(status_code=404, detail=f"Crawl {crawl_id} not found")
 
+    # CrawlJob is a dataclass — access via attributes
+    stats = crawl.stats
+    config_dict = {}
+    if crawl.config:
+        config_dict = {
+            "seed_urls": getattr(crawl.config, 'seed_urls', []),
+            "max_depth": getattr(crawl.config, 'max_depth', 0),
+            "max_pages": getattr(crawl.config, 'max_pages', 0),
+        }
+
     return CrawlStatusResponse(
-        crawl_id=crawl["crawl_id"],
-        state=CrawlState(crawl["state"]),
-        stats=CrawlStats(**crawl.get("stats", {})),
-        config=crawl.get("config", {}),
-        created_at=crawl["created_at"],
-        updated_at=crawl["updated_at"],
+        crawl_id=crawl.crawl_id,
+        state=CrawlState(crawl.state.value if hasattr(crawl.state, 'value') else crawl.state),
+        stats=CrawlStats(
+            pages_crawled=getattr(stats, 'pages_crawled', 0),
+            pages_queued=getattr(stats, 'pages_queued', 0),
+            bytes_downloaded=getattr(stats, 'bytes_downloaded', 0),
+            elapsed_seconds=getattr(stats, 'elapsed_seconds', 0.0),
+        ),
+        config=config_dict,
+        created_at=crawl.created_at.isoformat() if hasattr(crawl.created_at, 'isoformat') else str(crawl.created_at),
+        updated_at=crawl.updated_at.isoformat() if hasattr(crawl.updated_at, 'isoformat') else str(crawl.updated_at),
     )
 
 
@@ -170,12 +185,15 @@ async def get_crawl_results(
     if crawl is None:
         raise HTTPException(status_code=404, detail=f"Crawl {crawl_id} not found")
 
-    results = await manager.get_results(crawl_id, limit=limit, offset=offset)
-    total = results["total_items"]
+    raw_results = await manager.get_results(crawl_id)
+    # get_results returns a list of dicts
+    all_items = raw_results if isinstance(raw_results, list) else raw_results.get("items", []) if isinstance(raw_results, dict) else []
+    total = len(all_items)
+    page_items = all_items[offset:offset + limit]
     return CrawlResultsResponse(
         crawl_id=crawl_id,
         total_items=total,
-        items=results["items"],
+        items=page_items,
         has_more=(offset + limit) < total,
     )
 
@@ -188,10 +206,11 @@ async def stop_crawl(crawl_id: str) -> dict:
     if crawl is None:
         raise HTTPException(status_code=404, detail=f"Crawl {crawl_id} not found")
 
-    if crawl["state"] in ("stopped", "completed", "failed"):
+    state_val = crawl.state.value if hasattr(crawl.state, 'value') else str(crawl.state)
+    if state_val in ("stopped", "completed", "failed"):
         raise HTTPException(
             status_code=409,
-            detail=f"Crawl {crawl_id} is already in '{crawl['state']}' state and cannot be stopped",
+            detail=f"Crawl {crawl_id} is already in '{state_val}' state and cannot be stopped",
         )
 
     result = await manager.stop_crawl(crawl_id)
