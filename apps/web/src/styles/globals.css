@@ -1524,8 +1524,10 @@ th.sortable.sort-desc::after {
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
   background: var(--color-surface);
+  color: var(--color-text);
   cursor: pointer;
   transition: all var(--transition-base);
+  text-align: left;
 }
 
 .quick-action:hover {
@@ -1548,6 +1550,7 @@ th.sortable.sort-desc::after {
 .quick-action .qa-text {
   font-size: 13px;
   font-weight: 600;
+  color: var(--color-text);
 }
 
 .quick-action .qa-sub {
