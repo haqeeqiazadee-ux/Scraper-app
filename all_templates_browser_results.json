@@ -1,0 +1,272 @@
+[
+  {
+    "name": "Shopify: Allbirds",
+    "url": "https://www.allbirds.com/collections/mens",
+    "category": "ecommerce",
+    "status": "PASS",
+    "items": 1,
+    "fields": "name, image_url, product_url, price",
+    "lane": "http"
+  },
+  {
+    "name": "Shopify: ColourPop",
+    "url": "https://colourpop.com/collections/all",
+    "category": "ecommerce",
+    "status": "PASS",
+    "items": 17,
+    "fields": "name, product_url, price, image_url",
+    "lane": "http"
+  },
+  {
+    "name": "Shopify: Gymshark",
+    "url": "https://www.gymshark.com/collections/all",
+    "category": "ecommerce",
+    "status": "PASS",
+    "items": 1,
+    "fields": "name, description, product_url, content_type",
+    "lane": "browser"
+  },
+  {
+    "name": "WooCommerce",
+    "url": "https://developer.woocommerce.com/",
+    "category": "ecommerce",
+    "status": "PASS",
+    "items": 9,
+    "fields": "name, product_url, image_url",
+    "lane": "http"
+  },
+  {
+    "name": "Google Play",
+    "url": "https://play.google.com/store/apps/details?id=com.whatsapp",
+    "category": "ecommerce",
+    "status": "PASS",
+    "items": 1,
+    "fields": "name, image_url, product_url",
+    "lane": "http"
+  },
+  {
+    "name": "Google Shopping",
+    "url": "https://shopping.google.com/search?q=laptop",
+    "category": "ecommerce",
+    "status": "PASS",
+    "items": 1,
+    "fields": "name, image_url, product_url",
+    "lane": "http"
+  },
+  {
+    "name": "eBay Search UK",
+    "url": "https://www.ebay.co.uk/sch/i.html?_nkw=rtx+4070",
+    "category": "marketplace",
+    "status": "PASS",
+    "items": 1,
+    "fields": "name, price, image_url, product_url",
+    "lane": "http"
+  },
+  {
+    "name": "eBay Search US",
+    "url": "https://www.ebay.com/sch/i.html?_nkw=iphone+15",
+    "category": "marketplace",
+    "status": "PASS",
+    "items": 1,
+    "fields": "name, price, image_url, product_url",
+    "lane": "http"
+  },
+  {
+    "name": "Kickstarter",
+    "url": "https://www.kickstarter.com/discover/advanced?sort=magic",
+    "category": "marketplace",
+    "status": "PASS",
+    "items": 1,
+    "fields": "name, price, product_url, currency",
+    "lane": "http"
+  },
+  {
+    "name": "Alibaba",
+    "url": "https://www.alibaba.com/products/laptop.html",
+    "category": "marketplace",
+    "status": "PASS",
+    "items": 4,
+    "fields": "name, product_url, price, image_url",
+    "lane": "http"
+  },
+  {
+    "name": "Etsy",
+    "url": "https://www.etsy.com/search?q=handmade+jewelry",
+    "category": "marketplace",
+    "status": "PASS",
+    "items": 64,
+    "fields": "name, image_url, rating, product_url",
+    "lane": "browser"
+  },
+  {
+    "name": "Trustpilot Amazon",
+    "url": "https://www.trustpilot.com/review/amazon.com",
+    "category": "reviews",
+    "status": "PASS",
+    "items": 56,
+    "fields": "name, product_url, price, image_url",
+    "lane": "http"
+  },
+  {
+    "name": "Trustpilot Gymshark",
+    "url": "https://www.trustpilot.com/review/gymshark.com",
+    "category": "reviews",
+    "status": "PASS",
+    "items": 3,
+    "fields": "name, price, image_url, rating",
+    "lane": "http"
+  },
+  {
+    "name": "YouTube Video",
+    "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    "category": "videos",
+    "status": "PASS",
+    "items": 1,
+    "fields": "video_url, name, video_id, view_count",
+    "lane": "http"
+  },
+  {
+    "name": "YouTube Search",
+    "url": "https://www.youtube.com/results?search_query=python",
+    "category": "videos",
+    "status": "PASS",
+    "items": 22,
+    "fields": "name, video_id, channel_name, view_count",
+    "lane": "http"
+  },
+  {
+    "name": "YouTube Channel",
+    "url": "https://www.youtube.com/@MrBeast",
+    "category": "videos",
+    "status": "PASS",
+    "items": 1,
+    "fields": "channel_url, channel_name, channel_id, description",
+    "lane": "browser"
+  },
+  {
+    "name": "YouTube Trending",
+    "url": "https://www.youtube.com/feed/trending",
+    "category": "videos",
+    "status": "PASS",
+    "items": 1,
+    "fields": "name, description, product_url, content_type",
+    "lane": "http"
+  },
+  {
+    "name": "Books Toscrape",
+    "url": "https://books.toscrape.com/",
+    "category": "test_site",
+    "status": "PASS",
+    "items": 200,
+    "fields": "name, product_url, price, image_url",
+    "lane": "http"
+  },
+  {
+    "name": "Quotes Toscrape",
+    "url": "https://quotes.toscrape.com/",
+    "category": "test_site",
+    "status": "PASS",
+    "items": 1,
+    "fields": "name, description, product_url, content_type",
+    "lane": "http"
+  },
+  {
+    "name": "Hacker News",
+    "url": "https://news.ycombinator.com/",
+    "category": "news",
+    "status": "PASS",
+    "items": 1,
+    "fields": "name, description, product_url, content_type",
+    "lane": "http"
+  },
+  {
+    "name": "BBC News",
+    "url": "https://www.bbc.co.uk/news",
+    "category": "news",
+    "status": "PASS",
+    "items": 5,
+    "fields": "name, product_url, image_url",
+    "lane": "http"
+  },
+  {
+    "name": "GitHub Trending",
+    "url": "https://github.com/trending",
+    "category": "dev",
+    "status": "PASS",
+    "items": 10,
+    "fields": "name, product_url, image_url",
+    "lane": "http"
+  },
+  {
+    "name": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Web_scraping",
+    "category": "content",
+    "status": "PASS",
+    "items": 1,
+    "fields": "name, description, product_url, content_type",
+    "lane": "http"
+  },
+  {
+    "name": "Amazon UK",
+    "url": "https://www.amazon.co.uk/dp/B0D1XD1ZV3",
+    "category": "ecommerce",
+    "status": "PASS",
+    "items": 1,
+    "fields": "product_url, name, price, rating",
+    "lane": "http"
+  },
+  {
+    "name": "Amazon US",
+    "url": "https://www.amazon.com/dp/B09V3KXJPB",
+    "category": "ecommerce",
+    "status": "PASS",
+    "items": 1,
+    "fields": "product_url, name, rating, reviews_count",
+    "lane": "http"
+  },
+  {
+    "name": "Walmart",
+    "url": "https://www.walmart.com/browse/electronics/tvs/3944_1060825_447913",
+    "category": "ecommerce",
+    "status": "PASS",
+    "items": 1,
+    "fields": "name, price, image_url, product_url",
+    "lane": "http"
+  },
+  {
+    "name": "Target",
+    "url": "https://www.target.com/",
+    "category": "ecommerce",
+    "status": "PASS",
+    "items": 3,
+    "fields": "name, price, image_url, product_url",
+    "lane": "http"
+  },
+  {
+    "name": "Reddit",
+    "url": "https://old.reddit.com/r/technology/",
+    "category": "content",
+    "status": "PASS",
+    "items": 1,
+    "fields": "name, product_url, price, currency",
+    "lane": "http"
+  },
+  {
+    "name": "TikTok Profile",
+    "url": "https://www.tiktok.com/@khaby.lame",
+    "category": "social",
+    "status": "PASS",
+    "items": 1,
+    "fields": "profile_url, username, nickname, bio",
+    "lane": "browser"
+  },
+  {
+    "name": "Instagram Profile",
+    "url": "https://www.instagram.com/cristiano/",
+    "category": "social",
+    "status": "PASS",
+    "items": 1,
+    "fields": "profile_url, username, full_name, bio",
+    "lane": "browser"
+  }
+]
