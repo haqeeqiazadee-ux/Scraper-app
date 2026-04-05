@@ -81,23 +81,25 @@ _CONDITION_PATTERNS = re.compile(
 
 # Priority order for Excel columns
 _COLUMN_PRIORITY = [
-    "post_id",
-    "author_name",
     "author",
-    "timestamp",
-    "text",
-    "post_type",
+    "author_name",
+    "listing_title",
+    "description",
     "price",
-    "currency",
     "location",
+    "post_type",
+    "image_count",
+    "timestamp",
+    "post_id",
+    "currency",
     "condition",
     "like_count",
     "comment_count",
     "share_count",
-    "image_count",
     "image_urls",
     "post_url",
     "author_profile_url",
+    "text",  # raw text last (debug)
 ]
 
 # ---------------------------------------------------------------------------
@@ -172,8 +174,63 @@ CAPTURE_JS = """
             post.image_urls = Array.from(imgs).map(i => i.src);
         }
 
-        // Full text
-        post.text = clean.substring(0, 800);
+        // --- SMART TEXT PARSING ---
+        // Raw textContent is a dump: Author + timestamp junk + "Shared with Public group" + POST CONTENT + price + location + title + "Message" + UI junk
+        // Strategy: strip noise, extract clean description and listing title
+
+        let body = clean;
+
+        // 1. Strip everything before "Shared with Public group" or "Shared with"
+        const sharedIdx = body.indexOf('Shared with');
+        if (sharedIdx > 0) {
+            const afterShared = body.indexOf('group', sharedIdx);
+            body = afterShared > 0 ? body.substring(afterShared + 5).trim() : body.substring(sharedIdx + 11).trim();
+        }
+
+        // 2. Strip everything after "Message" (FB UI buttons)
+        const msgIdx = body.indexOf('Message');
+        if (msgIdx > 0) body = body.substring(0, msgIdx).trim();
+
+        // 3. Remove "See more" markers
+        body = body.replace(/See more/g, '').trim();
+
+        // 4. Remove "Like", "Comment", "Share" buttons text
+        body = body.replace(/\\b(Like|Comment|Share|Reply|Send)\\b/g, '').trim();
+
+        // 5. Split remaining text: description is before the price, listing title is after location
+        let description = body;
+        let listing_title = '';
+
+        if (post.price) {
+            const priceIdx = body.indexOf(post.price);
+            if (priceIdx > 0) {
+                description = body.substring(0, priceIdx).trim();
+                // After price+location comes the listing title
+                let afterPrice = body.substring(priceIdx + post.price.length).trim();
+                // Remove location prefix if present
+                if (post.location) {
+                    const locIdx = afterPrice.indexOf(post.location);
+                    if (locIdx >= 0) {
+                        afterPrice = afterPrice.substring(locIdx + post.location.length).trim();
+                    }
+                }
+                // Clean up dots, dashes from separator
+                afterPrice = afterPrice.replace(/^[\\s·.\\-]+/, '').trim();
+                // Listing title is the next meaningful chunk (before any junk)
+                const titleMatch = afterPrice.match(/^([A-Za-z0-9][^\\n]{5,100})/);
+                if (titleMatch) listing_title = titleMatch[1].trim();
+            }
+        }
+
+        // 6. Clean up description: collapse whitespace, trim
+        description = description.replace(/\\s{2,}/g, ' ').trim();
+        if (description.length > 500) description = description.substring(0, 500) + '...';
+
+        post.description = description;
+        if (listing_title) post.listing_title = listing_title;
+
+        // Keep raw text for debugging but don't show in Excel by default
+        // post.raw_text = clean.substring(0, 500);
 
         // Only keep posts that have author OR price (skip UI chrome)
         if (post.author || post.price) {
