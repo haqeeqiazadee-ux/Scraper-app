@@ -38,16 +38,6 @@ function IconClock() {
   );
 }
 
-function IconGlobe() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="8" cy="8" r="6.5" />
-      <line x1="1.5" y1="8" x2="14.5" y2="8" />
-      <path d="M8 1.5a9.5 9.5 0 0 1 0 13" />
-      <path d="M8 1.5a9.5 9.5 0 0 0 0 13" />
-    </svg>
-  );
-}
 
 function IconTemplate() {
   return (
@@ -86,23 +76,6 @@ function IconFacebook() {
   );
 }
 
-function IconSpider() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="8" cy="6" r="2.5" />
-      <path d="M5.5 6L2 3M10.5 6L14 3M5.5 7L1.5 8.5M10.5 7L14.5 8.5M6 8.5L3 12M10 8.5L13 12" />
-    </svg>
-  );
-}
-
-function IconLock() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="7" width="10" height="7" rx="1.5" />
-      <path d="M5 7V5a3 3 0 016 0v2" />
-    </svg>
-  );
-}
 
 function IconSearch() {
   return (
@@ -113,15 +86,6 @@ function IconSearch() {
   );
 }
 
-function IconCode() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="5 4 1.5 8 5 12" />
-      <polyline points="11 4 14.5 8 11 12" />
-      <line x1="9.5" y1="2.5" x2="6.5" y2="13.5" />
-    </svg>
-  );
-}
 
 function IconDiff() {
   return (
@@ -171,11 +135,7 @@ const NAV_GROUPS: NavGroupStyled[] = [
     section: "SCRAPE",
     color: "#a5b4fc",    // Bright indigo
     items: [
-      { to: "/scrape-test",   label: "Quick Scrape",       Icon: IconSearch },
-      { to: "/auth-scrape",   label: "Auth Scrape",        Icon: IconLock },
-      { to: "/crawl",         label: "Web Crawl",          Icon: IconSpider },
-      { to: "/search",        label: "Web Search",         Icon: IconGlobe },
-      { to: "/extract",       label: "Structured Extract", Icon: IconCode },
+      { to: "/scraper",   label: "Scraper",       Icon: IconSearch },
     ],
   },
   {

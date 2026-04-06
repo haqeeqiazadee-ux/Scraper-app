@@ -14,15 +14,11 @@ import { SessionsPage } from "./pages/SessionsPage";
 import { ProxyPage } from "./pages/ProxyPage";
 import { RouteTesterPage } from "./pages/RouteTesterPage";
 import { WebhookHistoryPage } from "./pages/WebhookHistoryPage";
-import ScrapeTestPage from "./pages/ScrapeTestPage";
 import { TemplatesPage } from "./pages/TemplatesPage";
 import { AmazonPage } from "./pages/AmazonPage";
 import { GoogleMapsPage } from "./pages/GoogleMapsPage";
 import { FacebookGroupPage } from "./pages/FacebookGroupPage";
-import { AuthScrapePage } from "./pages/AuthScrapePage";
-import { CrawlPage } from "./pages/CrawlPage";
-import { SearchPage } from "./pages/SearchPage";
-import { ExtractPage } from "./pages/ExtractPage";
+import { ScraperPage } from "./pages/ScraperPage";
 import { ChangesPage } from "./pages/ChangesPage";
 import { McpPage } from "./pages/McpPage";
 import { ApiKeysPage } from "./pages/ApiKeysPage";
@@ -54,8 +50,12 @@ export function App() {
         <Route path="/results/:id" element={<ResultDetailPage />} />
         <Route path="/schedules" element={<SchedulesPage />} />
         <Route path="/route-tester" element={<RouteTesterPage />} />
-        <Route path="/scrape-test" element={<ScrapeTestPage />} />
-        <Route path="/auth-scrape" element={<AuthScrapePage />} />
+        <Route path="/scraper" element={<ScraperPage />} />
+        <Route path="/scrape-test" element={<Navigate to="/scraper" replace />} />
+        <Route path="/auth-scrape" element={<Navigate to="/scraper" replace />} />
+        <Route path="/crawl" element={<Navigate to="/scraper" replace />} />
+        <Route path="/search" element={<Navigate to="/scraper" replace />} />
+        <Route path="/extract" element={<Navigate to="/scraper" replace />} />
         <Route path="/templates" element={<TemplatesPage />} />
         <Route path="/amazon" element={<AmazonPage />} />
         <Route path="/google-maps" element={<GoogleMapsPage />} />
@@ -64,9 +64,6 @@ export function App() {
         <Route path="/proxies" element={<ProxyPage />} />
         <Route path="/webhooks" element={<WebhookHistoryPage />} />
         <Route path="/billing" element={<BillingPage />} />
-        <Route path="/crawl" element={<CrawlPage />} />
-        <Route path="/search" element={<SearchPage />} />
-        <Route path="/extract" element={<ExtractPage />} />
         <Route path="/changes" element={<ChangesPage />} />
         <Route path="/mcp" element={<McpPage />} />
         <Route path="/api-keys" element={<ApiKeysPage />} />
