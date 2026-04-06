@@ -231,13 +231,7 @@ def create_app() -> FastAPI:
     except Exception as e:
         logger.warning("Auth Scrape router not loaded: %s", e)
 
-    # --- Google Auth (OAuth2 for Google services) ---
-    try:
-        from services.control_plane.routers.google_auth import google_auth_router
-        app.include_router(google_auth_router, prefix="/api/v1", tags=["Google Auth"])
-        logger.info("Google Auth router mounted")
-    except Exception as e:
-        logger.warning("Google Auth router not loaded: %s", e)
+    # Google scraping uses cookie-based sessions via auth_scrape — no OAuth needed
 
     # --- Zero Checksum Public API ---
     try:

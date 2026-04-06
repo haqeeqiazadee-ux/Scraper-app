@@ -3,11 +3,11 @@
  * Upload browser cookies, create sessions, and scrape login-required pages.
  */
 
-import { useState, useRef, useEffect, type FormEvent, type ChangeEvent } from "react";
+import { useState, useRef, type FormEvent, type ChangeEvent } from "react";
 import { authScrape } from "../api/client";
 
 type ExtractionMode = "everything" | "table" | "fields" | "links";
-type TabId = "cookie-upload" | "browser-login" | "google-account";
+type TabId = "cookie-upload" | "browser-login" | "google-session";
 
 interface SessionInfo {
   session_id: string;
@@ -104,6 +104,18 @@ const PRESET_ICONS: Record<string, JSX.Element> = {
       <line x1="21" y1="21" x2="16.65" y2="16.65" />
     </svg>
   ),
+  mail: (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+      <polyline points="22,6 12,13 2,6" />
+    </svg>
+  ),
+  video: (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="23 7 16 12 23 17 23 7" />
+      <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+    </svg>
+  ),
 };
 
 export function AuthScrapePage() {
@@ -140,129 +152,73 @@ export function AuthScrapePage() {
     { id: "google-analytics", name: "Google Analytics", icon: "chart", login_url: "https://analytics.google.com", description: "Sessions, users, pageviews, traffic analytics", default_schema: { sessions: "number", users: "number", pageviews: "number" } },
   ]);
 
-  // Google Account state
-  const [googleStatus, setGoogleStatus] = useState<{
-    configured: boolean;
-    connected: boolean;
-    user_email?: string;
-    user_name?: string;
-    session_id?: string;
-  }>({ configured: false, connected: false });
-  const [googleConnecting, setGoogleConnecting] = useState(false);
-
-  // Google presets (subset for the Google Account tab)
+  // Google presets (for the Google Session tab)
   const googlePresets: Preset[] = [
-    { id: "google-sheets", name: "Google Sheets", icon: "table", login_url: "https://docs.google.com/spreadsheets", description: "Extract data from Google Spreadsheets", default_schema: { spreadsheet_title: "string", sheet_name: "string", rows: "number", columns: "number" } },
-    { id: "google-drive", name: "Google Drive", icon: "folder", login_url: "https://drive.google.com", description: "List files and folders from Google Drive", default_schema: { file_name: "string", type: "string", size: "string", modified: "string" } },
-    { id: "google-analytics", name: "Google Analytics", icon: "chart", login_url: "https://analytics.google.com", description: "Extract traffic reports and metrics", default_schema: { sessions: "number", users: "number", pageviews: "number", bounce_rate: "number" } },
-    { id: "google-search-console", name: "Search Console", icon: "search", login_url: "https://search.google.com/search-console", description: "Search performance data and indexing", default_schema: { query: "string", clicks: "number", impressions: "number", ctr: "number", position: "number" } },
+    { id: "google-sheets", name: "Google Sheets", icon: "table", login_url: "https://docs.google.com/spreadsheets", description: "Scrape spreadsheet data as a logged-in user", default_schema: { spreadsheet_title: "string", sheet_name: "string", rows: "number", columns: "number" } },
+    { id: "google-drive", name: "Google Drive", icon: "folder", login_url: "https://drive.google.com", description: "Scrape file listings from your Drive", default_schema: { file_name: "string", type: "string", size: "string", modified: "string" } },
+    { id: "google-analytics", name: "Google Analytics", icon: "chart", login_url: "https://analytics.google.com", description: "Scrape traffic reports and dashboard data", default_schema: { sessions: "number", users: "number", pageviews: "number", bounce_rate: "number" } },
+    { id: "google-search-console", name: "Search Console", icon: "search", login_url: "https://search.google.com/search-console", description: "Scrape search performance and indexing data", default_schema: { query: "string", clicks: "number", impressions: "number", ctr: "number", position: "number" } },
+    { id: "gmail", name: "Gmail", icon: "mail", login_url: "https://mail.google.com", description: "Scrape email subjects, senders, dates from inbox", default_schema: { subject: "string", from: "string", date: "string", snippet: "string" } },
+    { id: "youtube-studio", name: "YouTube Studio", icon: "video", login_url: "https://studio.youtube.com", description: "Scrape channel analytics, video performance", default_schema: { video_title: "string", views: "number", likes: "number", comments: "number" } },
   ];
 
-  async function refreshGoogleStatus() {
-    try {
-      const status = await authScrape.getGoogleStatus();
-      // Also check if we have an active Google session
-      const sessionsRes = await authScrape.listSessions();
-      const googleSession = sessionsRes.sessions?.find(
-        (s: any) => s.domain === "google.com" && s.status === "active"
-      );
-      setGoogleStatus({
-        configured: status.configured,
-        connected: !!googleSession,
-        user_email: googleSession?.user_email,
-        user_name: googleSession?.user_name,
-        session_id: googleSession?.id,
-      });
-      // If we have a Google session, also set it as the active session for scraping
-      if (googleSession && !sessionInfo) {
-        setSessionInfo({
-          session_id: googleSession.id,
-          domain: "google.com",
-          cookie_count: 0,
-          status: "active",
-          created_at: googleSession.created_at || "",
+  // Google cookie upload state
+  const googleFileRef = useRef<HTMLInputElement | null>(null);
+  const [googleCookies, setGoogleCookies] = useState<any[]>([]);
+  const [googleCookieInfo, setGoogleCookieInfo] = useState("");
+  const [googleUploading, setGoogleUploading] = useState(false);
+
+  function handleGoogleCookieFile(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const parsed = JSON.parse(ev.target?.result as string);
+        const arr = Array.isArray(parsed) ? parsed : [parsed];
+        // Filter to Google domain cookies
+        const googleOnly = arr.filter((c: any) => {
+          const domain = (c.domain || c.Domain || "").toLowerCase();
+          return domain.includes("google.") || domain.includes(".google.") || domain.includes("youtube.") || domain.includes("gmail.");
         });
+        if (googleOnly.length === 0) {
+          setError("No Google cookies found. Make sure you export cookies while logged into a Google service (Gmail, Drive, Sheets, etc.).");
+          setGoogleCookies([]);
+          setGoogleCookieInfo("");
+          return;
+        }
+        setGoogleCookies(googleOnly);
+        const domains = [...new Set(googleOnly.map((c: any) => c.domain || c.Domain))].slice(0, 5).join(", ");
+        setGoogleCookieInfo(`${googleOnly.length} Google cookies found (${domains})`);
+        setError("");
+      } catch {
+        setError("Invalid JSON file. Export cookies using Cookie-Editor extension.");
+        setGoogleCookies([]);
+        setGoogleCookieInfo("");
       }
-    } catch {
-      // Google auth not available
-      setGoogleStatus({ configured: false, connected: false });
-    }
+    };
+    reader.readAsText(file);
   }
 
-  // On mount: check Google status and handle OAuth callback
-  useEffect(() => {
-    refreshGoogleStatus();
-
-    // Check if we're returning from Google OAuth (URL has ?code=...&state=...)
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get("code");
-    const state = params.get("state");
-    if (code && state) {
-      // Clean URL
-      window.history.replaceState({}, "", window.location.pathname);
-      // Exchange code for session
-      setGoogleConnecting(true);
-      authScrape.handleGoogleCallback(code, state)
-        .then((res) => {
-          setGoogleStatus({
-            configured: true,
-            connected: true,
-            user_email: res.user_email,
-            user_name: res.user_name,
-            session_id: res.session_id,
-          });
-          setSessionInfo({
-            session_id: res.session_id,
-            domain: "google.com",
-            cookie_count: 0,
-            status: "active",
-            created_at: res.created_at,
-          });
-          setActiveTab("google-account");
-        })
-        .catch((err) => {
-          setError(err instanceof Error ? err.message : "Google OAuth callback failed");
-        })
-        .finally(() => setGoogleConnecting(false));
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  async function handleGoogleConnect() {
-    setGoogleConnecting(true);
+  async function handleGoogleSessionCreate() {
+    if (googleCookies.length === 0) return;
+    setGoogleUploading(true);
     setError("");
     try {
-      const { auth_url } = await authScrape.getGoogleAuthUrl();
-      const popup = window.open(auth_url, "google-auth", "width=500,height=600");
-      // Poll for popup close, then refresh status
-      const interval = setInterval(async () => {
-        if (popup?.closed) {
-          clearInterval(interval);
-          await refreshGoogleStatus();
-          setGoogleConnecting(false);
-        }
-      }, 1000);
-      // Safety timeout to stop polling after 5 minutes
-      setTimeout(() => {
-        clearInterval(interval);
-        setGoogleConnecting(false);
-      }, 300000);
+      const res = await authScrape.uploadSession(googleCookies, "google.com");
+      setSessionInfo(res);
+      setGoogleCookieInfo("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to start Google OAuth");
-      setGoogleConnecting(false);
+      setError(err instanceof Error ? err.message : "Failed to create Google session");
+    } finally {
+      setGoogleUploading(false);
     }
   }
 
-  async function handleGoogleDisconnect() {
-    if (!googleStatus.session_id) return;
-    try {
-      await authScrape.deleteSession(googleStatus.session_id);
-      setGoogleStatus({ configured: googleStatus.configured, connected: false });
-      if (sessionInfo?.session_id === googleStatus.session_id) {
-        setSessionInfo(null);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to disconnect Google account");
-    }
+  function handleGoogleDisconnect() {
+    if (!sessionInfo?.session_id) return;
+    authScrape.deleteSession(sessionInfo.session_id).catch(() => {});
+    setSessionInfo(null);
   }
 
   // ----- Cookie file handler -----
@@ -417,7 +373,7 @@ export function AuthScrapePage() {
           {([
             { id: "cookie-upload" as TabId, label: "Cookie Upload" },
             { id: "browser-login" as TabId, label: "Browser Login" },
-            { id: "google-account" as TabId, label: "Google Account" },
+            { id: "google-session" as TabId, label: "Google Session" },
           ]).map((tab, idx, arr) => (
             <button
               key={tab.id}
@@ -549,9 +505,9 @@ export function AuthScrapePage() {
             </div>
           )}
 
-          {activeTab === "google-account" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-              {/* Google Logo + Connect */}
+          {activeTab === "google-session" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {/* Google Logo + Explanation */}
               <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                 <svg width="32" height="32" viewBox="0 0 48 48">
                   <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
@@ -560,143 +516,126 @@ export function AuthScrapePage() {
                   <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
                 </svg>
                 <div>
-                  <div style={{ fontSize: 16, fontWeight: 600, color: "var(--color-text)" }}>Google Account</div>
+                  <div style={{ fontSize: 16, fontWeight: 600, color: "var(--color-text)" }}>Google Session</div>
                   <div style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
-                    Connect via OAuth2 for Sheets, Drive, Analytics, and Search Console
+                    Use your active Google login to scrape Sheets, Drive, Analytics, Gmail, YouTube Studio, and any Google SSO site
                   </div>
                 </div>
               </div>
 
-              {/* Connected state */}
-              {googleStatus.connected ? (
+              {/* How it works */}
+              <div style={{
+                padding: "12px 16px", borderRadius: 8,
+                background: "rgba(66, 133, 244, 0.06)",
+                border: "1px solid rgba(66, 133, 244, 0.15)",
+                fontSize: 13, color: "var(--color-text-secondary)", lineHeight: 1.6,
+              }}>
+                <strong style={{ color: "var(--color-text)" }}>How it works:</strong> Export your Google cookies from your browser while logged into Gmail/Google. The scraper uses your active session to access Google services exactly as you see them — no API keys needed.
+                <ol style={{ margin: "8px 0 0", paddingLeft: 20, fontSize: 12 }}>
+                  <li>Log into <strong>Gmail</strong> or any Google service in your browser</li>
+                  <li>Install <a href="https://chromewebstore.google.com/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm" target="_blank" rel="noopener" style={{ color: "var(--color-primary)" }}>Cookie-Editor</a> extension</li>
+                  <li>Click the extension icon → <strong>Export</strong> → <strong>Export as JSON</strong></li>
+                  <li>Upload the JSON file below</li>
+                </ol>
+              </div>
+
+              {/* Google Cookie Upload */}
+              <div>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--color-text-secondary)", marginBottom: 6 }}>
+                  Google Cookies File
+                </label>
+                <input
+                  ref={googleFileRef}
+                  type="file"
+                  accept=".json"
+                  onChange={handleGoogleCookieFile}
+                  style={{
+                    width: "100%", padding: "10px 14px",
+                    border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)",
+                    fontSize: 13, boxSizing: "border-box",
+                  }}
+                />
+                {googleCookieInfo && (
+                  <div style={{ fontSize: 12, color: "#059669", marginTop: 6, fontWeight: 500 }}>
+                    {googleCookieInfo}
+                  </div>
+                )}
+              </div>
+
+              {/* Create Session Button */}
+              {googleCookies.length > 0 && !sessionInfo && (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleGoogleSessionCreate}
+                  disabled={googleUploading}
+                  style={{ height: 44, paddingInline: 28, alignSelf: "flex-start" }}
+                >
+                  {googleUploading ? "Creating Session..." : `Create Google Session (${googleCookies.length} cookies)`}
+                </button>
+              )}
+
+              {/* Connected indicator */}
+              {sessionInfo && sessionInfo.domain?.includes("google") && (
                 <div style={{
-                  padding: "14px 18px",
-                  borderRadius: 10,
+                  padding: "10px 16px", borderRadius: 8,
                   border: "1px solid rgba(5, 150, 105, 0.3)",
                   background: "rgba(5, 150, 105, 0.06)",
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
                 }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <span style={{
-                        display: "inline-block", padding: "3px 10px",
-                        borderRadius: 9999, fontSize: 12, fontWeight: 600,
-                        color: "#059669", background: "rgba(5, 150, 105, 0.15)",
-                      }}>
-                        Connected
-                      </span>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text)" }}>
-                        {googleStatus.user_email || "Google Account"}
-                      </span>
-                      {googleStatus.user_name && (
-                        <span style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
-                          ({googleStatus.user_name})
-                        </span>
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleGoogleDisconnect}
-                      style={{
-                        padding: "6px 14px", borderRadius: 6,
-                        border: "1px solid var(--color-border)",
-                        background: "transparent",
-                        color: "var(--color-text-secondary)",
-                        fontSize: 12, fontWeight: 600,
-                        cursor: "pointer",
-                      }}
-                    >
-                      Disconnect
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    onClick={handleGoogleConnect}
-                    disabled={googleConnecting}
-                    style={{ height: 48, paddingInline: 32, fontSize: 15 }}
-                  >
-                    {googleConnecting ? (
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                        <span className="spinner" /> Connecting...
-                      </span>
-                    ) : "Connect Google Account"}
+                  <span style={{ fontSize: 13, color: "#059669", fontWeight: 600 }}>
+                    Google session active — ready to scrape
+                  </span>
+                  <button type="button" onClick={handleGoogleDisconnect} style={{
+                    padding: "4px 12px", borderRadius: 6, border: "1px solid var(--color-border)",
+                    background: "transparent", color: "var(--color-text-secondary)", fontSize: 11,
+                    fontWeight: 600, cursor: "pointer",
+                  }}>
+                    Disconnect
                   </button>
-                  {!googleStatus.configured && (
-                    <p style={{ fontSize: 12, color: "var(--color-text-secondary)", marginTop: 8 }}>
-                      Google OAuth is not configured on the server. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables.
-                    </p>
-                  )}
                 </div>
               )}
 
               {/* Google-specific presets */}
               <div>
                 <h4 style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text)", marginBottom: 10 }}>
-                  Google Services
+                  Google Services — click to pre-fill
                 </h4>
-                <div style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
-                  gap: 10,
-                }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 10 }}>
                   {googlePresets.map((preset) => (
                     <button
                       key={preset.id}
                       type="button"
                       onClick={() => handlePresetClick(preset)}
-                      disabled={!googleStatus.connected}
                       style={{
-                        display: "flex", alignItems: "flex-start", gap: 12,
-                        padding: 14, borderRadius: 10,
+                        display: "flex", alignItems: "flex-start", gap: 10,
+                        padding: 12, borderRadius: 8,
                         border: "1px solid var(--color-border)",
-                        background: googleStatus.connected ? "var(--color-surface)" : "rgba(0,0,0,0.02)",
-                        cursor: googleStatus.connected ? "pointer" : "not-allowed",
-                        textAlign: "left",
-                        opacity: googleStatus.connected ? 1 : 0.5,
+                        background: "var(--color-surface)",
+                        cursor: "pointer", textAlign: "left",
                         transition: "all 0.15s",
                       }}
-                      onMouseEnter={(e) => {
-                        if (googleStatus.connected) {
-                          e.currentTarget.style.borderColor = "var(--color-primary)";
-                          e.currentTarget.style.background = "rgba(99, 102, 241, 0.04)";
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor = "var(--color-border)";
-                        e.currentTarget.style.background = googleStatus.connected ? "var(--color-surface)" : "rgba(0,0,0,0.02)";
-                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--color-primary)"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--color-border)"; }}
                     >
                       <div style={{
-                        width: 36, height: 36, borderRadius: 8,
+                        width: 32, height: 32, borderRadius: 6,
                         background: "linear-gradient(135deg, #4285F4, #34A853)",
                         display: "flex", alignItems: "center", justifyContent: "center",
                         flexShrink: 0, color: "white",
                       }}>
                         {PRESET_ICONS[preset.icon] ?? (
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="12" cy="12" r="10" />
-                          </svg>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /></svg>
                         )}
                       </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)", marginBottom: 2 }}>
-                          {preset.name}
-                        </div>
-                        <div style={{ fontSize: 11, color: "var(--color-text-secondary)", lineHeight: 1.4 }}>
-                          {preset.description}
-                        </div>
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text)" }}>{preset.name}</div>
+                        <div style={{ fontSize: 11, color: "var(--color-text-secondary)" }}>{preset.description}</div>
                       </div>
                     </button>
                   ))}
                 </div>
               </div>
-
-              <p style={{ fontSize: 11, color: "var(--color-text-secondary)", margin: 0 }}>
-                Or export Google cookies manually using the Cookie Upload tab.
-              </p>
             </div>
           )}
         </div>

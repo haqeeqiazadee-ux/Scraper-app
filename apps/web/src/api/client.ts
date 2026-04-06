@@ -796,24 +796,6 @@ export const authScrape = {
   getPresets(): Promise<any> {
     return request("/auth-scrape/presets");
   },
-  getGoogleAuthUrl(): Promise<{ auth_url: string; state: string }> {
-    return request("/auth-scrape/google/auth-url");
-  },
-  handleGoogleCallback(code: string, state: string): Promise<any> {
-    return request("/auth-scrape/google/callback", {
-      method: "POST",
-      body: JSON.stringify({ code, state }),
-    });
-  },
-  getGoogleStatus(): Promise<{ configured: boolean; scopes?: string[] }> {
-    return request("/auth-scrape/google/status");
-  },
-  refreshGoogleToken(sessionId: string): Promise<any> {
-    return request("/auth-scrape/google/refresh", {
-      method: "POST",
-      body: JSON.stringify({ session_id: sessionId }),
-    });
-  },
 };
 
 export const maps = {
