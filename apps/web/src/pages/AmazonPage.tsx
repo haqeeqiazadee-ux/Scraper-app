@@ -127,6 +127,34 @@ export function AmazonPage() {
         </div>
       </div>
 
+      {/* Info box */}
+      <div style={{
+        padding: "14px 18px",
+        marginBottom: 20,
+        borderRadius: 10,
+        border: "1px solid var(--color-border)",
+        background: "rgba(255, 153, 0, 0.05)",
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 10,
+        fontSize: 13,
+        color: "var(--color-text-secondary)",
+        lineHeight: 1.5,
+      }}>
+        <span style={{ fontSize: 16, lineHeight: 1 }}>&#128230;</span>
+        <div>
+          <strong style={{ color: "var(--color-text)" }}>Amazon / Keepa</strong> looks up Amazon products via Keepa API — enter an ASIN, URL, or keyword. Returns real-time price, rating, reviews, sales rank, and full product details across 11 marketplaces.
+          <br />
+          <span style={{ fontSize: 12 }}>
+            <strong>Use cases:</strong> Price monitoring, competitor tracking, product research, FBA analysis
+          </span>
+          <br />
+          <span style={{ fontSize: 12 }}>
+            <strong>Limitation:</strong> Requires Keepa API key, consumes API tokens per query
+          </span>
+        </div>
+      </div>
+
       {/* Query Type Buttons */}
       <div style={{ marginBottom: 20 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text-secondary)", marginBottom: 10 }}>

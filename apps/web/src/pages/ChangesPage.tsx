@@ -199,6 +199,34 @@ export function ChangesPage() {
         </div>
       </div>
 
+      {/* Info box */}
+      <div style={{
+        padding: "14px 18px",
+        marginBottom: 20,
+        borderRadius: 10,
+        border: "1px solid var(--color-border)",
+        background: "rgba(249, 115, 22, 0.05)",
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 10,
+        fontSize: 13,
+        color: "var(--color-text-secondary)",
+        lineHeight: 1.5,
+      }}>
+        <span style={{ fontSize: 16, lineHeight: 1 }}>&#128260;</span>
+        <div>
+          <strong style={{ color: "var(--color-text)" }}>Change Detection</strong> lets you paste two JSON snapshots to detect differences — added items, removed items, price changes, and field modifications. Calculates percentage changes for pricing.
+          <br />
+          <span style={{ fontSize: 12 }}>
+            <strong>Use cases:</strong> Price drop alerts, inventory tracking, content change monitoring
+          </span>
+          <br />
+          <span style={{ fontSize: 12 }}>
+            <strong>Limitation:</strong> Client-side only — you paste the data, no automatic fetching
+          </span>
+        </div>
+      </div>
+
       {/* Two-panel form */}
       <div className="accent-card" style={{ marginBottom: 24, padding: 24 }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>

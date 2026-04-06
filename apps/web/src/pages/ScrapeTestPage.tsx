@@ -51,6 +51,34 @@ export default function ScrapeTestPage() {
           <p>Enter any URL, choose what to extract, and see results instantly. Results are auto-saved.</p>
         </div>
       </div>
+      {/* Info box */}
+      <div style={{
+        padding: "14px 18px",
+        margin: "0 24px 20px",
+        borderRadius: 10,
+        border: "1px solid var(--color-border)",
+        background: "rgba(99, 102, 241, 0.05)",
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 10,
+        fontSize: 13,
+        color: "var(--color-text-secondary)",
+        lineHeight: 1.5,
+      }}>
+        <span style={{ fontSize: 16, lineHeight: 1 }}>&#9889;</span>
+        <div>
+          <strong style={{ color: "var(--color-text)" }}>Quick Scrape</strong> extracts data from any single URL instantly. Choose Everything mode for full page content, Products for pricing data, Text Content for articles, or Custom Fields to define your own schema.
+          <br />
+          <span style={{ fontSize: 12 }}>
+            <strong>Use cases:</strong> Product research, content monitoring, competitive analysis
+          </span>
+          <br />
+          <span style={{ fontSize: 12 }}>
+            <strong>Limitation:</strong> Single page only — use Web Crawl for multi-page sites
+          </span>
+        </div>
+      </div>
+
       <div className="page-body">
         {/* Input bar */}
         <div className="card" style={{ marginBottom: 16 }}>

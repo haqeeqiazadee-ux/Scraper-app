@@ -178,6 +178,34 @@ export function McpPage() {
         </div>
       </div>
 
+      {/* Info box */}
+      <div style={{
+        padding: "14px 18px",
+        marginBottom: 32,
+        borderRadius: 10,
+        border: "1px solid var(--color-border)",
+        background: "rgba(34, 197, 94, 0.05)",
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 10,
+        fontSize: 13,
+        color: "var(--color-text-secondary)",
+        lineHeight: 1.5,
+      }}>
+        <span style={{ fontSize: 16, lineHeight: 1 }}>&#129302;</span>
+        <div>
+          <strong style={{ color: "var(--color-text)" }}>MCP Server</strong> connects Claude, VS Code, or any MCP-compatible AI agent directly to your scraping infrastructure. Agents can scrape, crawl, search, and extract without leaving their environment.
+          <br />
+          <span style={{ fontSize: 12 }}>
+            <strong>Use cases:</strong> AI-powered research, automated data collection from Claude, agent workflows
+          </span>
+          <br />
+          <span style={{ fontSize: 12 }}>
+            <strong>Limitation:</strong> Requires local installation of the MCP server
+          </span>
+        </div>
+      </div>
+
       {/* Available Tools */}
       <div style={{ marginBottom: 32 }}>
         <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--color-text)", marginBottom: 16 }}>Available Tools</h2>

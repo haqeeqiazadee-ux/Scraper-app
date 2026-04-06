@@ -118,6 +118,34 @@ export function GoogleMapsPage() {
         </div>
       </div>
 
+      {/* Info box */}
+      <div style={{
+        padding: "14px 18px",
+        marginBottom: 20,
+        borderRadius: 10,
+        border: "1px solid var(--color-border)",
+        background: "rgba(66, 133, 244, 0.05)",
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 10,
+        fontSize: 13,
+        color: "var(--color-text-secondary)",
+        lineHeight: 1.5,
+      }}>
+        <span style={{ fontSize: 16, lineHeight: 1 }}>&#128205;</span>
+        <div>
+          <strong style={{ color: "var(--color-text)" }}>Google Maps</strong> searches for businesses via Serper Places API. Returns name, rating, address, phone, and website for businesses in any location.
+          <br />
+          <span style={{ fontSize: 12 }}>
+            <strong>Use cases:</strong> Lead generation, local business research, restaurant/store discovery
+          </span>
+          <br />
+          <span style={{ fontSize: 12 }}>
+            <strong>Limitation:</strong> Results from Serper Places API (not direct Google Maps scraping)
+          </span>
+        </div>
+      </div>
+
       {/* Search Type Buttons */}
       <div style={{ marginBottom: 20 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text-secondary)", marginBottom: 10 }}>

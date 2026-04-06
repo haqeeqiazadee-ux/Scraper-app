@@ -21,6 +21,10 @@ export function CrawlPage() {
   const [maxDepth, setMaxDepth] = useState(3);
   const [maxPages, setMaxPages] = useState(100);
   const [outputFormat, setOutputFormat] = useState("json");
+  const [crawlFocus, setCrawlFocus] = useState("everything");
+  const [includePatterns, setIncludePatterns] = useState("");
+  const [excludePatterns, setExcludePatterns] = useState("");
+  const [crawlDelay, setCrawlDelay] = useState(0.5);
   const [isStarting, setIsStarting] = useState(false);
   const [error, setError] = useState("");
 
@@ -80,11 +84,16 @@ export function CrawlPage() {
     setResults(null);
 
     try {
+      const incPatterns = includePatterns.split(",").map((s) => s.trim()).filter(Boolean);
+      const excPatterns = excludePatterns.split(",").map((s) => s.trim()).filter(Boolean);
       const res = await crawl.start({
         seed_urls: [url.trim()],
         max_depth: maxDepth,
         max_pages: maxPages,
         output_format: outputFormat,
+        crawl_delay: crawlDelay,
+        ...(incPatterns.length > 0 ? { url_patterns: incPatterns } : {}),
+        ...(excPatterns.length > 0 ? { deny_patterns: excPatterns } : {}),
       });
       setCrawlId(res.crawl_id);
       setCrawlData({ crawl_id: res.crawl_id, status: res.status as CrawlStatus });
@@ -161,9 +170,33 @@ export function CrawlPage() {
           <div>
             <h2 style={{ fontSize: 24, fontWeight: 700, color: "var(--color-text)", margin: 0 }}>Web Crawl</h2>
             <p style={{ fontSize: 13, color: "var(--color-text-secondary)", margin: 0 }}>
-              Recursively crawl websites, extract structured data from every page
+              Give a URL, crawl the entire site by following links. Extracts data from every page it discovers.
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* How it works */}
+      <div style={{
+        padding: "14px 18px",
+        marginBottom: 20,
+        borderRadius: 10,
+        border: "1px solid var(--color-border)",
+        background: "rgba(79, 70, 229, 0.05)",
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 10,
+        fontSize: 13,
+        color: "var(--color-text-secondary)",
+        lineHeight: 1.5,
+      }}>
+        <span style={{ fontSize: 16, lineHeight: 1 }}>&#128269;</span>
+        <div>
+          <strong style={{ color: "var(--color-text)" }}>How Web Crawl works:</strong> You provide a starting URL and the crawler follows links within that website, extracting data from every page it discovers. Control how deep it goes (depth) and how many pages to visit.
+          <br />
+          <span style={{ fontSize: 12 }}>
+            <strong>Different from Web Search:</strong> Search takes a keyword query, finds URLs via search engines (Google/Serper), then scrapes each result. Crawl starts from a specific URL and explores the site itself.
+          </span>
         </div>
       </div>
 
@@ -229,6 +262,104 @@ export function CrawlPage() {
                 </select>
               </div>
             </div>
+            {/* Crawl Focus */}
+            <div>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--color-text-secondary)", marginBottom: 6 }}>
+                What to Extract
+              </label>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {[
+                  { value: "everything", label: "Everything", desc: "All content, links, metadata from every page" },
+                  { value: "products", label: "Products", desc: "Product listings, prices, and e-commerce data" },
+                  { value: "articles", label: "Articles", desc: "Blog posts, news articles, and text content" },
+                  { value: "links", label: "Links Only", desc: "Discover all URLs and site structure" },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setCrawlFocus(opt.value)}
+                    title={opt.desc}
+                    style={{
+                      padding: "6px 14px",
+                      fontSize: 13,
+                      fontWeight: crawlFocus === opt.value ? 700 : 500,
+                      borderRadius: 6,
+                      border: crawlFocus === opt.value ? "2px solid var(--color-primary)" : "1px solid var(--color-border)",
+                      background: crawlFocus === opt.value ? "rgba(99, 102, 241, 0.1)" : "transparent",
+                      color: crawlFocus === opt.value ? "var(--color-primary)" : "var(--color-text-secondary)",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <div style={{ fontSize: 11, color: "var(--color-text-secondary)", marginTop: 4 }}>
+                {[
+                  { value: "everything", desc: "All content, links, metadata from every page" },
+                  { value: "products", desc: "Product listings, prices, and e-commerce data" },
+                  { value: "articles", desc: "Blog posts, news articles, and text content" },
+                  { value: "links", desc: "Discover all URLs and site structure" },
+                ].find((o) => o.value === crawlFocus)?.desc}
+              </div>
+            </div>
+
+            {/* URL Patterns */}
+            <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--color-text-secondary)", marginBottom: 6 }}>
+                  Include URL Patterns <span style={{ fontWeight: 400, fontSize: 11 }}>(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="/products/*, /category/*"
+                  value={includePatterns}
+                  onChange={(e) => setIncludePatterns(e.target.value)}
+                  disabled={isStarting}
+                  style={{ width: "100%", padding: "10px 14px", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", fontSize: 13, boxSizing: "border-box" }}
+                />
+                <div style={{ fontSize: 11, color: "var(--color-text-secondary)", marginTop: 3 }}>
+                  Only crawl URLs matching these patterns (comma-separated)
+                </div>
+              </div>
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--color-text-secondary)", marginBottom: 6 }}>
+                  Exclude URL Patterns <span style={{ fontWeight: 400, fontSize: 11 }}>(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="/login, /admin/*, /api/*"
+                  value={excludePatterns}
+                  onChange={(e) => setExcludePatterns(e.target.value)}
+                  disabled={isStarting}
+                  style={{ width: "100%", padding: "10px 14px", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", fontSize: 13, boxSizing: "border-box" }}
+                />
+                <div style={{ fontSize: 11, color: "var(--color-text-secondary)", marginTop: 3 }}>
+                  Skip URLs matching these patterns (comma-separated)
+                </div>
+              </div>
+            </div>
+
+            {/* Crawl Delay */}
+            <div style={{ maxWidth: 200 }}>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--color-text-secondary)", marginBottom: 6 }}>
+                Crawl Delay (seconds)
+              </label>
+              <input
+                type="number"
+                min={0}
+                max={10}
+                step={0.5}
+                value={crawlDelay}
+                onChange={(e) => setCrawlDelay(Number(e.target.value))}
+                disabled={isStarting}
+                style={{ width: "100%", padding: "10px 14px", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", fontSize: 14, boxSizing: "border-box" }}
+              />
+              <div style={{ fontSize: 11, color: "var(--color-text-secondary)", marginTop: 3 }}>
+                Delay between requests to be polite to the server
+              </div>
+            </div>
+
             <div>
               <button
                 type="submit"

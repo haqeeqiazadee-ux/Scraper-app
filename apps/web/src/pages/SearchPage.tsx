@@ -64,9 +64,33 @@ export function SearchPage() {
           <div>
             <h2 style={{ fontSize: 24, fontWeight: 700, color: "var(--color-text)", margin: 0 }}>Web Search</h2>
             <p style={{ fontSize: 13, color: "var(--color-text-secondary)", margin: 0 }}>
-              Search the web and extract structured data from results
+              Enter a keyword query, find top results from search engines, and auto-scrape each page
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* How it works */}
+      <div style={{
+        padding: "14px 18px",
+        marginBottom: 20,
+        borderRadius: 10,
+        border: "1px solid var(--color-border)",
+        background: "rgba(5, 150, 105, 0.05)",
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 10,
+        fontSize: 13,
+        color: "var(--color-text-secondary)",
+        lineHeight: 1.5,
+      }}>
+        <span style={{ fontSize: 16, lineHeight: 1 }}>&#127760;</span>
+        <div>
+          <strong style={{ color: "var(--color-text)" }}>How Web Search works:</strong> Enter a keyword (like "best gaming laptops 2026"). The system searches via Serper (Google), gets the top URLs, then scrapes each result page to extract structured data.
+          <br />
+          <span style={{ fontSize: 12 }}>
+            <strong>Different from Web Crawl:</strong> Crawl takes a specific URL and follows internal links to map an entire site. Search takes a keyword and finds relevant pages across the entire web.
+          </span>
         </div>
       </div>
 

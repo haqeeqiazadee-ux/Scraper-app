@@ -93,6 +93,34 @@ export function SchedulesPage() {
         <p>Automate scraping tasks with cron expressions or fixed intervals.</p>
       </div>
 
+      {/* Info box */}
+      <div style={{
+        padding: "14px 18px",
+        margin: "0 24px 20px",
+        borderRadius: 10,
+        border: "1px solid var(--color-border)",
+        background: "rgba(99, 102, 241, 0.05)",
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 10,
+        fontSize: 13,
+        color: "var(--color-text-secondary)",
+        lineHeight: 1.5,
+      }}>
+        <span style={{ fontSize: 16, lineHeight: 1 }}>&#128338;</span>
+        <div>
+          <strong style={{ color: "var(--color-text)" }}>Schedules</strong> let you automate scraping tasks with cron expressions. Set up recurring scrapes to monitor prices, track content changes, or collect data on a schedule.
+          <br />
+          <span style={{ fontSize: 12 }}>
+            <strong>Use cases:</strong> Daily price monitoring, weekly competitor analysis, hourly stock tracking
+          </span>
+          <br />
+          <span style={{ fontSize: 12 }}>
+            <strong>Limitation:</strong> Schedule execution requires self-hosted backend
+          </span>
+        </div>
+      </div>
+
       <div className="page-body">
         {/* Toolbar */}
         <div className="toolbar">

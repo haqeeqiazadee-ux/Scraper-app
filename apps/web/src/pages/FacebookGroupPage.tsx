@@ -174,28 +174,23 @@ export function FacebookGroupPage() {
         </div>
       </div>
 
-      {/* Requirements Note */}
+      {/* Info */}
       <div style={{
-        padding: "16px 20px",
+        padding: "14px 18px",
         marginBottom: 24,
         borderRadius: 10,
-        border: "1px solid #fbbf24",
-        background: "rgba(251, 191, 36, 0.08)",
-        display: "flex",
-        alignItems: "flex-start",
-        gap: 12,
+        border: "1px solid var(--color-border)",
+        background: "rgba(24, 119, 242, 0.05)",
+        fontSize: 13,
+        color: "var(--color-text-secondary)",
+        lineHeight: 1.6,
       }}>
-        <span style={{ fontSize: 20, lineHeight: 1 }}>&#9888;</span>
-        <div>
-          <div style={{ fontWeight: 700, fontSize: 14, color: "var(--color-text)", marginBottom: 4 }}>
-            Requirements: Self-Hosted Backend
-          </div>
-          <div style={{ fontSize: 13, color: "var(--color-text-secondary)", lineHeight: 1.5 }}>
-            Facebook Groups scraping requires a self-hosted backend with Chrome/Playwright installed.
-            This feature <strong>cannot work on Netlify</strong> as it needs a server-side browser.
-            Deploy the backend locally or on a VM with Docker for full functionality.
-          </div>
-        </div>
+        This feature uses <strong style={{ color: "var(--color-text)" }}>Playwright + CDP (Chrome DevTools Protocol)</strong> to scroll through Facebook group feeds, capture posts, and export to Excel. Upload your Facebook cookies, enter a group URL, and it handles the rest — auto-scrolling, data capture, and structured export.
+        <br />
+        <span style={{ fontSize: 12 }}>
+          <strong>Use cases:</strong> Market research, community monitoring, competitor analysis &nbsp;|&nbsp;
+          <strong>Requires:</strong> Self-hosted backend with Chrome installed + Facebook cookies
+        </span>
       </div>
 
       {/* Step 1: Cookie Upload */}

@@ -89,6 +89,34 @@ export function ExtractPage() {
         </div>
       </div>
 
+      {/* Info box */}
+      <div style={{
+        padding: "14px 18px",
+        marginBottom: 20,
+        borderRadius: 10,
+        border: "1px solid var(--color-border)",
+        background: "rgba(124, 58, 237, 0.05)",
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 10,
+        fontSize: 13,
+        color: "var(--color-text-secondary)",
+        lineHeight: 1.5,
+      }}>
+        <span style={{ fontSize: 16, lineHeight: 1 }}>&#128196;</span>
+        <div>
+          <strong style={{ color: "var(--color-text)" }}>Structured Extract</strong> lets you define exactly which fields to extract using a JSON schema. The system scrapes the page and maps data to your schema fields.
+          <br />
+          <span style={{ fontSize: 12 }}>
+            <strong>Use cases:</strong> Extract title+price+availability from product pages, pull author+date+content from articles
+          </span>
+          <br />
+          <span style={{ fontSize: 12 }}>
+            <strong>Limitation:</strong> Works best on pages with clear HTML structure
+          </span>
+        </div>
+      </div>
+
       {/* Form */}
       <form onSubmit={handleExtract} style={{ marginBottom: 24 }}>
         <div className="accent-card" style={{ padding: 24 }}>
