@@ -135,6 +135,14 @@ function IconPlug() {
   );
 }
 
+function IconKey() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14.5 1.5l-1.5 1.5m-4.5 4.5a3.5 3.5 0 11-5 5 3.5 3.5 0 015-5zm0 0L10 7m0 0l2 2 2.5-2.5-2-2" />
+    </svg>
+  );
+}
+
 /* ── Nav groups ── */
 
 interface NavItem {
@@ -191,6 +199,7 @@ const NAV_GROUPS: NavGroupStyled[] = [
     color: "#cbd5e1",    // Bright slate
     items: [
       { to: "/tasks",     label: "Tasks",         Icon: IconList },
+      { to: "/api-keys",  label: "API Keys",      Icon: IconKey },
     ],
   },
 ];
