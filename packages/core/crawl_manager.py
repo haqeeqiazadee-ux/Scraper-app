@@ -251,17 +251,22 @@ class CrawlManager:
                     )
                     break
 
-                # Pop URL from queue
-                message = await self._queue.dequeue(queue_name)
+                # Pop URL from queue with timeout (not instant get_nowait)
+                message = await self._queue.dequeue(queue_name, timeout_seconds=2)
                 if message is None:
-                    # Queue is empty -- wait briefly for in-flight pages to
-                    # enqueue new links, then check again
-                    await asyncio.sleep(0.5)
-                    message = await self._queue.dequeue(queue_name)
-                    if message is None:
+                    # Queue may be temporarily empty while in-flight pages
+                    # are extracting links. Retry with backoff before giving up.
+                    found = False
+                    for retry_wait in [0.5, 1.0, 1.5, 2.0, 3.0]:
+                        await asyncio.sleep(retry_wait)
+                        message = await self._queue.dequeue(queue_name)
+                        if message is not None:
+                            found = True
+                            break
+                    if not found:
                         logger.info(
-                            "Queue empty, crawl complete",
-                            extra={"crawl_id": crawl_id},
+                            "Queue empty after retries, crawl complete",
+                            extra={"crawl_id": crawl_id, "pages_crawled": job.stats.pages_crawled},
                         )
                         break
 
