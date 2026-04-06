@@ -1001,6 +1001,8 @@ function CrawlTab() {
   const [url, setUrl] = useState("");
   const [maxDepth, setMaxDepth] = useState(3);
   const [maxPages, setMaxPages] = useState(100);
+  const [outputFormat, setOutputFormat] = useState("json");
+  const [crawlFocus, setCrawlFocus] = useState("everything");
   const [includePatterns, setIncludePatterns] = useState("");
   const [excludePatterns, setExcludePatterns] = useState("");
   const [crawlDelay, setCrawlDelay] = useState(0.5);
@@ -1049,6 +1051,7 @@ function CrawlTab() {
         seed_urls: [url.trim()],
         max_depth: maxDepth,
         max_pages: maxPages,
+        output_format: outputFormat,
         crawl_delay: crawlDelay,
         ...(incPatterns.length > 0 ? { url_patterns: incPatterns } : {}),
         ...(excPatterns.length > 0 ? { deny_patterns: excPatterns } : {}),
@@ -1136,6 +1139,25 @@ function CrawlTab() {
                 <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--color-text-secondary)", marginBottom: 6 }}>Crawl Delay (s)</label>
                 <input type="number" min={0} max={10} step={0.5} value={crawlDelay} onChange={(e) => setCrawlDelay(Number(e.target.value))} disabled={isStarting}
                   style={{ width: "100%", padding: "10px 14px", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", fontSize: 14, boxSizing: "border-box" }} />
+              </div>
+              <div style={{ flex: 1, minWidth: 140 }}>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--color-text-secondary)", marginBottom: 6 }}>Output Format</label>
+                <select value={outputFormat} onChange={(e) => setOutputFormat(e.target.value)} disabled={isStarting}
+                  style={{ width: "100%", padding: "10px 14px", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", fontSize: 14, cursor: "pointer", boxSizing: "border-box" }}>
+                  <option value="json">JSON</option>
+                  <option value="markdown">Markdown</option>
+                  <option value="html">HTML</option>
+                </select>
+              </div>
+              <div style={{ flex: 1, minWidth: 140 }}>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--color-text-secondary)", marginBottom: 6 }}>Extract</label>
+                <select value={crawlFocus} onChange={(e) => setCrawlFocus(e.target.value)} disabled={isStarting}
+                  style={{ width: "100%", padding: "10px 14px", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", fontSize: 14, cursor: "pointer", boxSizing: "border-box" }}>
+                  <option value="everything">Everything</option>
+                  <option value="products">Products</option>
+                  <option value="articles">Articles</option>
+                  <option value="links">Links Only</option>
+                </select>
               </div>
             </div>
 
@@ -1256,6 +1278,7 @@ interface SearchResultItem {
 function SearchTab() {
   const [query, setQuery] = useState("");
   const [maxResults, setMaxResults] = useState(10);
+  const [outputFormat, setOutputFormat] = useState("json");
   const [isSearching, setIsSearching] = useState(false);
   const [results, setResults] = useState<SearchResultItem[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
@@ -1268,7 +1291,7 @@ function SearchTab() {
     setError("");
     setHasSearched(true);
     try {
-      const res = await search.run({ query: query.trim(), max_results: maxResults });
+      const res = await search.run({ query: query.trim(), max_results: maxResults, output_format: outputFormat });
       setResults(res.results ?? res.items ?? []);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Search failed");
@@ -1307,6 +1330,14 @@ function SearchTab() {
                   <option value={5}>5</option>
                   <option value={10}>10</option>
                   <option value={25}>25</option>
+                </select>
+              </div>
+              <div style={{ minWidth: 140 }}>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--color-text-secondary)", marginBottom: 6 }}>Output Format</label>
+                <select value={outputFormat} onChange={(e) => setOutputFormat(e.target.value)} disabled={isSearching}
+                  style={{ width: "100%", padding: "10px 14px", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", fontSize: 14, cursor: "pointer", boxSizing: "border-box" }}>
+                  <option value="json">JSON</option>
+                  <option value="markdown">Markdown</option>
                 </select>
               </div>
               <button type="submit" className="btn btn-primary" disabled={isSearching || !query.trim()} style={{ height: 44, paddingInline: 28 }}>
@@ -1408,6 +1439,7 @@ const SCHEMA_PLACEHOLDER = `{
 function ExtractTab() {
   const [url, setUrl] = useState("");
   const [schema, setSchema] = useState("");
+  const [outputFormat, setOutputFormat] = useState("json");
   const [isExtracting, setIsExtracting] = useState(false);
   const [result, setResult] = useState<ExtractResult | null>(null);
   const [error, setError] = useState("");
@@ -1431,7 +1463,7 @@ function ExtractTab() {
     }
 
     try {
-      const res = await extract.run({ url: url.trim(), schema: parsedSchema });
+      const res = await extract.run({ url: url.trim(), schema: parsedSchema, output_format: outputFormat });
       setResult(res);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Extraction failed");
@@ -1477,7 +1509,15 @@ function ExtractTab() {
                 style={{ width: "100%", padding: "10px 14px", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", fontSize: 13, fontFamily: "monospace", resize: "vertical", boxSizing: "border-box", lineHeight: 1.5 }}
               />
             </div>
-            <div>
+            <div style={{ display: "flex", gap: 16, alignItems: "flex-end" }}>
+              <div style={{ minWidth: 140 }}>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--color-text-secondary)", marginBottom: 6 }}>Output Format</label>
+                <select value={outputFormat} onChange={(e) => setOutputFormat(e.target.value)} disabled={isExtracting}
+                  style={{ width: "100%", padding: "10px 14px", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", fontSize: 14, cursor: "pointer", boxSizing: "border-box" }}>
+                  <option value="json">JSON</option>
+                  <option value="markdown">Markdown</option>
+                </select>
+              </div>
               <button type="submit" className="btn btn-primary" disabled={isExtracting || !url.trim()} style={{ height: 44, paddingInline: 28 }}>
                 {isExtracting ? (<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><span className="spinner" /> Extracting...</span>) : "Extract"}
               </button>
