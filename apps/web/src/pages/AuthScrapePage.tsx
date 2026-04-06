@@ -3,11 +3,11 @@
  * Upload browser cookies, create sessions, and scrape login-required pages.
  */
 
-import { useState, useRef, type FormEvent, type ChangeEvent } from "react";
+import { useState, useRef, useEffect, type FormEvent, type ChangeEvent } from "react";
 import { authScrape } from "../api/client";
 
 type ExtractionMode = "everything" | "table" | "fields" | "links";
-type TabId = "cookie-upload" | "browser-login";
+type TabId = "cookie-upload" | "browser-login" | "google-account";
 
 interface SessionInfo {
   session_id: string;
@@ -84,6 +84,26 @@ const PRESET_ICONS: Record<string, JSX.Element> = {
       <line x1="6" y1="20" x2="6" y2="14" />
     </svg>
   ),
+  table: (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <line x1="3" y1="9" x2="21" y2="9" />
+      <line x1="3" y1="15" x2="21" y2="15" />
+      <line x1="9" y1="3" x2="9" y2="21" />
+      <line x1="15" y1="3" x2="15" y2="21" />
+    </svg>
+  ),
+  folder: (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
+    </svg>
+  ),
+  search: (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="8" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+  ),
 };
 
 export function AuthScrapePage() {
@@ -119,6 +139,131 @@ export function AuthScrapePage() {
     { id: "shopify", name: "Shopify Admin", icon: "store", login_url: "https://myshopify.com/admin", description: "Orders, products, revenue from your Shopify store", default_schema: { orders: "number", products: "number", revenue: "number" } },
     { id: "google-analytics", name: "Google Analytics", icon: "chart", login_url: "https://analytics.google.com", description: "Sessions, users, pageviews, traffic analytics", default_schema: { sessions: "number", users: "number", pageviews: "number" } },
   ]);
+
+  // Google Account state
+  const [googleStatus, setGoogleStatus] = useState<{
+    configured: boolean;
+    connected: boolean;
+    user_email?: string;
+    user_name?: string;
+    session_id?: string;
+  }>({ configured: false, connected: false });
+  const [googleConnecting, setGoogleConnecting] = useState(false);
+
+  // Google presets (subset for the Google Account tab)
+  const googlePresets: Preset[] = [
+    { id: "google-sheets", name: "Google Sheets", icon: "table", login_url: "https://docs.google.com/spreadsheets", description: "Extract data from Google Spreadsheets", default_schema: { spreadsheet_title: "string", sheet_name: "string", rows: "number", columns: "number" } },
+    { id: "google-drive", name: "Google Drive", icon: "folder", login_url: "https://drive.google.com", description: "List files and folders from Google Drive", default_schema: { file_name: "string", type: "string", size: "string", modified: "string" } },
+    { id: "google-analytics", name: "Google Analytics", icon: "chart", login_url: "https://analytics.google.com", description: "Extract traffic reports and metrics", default_schema: { sessions: "number", users: "number", pageviews: "number", bounce_rate: "number" } },
+    { id: "google-search-console", name: "Search Console", icon: "search", login_url: "https://search.google.com/search-console", description: "Search performance data and indexing", default_schema: { query: "string", clicks: "number", impressions: "number", ctr: "number", position: "number" } },
+  ];
+
+  async function refreshGoogleStatus() {
+    try {
+      const status = await authScrape.getGoogleStatus();
+      // Also check if we have an active Google session
+      const sessionsRes = await authScrape.listSessions();
+      const googleSession = sessionsRes.sessions?.find(
+        (s: any) => s.domain === "google.com" && s.status === "active"
+      );
+      setGoogleStatus({
+        configured: status.configured,
+        connected: !!googleSession,
+        user_email: googleSession?.user_email,
+        user_name: googleSession?.user_name,
+        session_id: googleSession?.id,
+      });
+      // If we have a Google session, also set it as the active session for scraping
+      if (googleSession && !sessionInfo) {
+        setSessionInfo({
+          session_id: googleSession.id,
+          domain: "google.com",
+          cookie_count: 0,
+          status: "active",
+          created_at: googleSession.created_at || "",
+        });
+      }
+    } catch {
+      // Google auth not available
+      setGoogleStatus({ configured: false, connected: false });
+    }
+  }
+
+  // On mount: check Google status and handle OAuth callback
+  useEffect(() => {
+    refreshGoogleStatus();
+
+    // Check if we're returning from Google OAuth (URL has ?code=...&state=...)
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+    const state = params.get("state");
+    if (code && state) {
+      // Clean URL
+      window.history.replaceState({}, "", window.location.pathname);
+      // Exchange code for session
+      setGoogleConnecting(true);
+      authScrape.handleGoogleCallback(code, state)
+        .then((res) => {
+          setGoogleStatus({
+            configured: true,
+            connected: true,
+            user_email: res.user_email,
+            user_name: res.user_name,
+            session_id: res.session_id,
+          });
+          setSessionInfo({
+            session_id: res.session_id,
+            domain: "google.com",
+            cookie_count: 0,
+            status: "active",
+            created_at: res.created_at,
+          });
+          setActiveTab("google-account");
+        })
+        .catch((err) => {
+          setError(err instanceof Error ? err.message : "Google OAuth callback failed");
+        })
+        .finally(() => setGoogleConnecting(false));
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleGoogleConnect() {
+    setGoogleConnecting(true);
+    setError("");
+    try {
+      const { auth_url } = await authScrape.getGoogleAuthUrl();
+      const popup = window.open(auth_url, "google-auth", "width=500,height=600");
+      // Poll for popup close, then refresh status
+      const interval = setInterval(async () => {
+        if (popup?.closed) {
+          clearInterval(interval);
+          await refreshGoogleStatus();
+          setGoogleConnecting(false);
+        }
+      }, 1000);
+      // Safety timeout to stop polling after 5 minutes
+      setTimeout(() => {
+        clearInterval(interval);
+        setGoogleConnecting(false);
+      }, 300000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to start Google OAuth");
+      setGoogleConnecting(false);
+    }
+  }
+
+  async function handleGoogleDisconnect() {
+    if (!googleStatus.session_id) return;
+    try {
+      await authScrape.deleteSession(googleStatus.session_id);
+      setGoogleStatus({ configured: googleStatus.configured, connected: false });
+      if (sessionInfo?.session_id === googleStatus.session_id) {
+        setSessionInfo(null);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to disconnect Google account");
+    }
+  }
 
   // ----- Cookie file handler -----
   function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
@@ -272,7 +417,8 @@ export function AuthScrapePage() {
           {([
             { id: "cookie-upload" as TabId, label: "Cookie Upload" },
             { id: "browser-login" as TabId, label: "Browser Login" },
-          ]).map((tab) => (
+            { id: "google-account" as TabId, label: "Google Account" },
+          ]).map((tab, idx, arr) => (
             <button
               key={tab.id}
               type="button"
@@ -286,7 +432,7 @@ export function AuthScrapePage() {
                 background: activeTab === tab.id ? "var(--color-surface)" : "transparent",
                 color: activeTab === tab.id ? "var(--color-primary)" : "var(--color-text-secondary)",
                 cursor: "pointer",
-                borderRadius: tab.id === "cookie-upload" ? "8px 0 0 0" : "0 8px 0 0",
+                borderRadius: idx === 0 ? "8px 0 0 0" : idx === arr.length - 1 ? "0 8px 0 0" : "0",
               }}
             >
               {tab.label}
@@ -400,6 +546,157 @@ export function AuthScrapePage() {
                   Get Cookie-Editor for Chrome
                 </a>
               </div>
+            </div>
+          )}
+
+          {activeTab === "google-account" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              {/* Google Logo + Connect */}
+              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                <svg width="32" height="32" viewBox="0 0 48 48">
+                  <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                  <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                  <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                  <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                </svg>
+                <div>
+                  <div style={{ fontSize: 16, fontWeight: 600, color: "var(--color-text)" }}>Google Account</div>
+                  <div style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
+                    Connect via OAuth2 for Sheets, Drive, Analytics, and Search Console
+                  </div>
+                </div>
+              </div>
+
+              {/* Connected state */}
+              {googleStatus.connected ? (
+                <div style={{
+                  padding: "14px 18px",
+                  borderRadius: 10,
+                  border: "1px solid rgba(5, 150, 105, 0.3)",
+                  background: "rgba(5, 150, 105, 0.06)",
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span style={{
+                        display: "inline-block", padding: "3px 10px",
+                        borderRadius: 9999, fontSize: 12, fontWeight: 600,
+                        color: "#059669", background: "rgba(5, 150, 105, 0.15)",
+                      }}>
+                        Connected
+                      </span>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text)" }}>
+                        {googleStatus.user_email || "Google Account"}
+                      </span>
+                      {googleStatus.user_name && (
+                        <span style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
+                          ({googleStatus.user_name})
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleGoogleDisconnect}
+                      style={{
+                        padding: "6px 14px", borderRadius: 6,
+                        border: "1px solid var(--color-border)",
+                        background: "transparent",
+                        color: "var(--color-text-secondary)",
+                        fontSize: 12, fontWeight: 600,
+                        cursor: "pointer",
+                      }}
+                    >
+                      Disconnect
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={handleGoogleConnect}
+                    disabled={googleConnecting}
+                    style={{ height: 48, paddingInline: 32, fontSize: 15 }}
+                  >
+                    {googleConnecting ? (
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                        <span className="spinner" /> Connecting...
+                      </span>
+                    ) : "Connect Google Account"}
+                  </button>
+                  {!googleStatus.configured && (
+                    <p style={{ fontSize: 12, color: "var(--color-text-secondary)", marginTop: 8 }}>
+                      Google OAuth is not configured on the server. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Google-specific presets */}
+              <div>
+                <h4 style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text)", marginBottom: 10 }}>
+                  Google Services
+                </h4>
+                <div style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+                  gap: 10,
+                }}>
+                  {googlePresets.map((preset) => (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => handlePresetClick(preset)}
+                      disabled={!googleStatus.connected}
+                      style={{
+                        display: "flex", alignItems: "flex-start", gap: 12,
+                        padding: 14, borderRadius: 10,
+                        border: "1px solid var(--color-border)",
+                        background: googleStatus.connected ? "var(--color-surface)" : "rgba(0,0,0,0.02)",
+                        cursor: googleStatus.connected ? "pointer" : "not-allowed",
+                        textAlign: "left",
+                        opacity: googleStatus.connected ? 1 : 0.5,
+                        transition: "all 0.15s",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (googleStatus.connected) {
+                          e.currentTarget.style.borderColor = "var(--color-primary)";
+                          e.currentTarget.style.background = "rgba(99, 102, 241, 0.04)";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = "var(--color-border)";
+                        e.currentTarget.style.background = googleStatus.connected ? "var(--color-surface)" : "rgba(0,0,0,0.02)";
+                      }}
+                    >
+                      <div style={{
+                        width: 36, height: 36, borderRadius: 8,
+                        background: "linear-gradient(135deg, #4285F4, #34A853)",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        flexShrink: 0, color: "white",
+                      }}>
+                        {PRESET_ICONS[preset.icon] ?? (
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <circle cx="12" cy="12" r="10" />
+                          </svg>
+                        )}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)", marginBottom: 2 }}>
+                          {preset.name}
+                        </div>
+                        <div style={{ fontSize: 11, color: "var(--color-text-secondary)", lineHeight: 1.4 }}>
+                          {preset.description}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <p style={{ fontSize: 11, color: "var(--color-text-secondary)", margin: 0 }}>
+                Or export Google cookies manually using the Cookie Upload tab.
+              </p>
             </div>
           )}
         </div>

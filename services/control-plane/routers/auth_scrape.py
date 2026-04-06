@@ -95,6 +95,30 @@ PRESETS = [
         "description": "Sessions, users, pageviews, traffic analytics",
         "default_schema": {"sessions": "number", "users": "number", "pageviews": "number"},
     },
+    {
+        "id": "google-sheets",
+        "name": "Google Sheets",
+        "icon": "table",
+        "login_url": "https://docs.google.com/spreadsheets",
+        "description": "Extract data from Google Spreadsheets",
+        "default_schema": {"spreadsheet_title": "string", "sheet_name": "string", "rows": "number", "columns": "number"},
+    },
+    {
+        "id": "google-drive",
+        "name": "Google Drive",
+        "icon": "folder",
+        "login_url": "https://drive.google.com",
+        "description": "List files and folders from Google Drive",
+        "default_schema": {"file_name": "string", "type": "string", "size": "string", "modified": "string"},
+    },
+    {
+        "id": "google-search-console",
+        "name": "Search Console",
+        "icon": "search",
+        "login_url": "https://search.google.com/search-console",
+        "description": "Search performance data and indexing",
+        "default_schema": {"query": "string", "clicks": "number", "impressions": "number", "ctr": "number", "position": "number"},
+    },
 ]
 
 
@@ -204,6 +228,51 @@ async def scrape_with_session(
             raise HTTPException(status_code=400, detail=f"Session is {session_model.status}, not active")
 
         cookies_list = session_model.cookies or []
+        session_type = session_model.session_type
+
+    # For Google OAuth sessions, check if access token is expired and refresh
+    if session_type == "google_oauth" and isinstance(cookies_list, dict):
+        token_expiry = cookies_list.get("token_expiry", 0)
+        if time.time() >= token_expiry:
+            try:
+                from services.control_plane.routers.google_auth import refresh_google_token, GoogleRefreshRequest
+                refresh_body = GoogleRefreshRequest(session_id=body.session_id)
+                # Call refresh directly (internal call, not HTTP)
+                import httpx
+                google_cookies = cookies_list
+                refresh_token = google_cookies.get("refresh_token", "")
+                if refresh_token:
+                    import os
+                    client_id = os.environ.get("GOOGLE_CLIENT_ID", "")
+                    client_secret = os.environ.get("GOOGLE_CLIENT_SECRET", "")
+                    if client_id and client_secret:
+                        async with httpx.AsyncClient(timeout=15.0) as http_client:
+                            token_resp = await http_client.post(
+                                "https://oauth2.googleapis.com/token",
+                                data={
+                                    "client_id": client_id,
+                                    "client_secret": client_secret,
+                                    "refresh_token": refresh_token,
+                                    "grant_type": "refresh_token",
+                                },
+                            )
+                        if token_resp.status_code == 200:
+                            token_data = token_resp.json()
+                            cookies_list["access_token"] = token_data.get("access_token", "")
+                            cookies_list["token_expiry"] = time.time() + token_data.get("expires_in", 3600)
+                            # Persist refreshed token
+                            async with db.session() as update_session:
+                                from packages.core.storage.models import SessionModel as SM
+                                from sqlalchemy import select as sel
+                                stmt2 = sel(SM).where(SM.id == body.session_id)
+                                res2 = await update_session.execute(stmt2)
+                                sm2 = res2.scalar_one_or_none()
+                                if sm2:
+                                    sm2.cookies = dict(cookies_list)
+                                    await update_session.commit()
+                            logger.info("auth_scrape.google_token_refreshed", session_id=body.session_id)
+            except Exception as refresh_err:
+                logger.warning("auth_scrape.google_refresh_failed", error=str(refresh_err))
 
     # Build cookie dict for HTTP requests: {name: value}
     cookie_dict = {}
