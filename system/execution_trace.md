@@ -1243,3 +1243,26 @@
   - Set both env vars on Netlify (myscraper.netlify.app)
   - Updated .env.example with Serper key placeholder
 - **APIs now active:** Serper (2,500 free), OpenAI (pay-as-go), Keepa (existing), Google (existing)
+
+## Work Cycle — 2026-04-06 (Workflow Fixes + Zero Checksum API)
+
+- **Timestamp:** 2026-04-06
+- **Session:** Workflow verification + Public API implementation
+- **Actions:**
+  1. Read WORKFLOW_FIX_PROMPT.md — 12 workflows, 22 challenge tests
+  2. Fixed Quick Scrape: added extraction_mode (everything/products/content/custom), 120 items from yousell.online
+  3. Fixed Results & Export: bulk export endpoint (was stub), save_result flag with FK fix
+  4. Fixed Structured Extract: HTML parser for missing schema fields (title/desc/price/availability)
+  5. Fixed Crawl: CrawlJob dataclass access bug in status/results/stop endpoints
+  6. Fixed Maps: AttributeError on _serpapi_key in status endpoint
+  7. Added Facebook Groups requirements note (self-hosted backend needed)
+  8. Set SERPER_API_KEY + KEEPA_API_KEY on Railway
+  9. Verified all 12 workflows on live Railway backend
+  10. Created E2E test suite: 37 tests (Playwright + httpx), 100% pass rate
+  11. Designed Zero Checksum Public API architecture
+  12. Implemented 11 new files (2,128 lines): models, contracts, middleware, routers, repositories
+  13. Mounted public API at /v1/ in app.py
+- **Commits:** 2c5c7c7, 4c9a559, 25c55b4, e26657a, 6a58a94, 492de24, 902d737, c03c9c9, 54c0290, 99af007, 2bf6f66
+- **WORKFLOW_FIX_LOG.xlsx:** 20/22 PASS, 0 FAILED, 0 BLOCKED
+- **New DB tables:** api_keys, idempotency_keys, request_audit_log, async_jobs, webhook_delivery_log
+- **Public API endpoints:** 9 at /v1/ + 3 admin at /api/v1/api-keys

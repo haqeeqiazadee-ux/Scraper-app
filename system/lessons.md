@@ -275,3 +275,23 @@
 127. **Button elements don't inherit color in dark mode** — `<button>` text defaults to black regardless of CSS custom properties. Must set `color: var(--color-text)` explicitly on button elements and their children for dark theme compatibility.
 
 128. **Remove unused code before Netlify deploy** — TypeScript `noUnusedLocals` is strict. Sidebar redesign left 6 orphaned icon components + unused variables. Always run `tsc --noEmit` locally before pushing to catch these.
+
+129. **"Working" means user can click through the ENTIRE flow** — Not "the code compiles", not "the API returns 200". A real user getting real data on the live site. Always verify on the deployed URL, not localhost.
+
+130. **Backend returns 201 for resource creation, not 200** — POST endpoints that create resources (crawl, schedules, templates/apply) return 201 Created. E2E tests must accept both 200 and 201.
+
+131. **pytest-asyncio event loop conflicts on Windows Python 3.14** — Mixing sync Playwright fixtures with async httpx fixtures causes "Event loop is closed" and "Runner.run() cannot be called from a running event loop". Solution: use synchronous httpx throughout.
+
+132. **CrawlJob is a dataclass, not a dict** — The crawl router treated CrawlJob as a dict (`crawl["crawl_id"]`) but CrawlManager.get_crawl() returns a dataclass. Access via attributes (`crawl.crawl_id`).
+
+133. **Foreign key constraints on results table** — Results require a run record (FK on run_id). When saving test-scrape results, must create task + run + result in that order.
+
+134. **Railway env vars require redeploy** — Setting new environment variables on Railway triggers an automatic redeploy, but it takes 2-5 minutes. Check with health endpoint before testing.
+
+135. **Netlify auto-deploy from GitHub may not trigger** — Sometimes needs manual "Trigger deploy" from dashboard. The npx @netlify/mcp deploy command requires bash which may not work in all shell environments.
+
+136. **Zero Checksum API design** — Every request gets a tracking ID, idempotency prevents double-processing, audit log tracks everything. Modeled after Stripe (idempotency keys), Apify (run IDs), and ScrapingBee (credit tracking).
+
+137. **API keys: store hash, show key once** — Generate with secrets.token_hex(16), prefix with sk_live_, store SHA-256 hash. Never store or display the raw key after creation.
+
+138. **Separate public API from internal API** — Public API at /v1/ uses API key auth. Internal API at /api/v1/ uses JWT + X-Tenant-ID. Don't mix auth mechanisms on the same prefix.

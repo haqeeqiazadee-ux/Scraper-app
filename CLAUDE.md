@@ -5,364 +5,176 @@
 
 > This file is the authoritative context document for Claude Code sessions working on this project.
 
-## ⚡ MANDATORY PRE-TASK PROTOCOL (RUNS BEFORE EVERY TASK)
+## Project Summary
 
-**This is NON-NEGOTIABLE. Every single task — no matter how small — triggers this sequence.**
+**Name:** AI Scraping Platform
+**Live Site:** https://myscraper.netlify.app
+**Backend API:** https://scraper-platform-production-17cb.up.railway.app
+**Public API:** https://scraper-platform-production-17cb.up.railway.app/v1
+**Repo:** https://github.com/fahad-scraper/Scraper-app
+**Owner:** Muhammad Usman
+**Status:** PRODUCTION — All 10 phases complete, 12 workflows live, 37 E2E tests passing
+
+## Architecture
+
+**Monorepo** with frontend (React/Vite on Netlify), backend (FastAPI on Railway), and scraping engine.
 
 ```
-BEFORE ANY WORK:
-  ┌─────────────────────────────────────────────────────────┐
-  │ STEP 0: READ GLOBAL CONFIG                             │
-  │   → Read ~/.claude/CLAUDE.md (or .claude/CLAUDE.md)    │
-  │   → Load: agent hierarchy, MCP servers, skills,        │
-  │     commands, autonomy rules, session memory protocol   │
-  └──────────────────────┬──────────────────────────────────┘
-                         ▼
-  ┌─────────────────────────────────────────────────────────┐
-  │ STEP 1: CLASSIFY TASK                                  │
-  │   → ARCHITECTURE? → architect-1 + architect-2          │
-  │   → IMPLEMENTATION? → engineer-1 + engineer-2          │
-  │   → RESEARCH/CONTENT? → product-1 + product-2         │
-  │   → SECURITY/AUTH? → security-1 + security-2           │
-  │   → TESTING/QA? → qa-1 + qa-2                         │
-  │   → FULL FEATURE? → ALL agents                        │
-  └──────────────────────┬──────────────────────────────────┘
-                         ▼
-  ┌─────────────────────────────────────────────────────────┐
-  │ STEP 2: SELECT TOOLS                                   │
-  │   → MCP servers needed? (context7, exa, firecrawl,     │
-  │     github, playwright, claude-mem, ruflo, figma,      │
-  │     n8n-mcp, n8n-instance)                             │
-  │   → Skills to invoke? (437 available — match to task)  │
-  │   → Commands to run? (102 available)                   │
-  │   → Python packages? (lightrag, elevenlabs, boto3)     │
-  └──────────────────────┬──────────────────────────────────┘
-                         ▼
-  ┌─────────────────────────────────────────────────────────┐
-  │ STEP 3: READ PROJECT STATE                             │
-  │   → system/todo.md (current queue)                     │
-  │   → system/execution_trace.md (last 5 entries)         │
-  │   → system/lessons.md (avoid past mistakes)            │
-  │   → docs/final_specs.md (if architecture-relevant)     │
-  │   → docs/tasks_breakdown.md (if task is in backlog)    │
-  └──────────────────────┬──────────────────────────────────┘
-                         ▼
-  ┌─────────────────────────────────────────────────────────┐
-  │ STEP 4: EXECUTE                                        │
-  │   → Deploy selected agents in parallel via AgentPool   │
-  │   → Use selected MCP servers + skills + commands       │
-  │   → Full autonomy: no permission asking, fix forward   │
-  │   → Complete fully before stopping                     │
-  └──────────────────────┬──────────────────────────────────┘
-                         ▼
-  ┌─────────────────────────────────────────────────────────┐
-  │ STEP 4b: VERIFY-BEFORE-DONE LOOP (MANDATORY)           │
-  │                                                         │
-  │   DO NOT claim "done" until this loop passes.           │
-  │                                                         │
-  │   WHILE not_verified:                                   │
-  │     1. LIST all deliverables promised for this task     │
-  │     2. CHECK each deliverable exists:                   │
-  │        → File created? ls/stat the path                │
-  │        → Code written? grep for key function/class     │
-  │        → Tests pass? Run pytest on affected files      │
-  │        → API works? curl/httpx the endpoint            │
-  │        → UI renders? Playwright or manual check        │
-  │     3. RUN any relevant test suite (unit, integration,  │
-  │        e2e) — at minimum run tests for changed files   │
-  │     4. CHECK for regressions — existing tests still    │
-  │        pass after changes                               │
-  │     5. If ANY check fails:                              │
-  │        → DO NOT mark as complete                        │
-  │        → Fix the issue                                  │
-  │        → GOTO step 1 (re-verify everything)            │
-  │     6. If ALL checks pass:                              │
-  │        → Log evidence: "Verified: X tests pass,        │
-  │          Y files created, Z endpoints responding"       │
-  │        → ONLY THEN proceed to STEP 5                   │
-  │                                                         │
-  │   HARD RULES:                                           │
-  │   - "I wrote the code" ≠ done. Code must WORK.         │
-  │   - "Agent was deployed" ≠ done. Agent output must     │
-  │     be verified (read the file, run the test).          │
-  │   - "Tests were written" ≠ done. Tests must PASS.      │
-  │   - "File was created" ≠ done. File must be correct    │
-  │     (no import errors, no syntax errors).               │
-  │   - Sub-agent work is UNTRUSTED until verified.         │
-  │     Always spot-check agent outputs before claiming     │
-  │     completion.                                         │
-  │   - Partial completion = NOT complete. If 8/10 tasks    │
-  │     pass, fix the 2 failures before reporting done.     │
-  │                                                         │
-  │   EVIDENCE FORMAT (include in completion report):       │
-  │   ```                                                   │
-  │   VERIFIED:                                             │
-  │     Files: 12 created, 5 modified (ls confirmed)       │
-  │     Tests: 101/101 pass (pytest output attached)       │
-  │     API: 18/18 endpoints responding (httpx verified)   │
-  │     Build: No errors (ruff/mypy clean)                 │
-  │     Regressions: 0 (existing tests unaffected)         │
-  │   ```                                                   │
-  └──────────────────────┬──────────────────────────────────┘
-                         ▼
-  ┌─────────────────────────────────────────────────────────┐
-  │ STEP 5: POST-TASK AUTO-UPDATE                          │
-  │   → Update system/todo.md                              │
-  │   → Update system/execution_trace.md                   │
-  │   → Update system/development_log.md                   │
-  │   → Update system/final_step_logs.md                   │
-  │   → Update system/lessons.md (if learned)              │
-  │   → Update CLAUDE.md (if architecture changed)         │
-  │   → Store findings in claude-mem                       │
-  │   → Git commit + push                                  │
-  └─────────────────────────────────────────────────────────┘
+/
++-- apps/web/                  # React + Vite SPA (Netlify)
++-- packages/
+|   +-- contracts/             # Pydantic v2 schemas (Task, Result, Policy, PublicAPI)
+|   +-- core/                  # Engine: router, extractors, crawl_manager, mcp_server
+|   +-- connectors/            # HTTP (curl_cffi), browser, proxy, Keepa, Maps
++-- services/control-plane/    # FastAPI backend (Railway)
+|   +-- routers/               # 22 routers including public_api.py
+|   +-- middleware/             # auth, rate_limit, quota, api_key_auth, idempotency, audit
+|   +-- utils/                 # response envelopes, error codes
++-- tests/e2e/                 # 37 Playwright + httpx live E2E tests
++-- infrastructure/            # Docker, Terraform, Helm, Supabase
++-- docs/                      # Specs, QA logs, WORKFLOW_FIX_LOG.xlsx
++-- system/                    # todo.md, execution_trace.md, lessons.md
 ```
 
-### Global Config Location
+## Deployment
 
-| Location | When Used |
-|----------|-----------|
-| `~/.claude/CLAUDE.md` | Claude Code on local machine (auto-loaded) |
-| `.claude/CLAUDE.md` | Fallback copy inside this repo (portable) |
+| Component | Platform | URL |
+|-----------|----------|-----|
+| Frontend (SPA) | Netlify | https://myscraper.netlify.app |
+| Backend (API) | Railway | https://scraper-platform-production-17cb.up.railway.app |
+| Database | Supabase | PostgreSQL 15 |
+| API Proxy | Netlify | `/api/*` -> Railway |
 
-### Inherited Global Directives
+**Environment Variables (Railway):**
+- `DATABASE_URL` — Supabase PostgreSQL
+- `SECRET_KEY` — JWT signing
+- `SERPER_API_KEY` — Web search + Google Maps (Serper Places)
+- `KEEPA_API_KEY` — Amazon product data
+- `GEMINI_API_KEY` — AI extraction
+- `CORS_ORIGINS` — Allowed origins
 
-- **Owner:** Muhammad Usman — fully autonomous, action-first execution
-- **Agent Hierarchy:** Orchestrator → 10-agent pool (2× architect, 2× engineer, 2× product, 2× security, 2× QA)
-- **Autonomy:** MAXIMIZED — no permission asking, complete tasks fully, fix forward
-- **Session Memory:** claude-mem auto-persist on start/during/end
-- **Auto-Updates:** system files update after every major change (see global protocol)
+## Tech Stack
 
-### Project-Specific Tool Mapping
+- **Backend:** Python 3.11+, FastAPI, Pydantic v2, SQLAlchemy 2.0 (async)
+- **Frontend:** React 18, TypeScript, Vite, TanStack Query, React Router v6
+- **Database:** PostgreSQL 15 (Supabase), SQLite (desktop/dev)
+- **HTTP Client:** curl_cffi (TLS/JA3 impersonation), httpx (fallback)
+- **Browser:** Camoufox (stealth), Playwright (fallback)
+- **AI:** Google Gemini (default), OpenAI (fallback)
+- **Testing:** pytest, Playwright, httpx (37 live E2E tests)
+- **CI/CD:** GitHub -> Railway (auto-deploy), Netlify (manual trigger)
 
-| Task Type | MCP Servers | Key Skills | Commands |
-|-----------|-------------|------------|----------|
-| **Scraper code** | context7, github | senior-backend, senior-fullstack, focused-fix | /build-fix, /tdd, /verify |
-| **Anti-detection** | exa, firecrawl, context7 | security-pen-testing, browser-automation | /code-review, /e2e |
-| **Browser automation** | playwright, context7 | playwright-pro, senior-qa | /e2e, /test-coverage |
-| **API endpoints** | context7, github | api-design-reviewer, api-test-suite-builder | /build-fix, /verify |
-| **Infrastructure** | github | senior-devops, docker-development, terraform-patterns | /checkpoint |
-| **Research** | exa, firecrawl | deep-research, competitive-teardown | /plan |
-| **Web UI** | figma, context7 | senior-frontend, ui-design-system | /build-fix |
-| **n8n workflows** | n8n-mcp, n8n-instance | agent-workflow-designer | /multi-workflow |
-| **Documentation** | github, claude-mem | spec-driven-workflow | /docs, /update-docs |
+## 12 Live Workflows (All Verified)
+
+| # | Workflow | Status | Key Feature |
+|---|---------|--------|-------------|
+| 1 | Quick Scrape | PASS | 4 extraction modes (Everything/Products/Content/Custom), 120+ items from any URL |
+| 2 | Web Crawl | PASS | BFS recursive crawling, depth/page limits, status polling |
+| 3 | Web Search | PASS | Serper API -> scrape top results, 3+ results with extracted data |
+| 4 | Structured Extract | PASS | JSON schema -> 4/4 fields extracted, confidence=1.0 |
+| 5 | Amazon/Keepa | PASS | ASIN lookup, product data, price history, 298 API tokens |
+| 6 | Google Maps | PASS | Serper Places, 10+ businesses with ratings/addresses |
+| 7 | Facebook Groups | DOCUMENTED | Needs self-hosted backend (Chrome/Playwright), UI shows requirements |
+| 8 | Templates | PASS | 55 templates, full pipeline: apply -> task -> execute -> 51 items |
+| 9 | Results & Export | PASS | Auto-save, CSV/JSON export (real files, not stubs) |
+| 10 | Change Detection | PASS | Client-side JSON comparison, price changes, added/removed items |
+| 11 | Schedules | PASS | CRUD: create/list/delete with cron expressions |
+| 12 | MCP Server | PASS | 5 tools, valid JSON configs, copy buttons |
+
+## Zero Checksum Public API (NEW — April 2026)
+
+External-facing API at `/v1/` with full request tracking, idempotency, and billing reconciliation.
+
+**Authentication:** API keys (`sk_live_xxx`, SHA-256 hashed, shown once at creation)
+
+**Endpoints:**
+```
+POST /v1/scrape          — Scrape URL (sync or async)          [1-5 credits]
+POST /v1/crawl           — Crawl website (async, 202)          [1 credit/page]
+POST /v1/search          — Web search + scrape results         [1 credit/result]
+POST /v1/extract         — Schema-based extraction             [2 credits]
+GET  /v1/jobs/{id}       — Poll async job status               [free]
+GET  /v1/jobs/{id}/results — Get paginated results             [free]
+POST /v1/webhooks        — Register webhook for notifications  [free]
+GET  /v1/usage           — Billing reconciliation by date      [free]
+GET  /v1/account         — Plan, quota, API key summary        [free]
+```
+
+**Admin (Dashboard):**
+```
+POST   /api/v1/api-keys       — Create API key (returns full key ONCE)
+GET    /api/v1/api-keys       — List keys (prefix only)
+DELETE /api/v1/api-keys/{id}  — Revoke key
+```
+
+**Zero Checksum Features:**
+- Every request gets `req_xxx` tracking ID (`X-Request-ID` header)
+- `Idempotency-Key` header prevents double-processing (24h TTL)
+- Full audit trail in `request_audit_log` table
+- Credit tracking per request, reconcilable via `/v1/usage`
+- Standard response envelope: `{request_id, status, data, meta, errors}`
+- Webhook delivery logging with retry tracking
+
+**Database Tables (5 new):**
+- `api_keys` — Key management with SHA-256 hash storage
+- `idempotency_keys` — Request deduplication with 24h TTL
+- `request_audit_log` — Full audit trail (method, endpoint, credits, duration, IP)
+- `async_jobs` — Long-running job tracking (crawl, async scrape)
+- `webhook_delivery_log` — Delivery attempts with status codes
+
+## E2E Test Suite
+
+**File:** `tests/e2e/test_live_e2e.py` (37 tests, 100% pass rate)
+
+**Run:** `run_e2e.bat` or `C:\Python314\python.exe -m pytest tests/e2e/test_live_e2e.py -v`
+
+**Coverage:** All 12 workflows tested against live deployed site with real API credentials.
+
+**Loop mode:** `python tests/e2e/test_live_e2e.py --loop 10 --interval 300`
+
+## Completed Phases
+
+| Phase | Name | Status |
+|-------|------|--------|
+| 1-2 | Planning & Design | COMPLETE |
+| 3 | Architecture Scaffolding | COMPLETE — 26 directories, 7 contracts, 10 protocols |
+| 4 | Implementation | COMPLETE — 69 tasks, 525 tests |
+| 4+ | Production Readiness | COMPLETE — Redis queue, webhooks, scheduler, UI |
+| 5 | QA Testing | COMPLETE — 124 use cases, 706 tests |
+| 6 | Stealth Upgrade | COMPLETE — curl_cffi, Camoufox, 14 device profiles |
+| 7 | Extraction Overhaul | COMPLETE — 6-tier cascade, PKR + 30 currencies |
+| 8 | Operational Upgrades | COMPLETE — Resource blocking, XHR interception, dedup |
+| 9 | HYDRA | COMPLETE — Crawl, search, extract, MCP, social extractors |
+| 10 | Workflow Fixes + Public API | COMPLETE — 12 workflows verified, Zero Checksum API |
+
+## Key Files
+
+| File | Purpose |
+|------|---------|
+| `CLAUDE.md` | THIS FILE — project context |
+| `docs/final_specs.md` | Full platform specification |
+| `docs/WORKFLOW_FIX_LOG.xlsx` | Workflow verification log (20/22 PASS) |
+| `tests/e2e/test_live_e2e.py` | 37 live E2E tests |
+| `run_e2e.bat` | Test runner for Windows |
+| `WORKFLOW_FIX_PROMPT.md` | Workflow fix requirements |
+| `services/control-plane/routers/public_api.py` | Zero Checksum Public API (9 endpoints) |
+| `services/control-plane/middleware/api_key_auth.py` | API key authentication |
+| `services/control-plane/middleware/idempotency.py` | Idempotency key management |
+| `packages/core/storage/models_public_api.py` | 5 new DB tables for public API |
+
+## Coding Conventions
+
+- Pydantic v2 for all data models
+- `async def` for all I/O operations
+- Protocol classes for interfaces (not ABC)
+- structlog for logging
+- No hardcoded secrets — always env vars
+- No `print()` — use logging
+- Type hints on all function signatures
+- Underscores in Python package names (no hyphens)
+- Lazy initialization for HTTP clients
 
 ## Repository
 
 **Canonical Remote:** `https://github.com/fahad-scraper/Scraper-app`
-Always use this repo for all git operations (fetch, pull, push). Do not use any other remote.
-
-**Authentication:** If git push fails with auth errors, read the GitHub PAT from `.env` (`GITHUB_PAT`) and set the remote URL:
-```
-git remote set-url origin https://<TOKEN>@github.com/fahad-scraper/Scraper-app.git
-```
-
-## Project Overview
-
-**Name:** AI Scraping Platform (formerly Scrapling Pro v3.0)
-**Type:** Production-grade, cloud-agnostic AI-powered web scraping platform
-**Repo:** fahad-scraper/Scraper-app
-
-## Architecture
-
-This is a **monorepo** with the following structure:
-
-```
-/
-├── apps/                    # Runtime shells (front ends)
-│   ├── web/                 # React + Vite web dashboard
-│   ├── desktop/             # Tauri v2 Windows EXE
-│   ├── extension/           # Chrome Manifest V3 extension
-│   └── companion/           # Native messaging host
-├── packages/                # Shared libraries
-│   ├── contracts/           # Pydantic data contracts (Task, Policy, Session, Run, Result, Artifact, Billing)
-│   ├── core/                # Core engine (router, session manager, AI provider, storage interfaces)
-│   └── connectors/          # Connector adapters (HTTP, browser, proxy, CAPTCHA, API)
-├── services/                # Backend services
-│   ├── control-plane/       # FastAPI control plane
-│   ├── worker-http/         # HTTP lane worker
-│   ├── worker-browser/      # Browser lane worker (Playwright)
-│   └── worker-ai/           # AI normalization worker
-├── infrastructure/          # Deployment
-│   ├── docker/              # Dockerfiles + docker-compose
-│   ├── terraform/           # Cloud IaC (AWS/GCP/Azure)
-│   └── helm/                # Kubernetes Helm chart
-├── tests/                   # Test suites
-│   ├── unit/
-│   ├── integration/
-│   └── e2e/
-├── scripts/                 # Build/deploy/utility scripts
-├── docs/                    # Project documentation
-│   ├── final_specs.md       # SOURCE OF TRUTH — full platform specification
-│   └── tasks_breakdown.md   # 69 tasks across 24 epics
-├── system/                  # Project tracking (mandatory, always update)
-│   ├── execution_trace.md   # Chronological decision trace
-│   ├── development_log.md   # Engineering log
-│   ├── todo.md              # Current actionable queue
-│   ├── lessons.md           # Persistent learning memory
-│   └── final_step_logs.md   # Detailed per-task execution ledger
-├── scraper_pro/             # LEGACY — existing v3.0 code (reference only)
-└── CLAUDE.md                # THIS FILE
-```
-
-## Key Design Principles
-
-1. **One shared platform** — EXE, extension, SaaS, self-hosted share the same core
-2. **Cloud-agnostic** — No vendor lock-in; abstractions for storage, queue, secrets
-3. **AI as augmentation** — Deterministic parsers first; AI for routing, repair, normalization
-4. **Contract-driven** — All components use shared Pydantic schemas
-5. **Fallback chains** — Every extraction has primary → secondary → tertiary fallback
-
-## Tech Stack
-
-- **Backend:** Python 3.11+, FastAPI, Pydantic v2
-- **Database:** PostgreSQL 15+ (cloud/self-hosted), SQLite (desktop)
-- **Cache/Queue:** Redis 7+ / Valkey (cloud), in-memory (desktop)
-- **Object Storage:** S3-compatible (cloud), filesystem (desktop)
-- **Browser Automation:** Camoufox (primary, C++-level stealth), Playwright (fallback)
-- **HTTP Client:** curl_cffi (browser TLS/JA3 impersonation), httpx (fallback)
-- **Desktop Shell:** Tauri v2 (Rust + WebView)
-- **Extension:** Chrome Manifest V3
-- **AI Providers:** Google Gemini (default), OpenAI, Anthropic, Ollama (local)
-- **Testing:** pytest + pytest-asyncio + testcontainers
-- **Linting:** ruff
-- **CI/CD:** GitHub Actions
-
-## Mandatory Workflow
-
-**See `⚡ MANDATORY PRE-TASK PROTOCOL` above — it supersedes this section.**
-
-All pre-task reads and post-task updates are defined in the protocol flowchart. The protocol merges global directives (agent selection, tool matching, autonomy rules) with project-specific state (todo, specs, lessons, execution trace).
-
-## Current Phase
-
-**All Phases COMPLETE — Including Phase 9 HYDRA (April 2026)**
-
-**Phase 3 — Architecture Scaffolding (COMPLETE)**
-- Monorepo folder structure created (26 directories)
-- Python tooling configured (ruff, pytest, mypy, coverage)
-- packages/contracts: 7 Pydantic v2 schemas implemented
-- packages/core: 10 Protocol interfaces + ExecutionRouter
-- packages/connectors: 6 adapter implementations (HTTP, browser, proxy, CAPTCHA, API, hard-target)
-- services/control-plane: FastAPI app with task/policy CRUD + health endpoints
-
-**Phase 4 — Incremental Implementation (COMPLETE)**
-- All 69 original tasks completed
-- 525 tests passing across 22+ test modules
-
-**Phase 4+ — Production Readiness Gap Closure (COMPLETE)**
-- Redis distributed queue consumer + worker consumption loops
-- Hard-target execution lane (stealth browser + fingerprint randomization)
-- Rate limit enforcement + quota management (token bucket + tenant quotas)
-- Callback webhook executor (HMAC-SHA256 signed) + task scheduler (cron/interval)
-- Web UI wired to real API (full client, hooks, auth context, login page)
-- 648 tests passing, 6 skipped, 0 failed
-
-**Phase 5 — Use-Case QA Testing (COMPLETE)**
-- 4 QA sessions covering all 18 phases of qa_strategy.md
-- 124 use cases passed, 52 skipped (external services), 5 bugs fixed
-- Browser lane verified with Chromium v141 (SPA rendering, screenshots, stealth)
-- Hard-target lane verified (fingerprint randomization, CAPTCHA detection, escalation chain)
-- E-commerce scenarios verified (25-item PLP, PDP JSON-LD, Shopify detection)
-- 706 tests passing, 0 failed
-
-**Phase 6 — Stealth Upgrade (COMPLETE)**
-- curl_cffi for browser-matching TLS/JA3/HTTP2 (replaces httpx in HTTP lane)
-- 14 coherent device profiles across 8 geo regions (all signals consistent)
-- Camoufox C++-level stealth for hard-target lane (0% detection on CreepJS)
-- Human behavioral simulation: Bezier mouse curves, log-normal delays, idle jitter
-- Warm-up navigation + Google referrer chains
-
-**Phase 7 — Universal Extraction Overhaul (COMPLETE)**
-- 6-tier extraction cascade: JSON-LD → Microdata → Open Graph → DOM Discovery → CSS (50+ selectors) → Validated Fallback
-- Noise filtering rejects nav labels, section headers, items without product signals
-- Quality-based confidence scoring (weighted by name/price/image, not field coverage)
-- PKR + 30 other currencies with domain-priority disambiguation
-
-**Phase 8 — Pro-Level Operational Upgrades (COMPLETE)**
-- Browser resource blocking (images/CSS/fonts/ads) — 60-80% faster page loads
-- API/XHR interception — captures JSON payloads from SPAs
-- URL-level deduplication — prevents scraping the same URL twice
-- Post-extraction data validation — rejects garbage (zero prices, placeholder names, fake images)
-
-**Phase 9 — HYDRA: Universal Scraper Upgrade (COMPLETE — April 2026)**
-- Codename: HYDRA — Hybrid Universal Discovery & Retrieval Architecture
-- 7 sprints, 33 tasks, ALL COMPLETE
-- 26 agents deployed across the session, all verified
-- New modules built:
-  1. `crawl_manager.py` — BFS recursive crawling with queue, dedup, robots.txt (21.8KB)
-  2. `markdown_converter.py` — HTML→markdown via trafilatura + html2text (11.5KB)
-  3. `adaptive_selectors.py` — self-healing selectors with fuzzy matching (20KB)
-  4. `content_filter.py` — BM25 relevance filtering via rank-bm25 (9.5KB)
-  5. `change_detector.py` — content diff between crawl runs, price alerts (16.3KB)
-  6. `mcp_server.py` — MCP server with 5 tools for AI agent integration (19.5KB)
-  7. `twitter.py` + `linkedin.py` — social extractors (7 platforms total)
-  8. 10-tier extraction cascade (was 8): +adaptive selectors, +trafilatura
-  9. 24 device profiles (was 14) + canvas/WebGL/audio/battery fingerprint noise
-  10. Router: response-based reclassification + cost-aware routing ($0.001-$0.05/page)
-- New API endpoints: /crawl, /search, /extract (3 routers)
-- MCP server: scrape, crawl, search, extract, route (5 tools)
-- CLI: `scripts/cli.py` (scrape, crawl, search, route commands)
-- UI: 5 new pages (Crawl, Search, Extract, Changes, MCP), login disabled
-- E2E tests: 83 Playwright browser + 18 API = 101 tests, all passing
-- CI: GitHub Actions with Claude Code Action self-healing
-- Dependencies added: trafilatura, html2text, rank-bm25, mcp, click
-- Target: $0.005/page weighted average (4-10x cheaper than competitors)
-- Scope: Scraping infrastructure ONLY — API connectors (Keepa, eBay, etc.) untouched
-
-## Coding Conventions
-
-- Use Pydantic v2 for all data models
-- Use `async def` for all I/O operations
-- Use Protocol classes for interfaces (not ABC)
-- Use structlog for logging
-- Tests go in `tests/` mirroring the source structure
-- No hardcoded secrets — always env vars or secrets manager
-- No `print()` statements — use logging
-- Type hints on all function signatures
-- No hyphens in Python package directory names — use underscores or symlinks
-- Use lazy initialization for clients (create on first request, not import time)
-
-## Important Files
-
-| File | Purpose |
-|------|---------|
-| `docs/final_specs.md` | Full platform specification (1233 lines, 24 sections) |
-| `docs/tasks_breakdown.md` | 69 tasks across 24 epics with dependency graph |
-| `docs/qa_strategy.md` | Use-case-based QA plan (18 phases, 170+ use cases) |
-| `docs/qa_execution_log.md` | Chronological record of every QA test run |
-| `system/todo.md` | Current task queue |
-| `system/execution_trace.md` | Decision audit trail |
-| `system/development_log.md` | Engineering log |
-| `system/lessons.md` | What we've learned (88 lessons) |
-| `system/final_step_logs.md` | Per-task execution evidence |
-
-## Key New Modules (Phase 6-8)
-
-| File | Purpose |
-|------|---------|
-| `packages/core/device_profiles.py` | 14 coherent browser identity profiles for anti-detection |
-| `packages/core/human_behavior.py` | Bezier mouse curves, scroll simulation, idle jitter, warm-up nav |
-| `packages/connectors/http_collector.py` | curl_cffi HTTP client with TLS/JA3 browser impersonation |
-| `packages/connectors/hard_target_worker.py` | Camoufox stealth browser + Playwright fallback |
-| `packages/connectors/browser_worker.py` | Resource blocking, API interception, device profiles, Load More |
-| `packages/core/url_discovery.py` | Sitemap.xml parser + robots.txt compliance checker |
-| `packages/core/circuit_breaker.py` | Per-domain circuit breaker (CLOSED/OPEN/HALF_OPEN) |
-| `packages/core/waf_token_manager.py` | AWS WAF token lifecycle (Amazon cookie management) |
-| `packages/core/response_cache.py` | Two-tier HTTP response cache (memory LRU + disk) |
-| `packages/connectors/keepa_connector.py` | Keepa API connector for Amazon product data (replaces browser scraping) |
-| `packages/connectors/google_sheets_connector.py` | Google Sheets read/write + Keepa cache layer |
-| `packages/connectors/google_maps_connector.py` | Google Maps business scraper (Places API + SerpAPI + browser) |
-
-## Legacy Code (scraper_pro/)
-
-The `scraper_pro/` directory contains the original Scrapling Pro v3.0 code. It is **reference only** — do not import from it in new code. Reusable components are being ported to `packages/`.
-
-| Legacy File | Port Destination |
-|-------------|-----------------|
-| core/fallback_chain.py | packages/core/fallback.py |
-| proxy_manager.py | packages/connectors/proxy_adapter.py |
-| ai_scraper_v3.py (GeminiAI) | packages/core/ai_providers/gemini.py |
-| smart_exporter.py | packages/core/exporter.py |
-| engine_v2.py (CaptchaSolver) | packages/connectors/captcha_adapter.py |
-| core/smart_extractors.py | packages/contracts/ + packages/core/normalizer.py |
+**Auth:** GitHub PAT from `.env` (`GITHUB_PAT`)

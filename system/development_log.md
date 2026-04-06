@@ -2106,3 +2106,65 @@ All pages load, render, navigate, and accept input on myscraper.netlify.app
 3. `69a4f82` — Cache headers fix
 4. `486ebf1` — TypeScript build fix
 5. `672484c` — Dark mode button text fix
+
+## 2026-04-06 — Phase 10: Workflow Fixes + Zero Checksum Public API
+
+### Workflow Verification (WORKFLOW_FIX_PROMPT.md)
+
+Fixed and verified all 12 workflows on live myscraper.netlify.app:
+
+**Code fixes applied:**
+- Quick Scrape: extraction_mode param (everything/products/content/custom), DOM+trafilatura extraction (120 items from yousell.online)
+- Results & Export: real bulk export endpoint (was stub returning message), save_result with FK run record
+- Structured Extract: _extract_from_html for title/description/price/availability parsing
+- Web Crawl: CrawlJob dataclass access bug (was treating as dict)
+- Maps: AttributeError on _serpapi_key in status endpoint
+- Facebook Groups: requirements note for self-hosted backend
+
+**API keys set on Railway:** SERPER_API_KEY, KEEPA_API_KEY
+
+**WORKFLOW_FIX_LOG.xlsx results:** 20/22 PASS, 0 FAILED, 0 BLOCKED
+
+### E2E Test Suite
+
+Created `tests/e2e/test_live_e2e.py` — 37 tests across 12 workflows:
+- 28 API tests (httpx against Railway backend)
+- 9 Playwright browser tests (against Netlify frontend)
+- All 37 pass in ~2 minutes
+- Runner: `run_e2e.bat` with auto Playwright browser install
+
+### Zero Checksum Public API
+
+Implemented complete external-facing API with full request accountability:
+
+**New files (11):**
+1. `packages/core/storage/models_public_api.py` — 5 SQLAlchemy models
+2. `packages/contracts/public_api.py` — 17 Pydantic contracts
+3. `services/control-plane/utils/error_codes.py` — 17 error codes
+4. `services/control-plane/utils/response.py` — Envelope helpers
+5. `services/control-plane/middleware/api_key_auth.py` — sk_live_xxx auth
+6. `services/control-plane/middleware/idempotency.py` — 24h TTL dedup
+7. `packages/core/storage/repositories_public_api.py` — 5 repositories
+8. `services/control-plane/routers/public_api.py` — 9 endpoints at /v1/
+9. `services/control-plane/routers/api_keys.py` — 3 CRUD endpoints
+10. `services/control-plane/utils/__init__.py` — Package init
+
+**Modified files (3):**
+- `services/control-plane/app.py` — Mount routers
+- `packages/core/storage/models.py` — Import new models
+- `services/control-plane/config.py` — API settings
+
+**Total:** 2,128 new lines across 13 files
+
+### Commits
+1. `2c5c7c7` — Workflow fixes (extraction modes, export, FB Groups, maps)
+2. `4c9a559` — Structured extract HTML parser
+3. `25c55b4` — Save test-scrape results FK fix
+4. `e26657a` — TS build fix
+5. `6a58a94` — Crawl status dataclass fix + XLSX update
+6. `492de24` — XLSX log update (9 PASS)
+7. `902d737` — XLSX log update (20 PASS)
+8. `c03c9c9` — E2E test suite (37 tests, 100% pass)
+9. `54c0290` — Lazy imports in conftest + run_e2e.bat
+10. `99af007` — Auto-install Playwright in bat
+11. `2bf6f66` — Zero Checksum Public API (2,128 lines)

@@ -1,5 +1,22 @@
 # TODO — Current Actionable Queue
 
+## Active — Phase 10: Zero Checksum Public API (April 2026)
+- [x] Fix all 12 workflows on live site (WORKFLOW_FIX_PROMPT.md)
+- [x] Update WORKFLOW_FIX_LOG.xlsx with evidence (20/22 PASS)
+- [x] Create E2E test suite (37 tests, 100% pass rate)
+- [x] Design Zero Checksum Public API architecture
+- [x] Implement API key auth (sk_live_xxx, SHA-256 hashed)
+- [x] Implement idempotency middleware (24h TTL)
+- [x] Implement request audit logging
+- [x] Implement public API router (9 endpoints at /v1/)
+- [x] Implement API key CRUD (3 dashboard endpoints)
+- [x] Create 5 new DB tables (api_keys, idempotency_keys, audit_log, async_jobs, webhook_delivery)
+- [x] Mount in app.py, push to Railway
+- [ ] Verify Zero Checksum API on live Railway deployment
+- [ ] Create API key and test /v1/scrape end-to-end on live site
+- [ ] Add public API tests to E2E test suite
+- [ ] Trigger Netlify frontend deploy
+
 ## Completed — Original 69 Tasks (All Done)
 - [x] **PHASE-0:** Repository and memory initialization
 - [x] **PHASE-1:** Create docs/final_specs.md (1233 lines, all 24 sections)
