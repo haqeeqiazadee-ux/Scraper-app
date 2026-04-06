@@ -732,8 +732,30 @@ async def test_scrape(
                 extracted_data = await _extract_everything(html_snapshot, url, ai_provider)
                 extraction_method = "deterministic+trafilatura+dom"
             else:
-                # Fallback: just use what we have
                 extraction_method = "deterministic"
+
+        elif extraction_mode == "products" and succeeded:
+            # If deterministic found few products (<5), enhance with full extraction
+            # and filter to product-like items
+            if len(extracted_data) < 5:
+                html_snapshot = result.get("html_snapshot", "")
+                if html_snapshot:
+                    from packages.core.ai_providers.deterministic import DeterministicProvider
+                    ai_provider = DeterministicProvider()
+                    all_items = await _extract_everything(html_snapshot, url, ai_provider)
+                    # Keep original products + add any items that look like products
+                    product_items = list(extracted_data)  # keep originals
+                    for item in all_items:
+                        cat = item.get("_category", "")
+                        # Include items with price, or product category, or from product links
+                        has_price = item.get("price") is not None
+                        is_product = cat == "product"
+                        has_product_url = item.get("product_url") and "/product" in str(item.get("product_url", "")).lower()
+                        if (has_price or is_product or has_product_url) and item not in product_items:
+                            product_items.append(item)
+                    if len(product_items) > len(extracted_data):
+                        extracted_data = product_items
+                        extraction_method = "deterministic+enhanced"
 
         elif extraction_mode == "content" and succeeded:
             # Content-only: use trafilatura result from worker
