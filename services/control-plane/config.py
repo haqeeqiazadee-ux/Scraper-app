@@ -34,6 +34,13 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 15
 
+    # Public API (Zero Checksum)
+    api_key_prefix: str = "sk_live_"
+    idempotency_key_ttl_hours: int = 24
+    audit_log_retention_days: int = 90
+    async_job_result_ttl_hours: int = 24
+    public_api_rate_limit_per_minute: int = 60
+
     model_config = {"env_file": ".env", "case_sensitive": False, "extra": "ignore"}
 
 

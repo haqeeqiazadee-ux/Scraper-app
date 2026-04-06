@@ -223,6 +223,16 @@ def create_app() -> FastAPI:
     if _auth_available:
         app.include_router(auth_router.router, prefix="/api/v1", tags=["Auth"])
 
+    # --- Zero Checksum Public API ---
+    try:
+        from services.control_plane.routers.public_api import public_api_router
+        from services.control_plane.routers.api_keys import api_keys_router
+        app.include_router(public_api_router)  # mounted at /v1
+        app.include_router(api_keys_router)    # mounted at /api/v1/api-keys
+        logger.info("Public API v1 mounted at /v1 (9 endpoints)")
+    except Exception as e:
+        logger.warning("Public API not loaded: %s", e)
+
     # --- Serve the web dashboard (pre-built Vite dist) ---
     # Resolve dist path relative to repo root
     _repo_root = Path(__file__).resolve().parent.parent.parent

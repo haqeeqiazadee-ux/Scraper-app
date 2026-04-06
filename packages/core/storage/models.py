@@ -147,3 +147,13 @@ class ArtifactModel(Base):
     checksum = Column(String(255), nullable=False)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     expires_at = Column(DateTime, nullable=True)
+
+
+# Register Public API models so Base.metadata picks them up for auto-creation
+try:
+    from packages.core.storage.models_public_api import (  # noqa: F401, E402
+        ApiKeyModel, IdempotencyKeyModel, RequestAuditLogModel,
+        AsyncJobModel, WebhookDeliveryLogModel,
+    )
+except ImportError:
+    pass  # Public API models not yet available
