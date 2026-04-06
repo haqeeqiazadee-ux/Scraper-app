@@ -95,6 +95,15 @@ function IconSpider() {
   );
 }
 
+function IconLock() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="7" width="10" height="7" rx="1.5" />
+      <path d="M5 7V5a3 3 0 016 0v2" />
+    </svg>
+  );
+}
+
 function IconSearch() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
@@ -163,6 +172,7 @@ const NAV_GROUPS: NavGroupStyled[] = [
     color: "#a5b4fc",    // Bright indigo
     items: [
       { to: "/scrape-test",   label: "Quick Scrape",       Icon: IconSearch },
+      { to: "/auth-scrape",   label: "Auth Scrape",        Icon: IconLock },
       { to: "/crawl",         label: "Web Crawl",          Icon: IconSpider },
       { to: "/search",        label: "Web Search",         Icon: IconGlobe },
       { to: "/extract",       label: "Structured Extract", Icon: IconCode },

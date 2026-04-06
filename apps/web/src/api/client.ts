@@ -772,6 +772,32 @@ export const facebookGroups = {
   },
 };
 
+/* ── Auth Scrape ── */
+
+export const authScrape = {
+  uploadSession(cookies: any[], targetDomain?: string): Promise<any> {
+    return request("/auth-scrape/session", {
+      method: "POST",
+      body: JSON.stringify({ cookies, target_domain: targetDomain }),
+    });
+  },
+  scrape(data: { session_id: string; target_url: string; extraction_mode: string; schema?: Record<string, any>; max_pages?: number }): Promise<any> {
+    return request("/auth-scrape/scrape", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+  listSessions(): Promise<any> {
+    return request("/auth-scrape/sessions");
+  },
+  deleteSession(sessionId: string): Promise<any> {
+    return request(`/auth-scrape/sessions/${sessionId}`, { method: "DELETE" });
+  },
+  getPresets(): Promise<any> {
+    return request("/auth-scrape/presets");
+  },
+};
+
 export const maps = {
   search(query: string, maxResults: number = 20): Promise<MapsSearchResponse> {
     return request("/maps/search", {

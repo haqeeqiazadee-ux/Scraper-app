@@ -223,6 +223,14 @@ def create_app() -> FastAPI:
     if _auth_available:
         app.include_router(auth_router.router, prefix="/api/v1", tags=["Auth"])
 
+    # --- Auth Scrape ---
+    try:
+        from services.control_plane.routers.auth_scrape import auth_scrape_router
+        app.include_router(auth_scrape_router, prefix="/api/v1", tags=["Auth Scrape"])
+        logger.info("Auth Scrape router mounted")
+    except Exception as e:
+        logger.warning("Auth Scrape router not loaded: %s", e)
+
     # --- Zero Checksum Public API ---
     try:
         from services.control_plane.routers.public_api import public_api_router
