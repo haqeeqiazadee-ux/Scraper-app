@@ -798,6 +798,24 @@ export const authScrape = {
   },
 };
 
+/* ── Smart Scrape ── */
+
+export const smartScrape = {
+  run(data: {
+    target: string;
+    cookies?: any[];
+    schema?: Record<string, any>;
+    max_pages?: number;
+    max_depth?: number;
+    output_format?: string;
+  }): Promise<any> {
+    return request("/smart-scrape", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+};
+
 export const maps = {
   search(query: string, maxResults: number = 20): Promise<MapsSearchResponse> {
     return request("/maps/search", {
