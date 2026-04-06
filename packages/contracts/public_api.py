@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Generic, Literal, Optional, TypeVar
+from typing import Any, Generic, Literal, Optional, TypeVar
 
 from pydantic import BaseModel, Field, HttpUrl
 
@@ -217,3 +217,107 @@ class ApiKeyCreated(ApiKeyResponse):
     """Returned once when a key is first created — includes the full key."""
 
     key: str
+
+
+# ---------------------------------------------------------------------------
+# Auth Scrape
+# ---------------------------------------------------------------------------
+
+class AuthSessionRequest(BaseModel):
+    """Request to create an authenticated session from uploaded cookies."""
+
+    cookies: list[dict[str, Any]]
+    target_domain: Optional[str] = None
+
+
+class AuthScrapeRequest(BaseModel):
+    """Request to scrape a page using an authenticated session."""
+
+    session_id: str
+    target_url: HttpUrl
+    extraction_mode: Literal["everything", "table", "fields", "links"] = "everything"
+    schema: Optional[dict[str, Any]] = None
+    max_pages: int = Field(default=1, ge=1, le=100)
+
+
+# ---------------------------------------------------------------------------
+# Amazon / Keepa
+# ---------------------------------------------------------------------------
+
+class AmazonProductRequest(BaseModel):
+    """Look up an Amazon product by ASIN, URL, or keyword."""
+
+    query: str = Field(min_length=1, description="ASIN, Amazon URL, or keyword")
+    domain: str = "US"
+    max_results: int = Field(default=10, ge=1, le=50)
+
+
+class AmazonSearchRequest(BaseModel):
+    """Advanced Amazon product search with filters."""
+
+    title: Optional[str] = None
+    brand: Optional[str] = None
+    min_price: Optional[float] = None
+    max_price: Optional[float] = None
+    min_rating: Optional[float] = None
+    domain: str = "US"
+    max_results: int = Field(default=10, ge=1, le=50)
+
+
+class AmazonDealsRequest(BaseModel):
+    """Find current Amazon deals."""
+
+    min_discount_percent: int = Field(default=20, ge=1, le=99)
+    domain: str = "US"
+
+
+# ---------------------------------------------------------------------------
+# Google Maps
+# ---------------------------------------------------------------------------
+
+class MapsSearchRequest(BaseModel):
+    """Search Google Maps for businesses."""
+
+    query: str = Field(min_length=1, max_length=500)
+    max_results: int = Field(default=20, ge=1, le=50)
+    location: Optional[str] = None
+
+
+# ---------------------------------------------------------------------------
+# Facebook
+# ---------------------------------------------------------------------------
+
+class FacebookSessionRequest(BaseModel):
+    """Upload Facebook cookies for authenticated access."""
+
+    cookies: list[dict[str, Any]]
+
+
+class FacebookScrapeRequest(BaseModel):
+    """Scrape a Facebook group."""
+
+    url: HttpUrl
+    max_posts: int = Field(default=100, ge=1, le=1000)
+
+
+# ---------------------------------------------------------------------------
+# Templates
+# ---------------------------------------------------------------------------
+
+class TemplateRunRequest(BaseModel):
+    """Run a scraper template against a URL."""
+
+    url: HttpUrl
+    overrides: Optional[dict[str, Any]] = None
+
+
+# ---------------------------------------------------------------------------
+# Schedules
+# ---------------------------------------------------------------------------
+
+class ScheduleCreateRequest(BaseModel):
+    """Create a scheduled scrape."""
+
+    url: HttpUrl
+    schedule: str = Field(description="Cron expression, e.g. '0 */6 * * *'")
+    task_type: str = "scrape"

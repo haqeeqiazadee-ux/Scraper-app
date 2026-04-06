@@ -20,13 +20,23 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from packages.contracts.public_api import (
     AccountInfo,
+    AmazonDealsRequest,
+    AmazonProductRequest,
+    AmazonSearchRequest,
+    AuthScrapeRequest,
+    AuthSessionRequest,
     CrawlRequest,
     ExtractRequest,
+    FacebookScrapeRequest,
+    FacebookSessionRequest,
     JobResults,
     JobStatus,
+    MapsSearchRequest,
     ScrapeRequest,
     ScrapeResult,
+    ScheduleCreateRequest as PublicScheduleCreateRequest,
     SearchRequest,
+    TemplateRunRequest,
     UsageRecord,
     UsageResponse,
     WebhookRegistration,
@@ -862,3 +872,883 @@ async def get_account(
         request=request,
         credits_used=0,
     )
+
+
+# ==========================================================================
+# 10-25: Additional workflow endpoints
+# ==========================================================================
+
+
+# ====================  10. POST /v1/auth-session  =========================
+
+
+@public_api_router.post("/auth-session", status_code=200)
+async def public_auth_session(
+    body: AuthSessionRequest,
+    request: Request,
+    api_ctx: ApiKeyContext = Depends(require_api_key),
+    session: AsyncSession = Depends(get_session),
+):
+    """Upload cookies and create an authenticated session. [0 credits]"""
+    start = time.time()
+    request.state.start_time = start
+    tenant_id = api_ctx.tenant_id
+    audit_repo = AuditLogRepository(session)
+    request_id = await _log_request(
+        audit_repo, tenant_id, api_ctx.api_key_id,
+        request, "/v1/auth-session",
+    )
+    request.state.request_id = request_id
+
+    try:
+        from services.control_plane.routers.auth_scrape import (
+            SessionCreateRequest as _SCR,
+            create_session as _create_session,
+        )
+
+        # Build the internal request model
+        internal_body = _SCR(cookies=body.cookies, target_domain=body.target_domain)
+        # Call the internal function directly, passing tenant_id
+        result = await _create_session(body=internal_body, tenant_id=tenant_id)
+
+        duration_ms = int((time.time() - start) * 1000)
+        await _finalise_audit(
+            audit_repo, request_id, tenant_id,
+            status_code=200, credits_used=0, duration_ms=duration_ms,
+        )
+        logger.info("public_api.auth_session.created", request_id=request_id)
+        return success_response(data=result, request=request, credits_used=0)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        duration_ms = int((time.time() - start) * 1000)
+        await _finalise_audit(
+            audit_repo, request_id, tenant_id,
+            status_code=502, credits_used=0, duration_ms=duration_ms,
+            error_code="AUTH_SESSION_ERROR",
+        )
+        logger.error("public_api.auth_session.failed", request_id=request_id, error=str(exc))
+        return error_response(
+            [{"code": "AUTH_SESSION_ERROR", "message": str(exc)}], request, 502,
+        )
+
+
+# =====================  11. POST /v1/auth-scrape  =========================
+
+
+@public_api_router.post("/auth-scrape", status_code=200)
+async def public_auth_scrape(
+    body: AuthScrapeRequest,
+    request: Request,
+    api_ctx: ApiKeyContext = Depends(require_api_key),
+    session: AsyncSession = Depends(get_session),
+):
+    """Scrape a page using an authenticated session. [2 credits]"""
+    start = time.time()
+    request.state.start_time = start
+    tenant_id = api_ctx.tenant_id
+    audit_repo = AuditLogRepository(session)
+    credits = 2
+    request_id = await _log_request(
+        audit_repo, tenant_id, api_ctx.api_key_id,
+        request, "/v1/auth-scrape",
+    )
+    request.state.request_id = request_id
+
+    try:
+        from services.control_plane.routers.auth_scrape import (
+            ScrapeRequest as _ASR,
+            scrape_with_session as _scrape_with_session,
+        )
+
+        internal_body = _ASR(
+            session_id=body.session_id,
+            target_url=str(body.target_url),
+            extraction_mode=body.extraction_mode,
+            schema=body.schema,
+            max_pages=body.max_pages,
+        )
+        result = await _scrape_with_session(body=internal_body, tenant_id=tenant_id)
+
+        duration_ms = int((time.time() - start) * 1000)
+        actual_credits = credits if result.get("status") != "failed" else 0
+        await _finalise_audit(
+            audit_repo, request_id, tenant_id,
+            status_code=200, credits_used=actual_credits, duration_ms=duration_ms,
+        )
+        logger.info(
+            "public_api.auth_scrape.complete",
+            request_id=request_id,
+            item_count=result.get("item_count", 0),
+        )
+        return success_response(data=result, request=request, credits_used=actual_credits)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        duration_ms = int((time.time() - start) * 1000)
+        await _finalise_audit(
+            audit_repo, request_id, tenant_id,
+            status_code=502, credits_used=0, duration_ms=duration_ms,
+            error_code="AUTH_SCRAPE_ERROR",
+        )
+        logger.error("public_api.auth_scrape.failed", request_id=request_id, error=str(exc))
+        return error_response(
+            [{"code": "AUTH_SCRAPE_ERROR", "message": str(exc)}], request, 502,
+        )
+
+
+# ====================  12. GET /v1/auth-sessions  =========================
+
+
+@public_api_router.get("/auth-sessions", status_code=200)
+async def public_auth_sessions(
+    request: Request,
+    api_ctx: ApiKeyContext = Depends(require_api_key),
+    session: AsyncSession = Depends(get_session),
+):
+    """List active authenticated sessions. [0 credits]"""
+    start = time.time()
+    request.state.start_time = start
+    tenant_id = api_ctx.tenant_id
+    audit_repo = AuditLogRepository(session)
+    request_id = await _log_request(
+        audit_repo, tenant_id, api_ctx.api_key_id,
+        request, "/v1/auth-sessions",
+    )
+    request.state.request_id = request_id
+
+    try:
+        from services.control_plane.routers.auth_scrape import list_sessions as _list_sessions
+
+        result = await _list_sessions(tenant_id=tenant_id)
+
+        duration_ms = int((time.time() - start) * 1000)
+        await _finalise_audit(
+            audit_repo, request_id, tenant_id,
+            status_code=200, credits_used=0, duration_ms=duration_ms,
+        )
+        return success_response(data=result, request=request, credits_used=0)
+    except Exception as exc:
+        duration_ms = int((time.time() - start) * 1000)
+        await _finalise_audit(
+            audit_repo, request_id, tenant_id,
+            status_code=502, credits_used=0, duration_ms=duration_ms,
+            error_code="AUTH_SESSIONS_ERROR",
+        )
+        logger.error("public_api.auth_sessions.failed", request_id=request_id, error=str(exc))
+        return error_response(
+            [{"code": "AUTH_SESSIONS_ERROR", "message": str(exc)}], request, 502,
+        )
+
+
+# ===================  13. POST /v1/amazon/product  ========================
+
+
+@public_api_router.post("/amazon/product", status_code=200)
+async def public_amazon_product(
+    body: AmazonProductRequest,
+    request: Request,
+    api_ctx: ApiKeyContext = Depends(require_api_key),
+    session: AsyncSession = Depends(get_session),
+):
+    """Look up an Amazon product by ASIN, URL, or keyword. [3 credits]"""
+    start = time.time()
+    request.state.start_time = start
+    tenant_id = api_ctx.tenant_id
+    audit_repo = AuditLogRepository(session)
+    credits = 3
+    request_id = await _log_request(
+        audit_repo, tenant_id, api_ctx.api_key_id,
+        request, "/v1/amazon/product",
+    )
+    request.state.request_id = request_id
+
+    try:
+        from services.control_plane.routers.keepa import (
+            KeepaQueryRequest,
+            keepa_query,
+        )
+
+        internal_req = KeepaQueryRequest(
+            query=body.query,
+            domain=body.domain,
+            max_results=body.max_results,
+        )
+        result = await keepa_query(internal_req)
+
+        duration_ms = int((time.time() - start) * 1000)
+        await _finalise_audit(
+            audit_repo, request_id, tenant_id,
+            status_code=200, credits_used=credits, duration_ms=duration_ms,
+        )
+        logger.info(
+            "public_api.amazon.product.complete",
+            request_id=request_id,
+            count=result.get("count", 0),
+        )
+        return success_response(data=result, request=request, credits_used=credits)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        duration_ms = int((time.time() - start) * 1000)
+        await _finalise_audit(
+            audit_repo, request_id, tenant_id,
+            status_code=502, credits_used=0, duration_ms=duration_ms,
+            error_code="AMAZON_ERROR",
+        )
+        logger.error("public_api.amazon.product.failed", request_id=request_id, error=str(exc))
+        return error_response(
+            [{"code": "AMAZON_ERROR", "message": str(exc)}], request, 502,
+        )
+
+
+# ====================  14. POST /v1/amazon/search  ========================
+
+
+@public_api_router.post("/amazon/search", status_code=200)
+async def public_amazon_search(
+    body: AmazonSearchRequest,
+    request: Request,
+    api_ctx: ApiKeyContext = Depends(require_api_key),
+    session: AsyncSession = Depends(get_session),
+):
+    """Search Amazon products with filters. [3 credits]"""
+    start = time.time()
+    request.state.start_time = start
+    tenant_id = api_ctx.tenant_id
+    audit_repo = AuditLogRepository(session)
+    credits = 3
+    request_id = await _log_request(
+        audit_repo, tenant_id, api_ctx.api_key_id,
+        request, "/v1/amazon/search",
+    )
+    request.state.request_id = request_id
+
+    try:
+        from services.control_plane.routers.keepa import (
+            KeepaSearchRequest,
+            keepa_search,
+        )
+
+        # Convert price from dollars (float) to cents (int) for Keepa
+        min_price_cents = int(body.min_price * 100) if body.min_price is not None else None
+        max_price_cents = int(body.max_price * 100) if body.max_price is not None else None
+        # Keepa rating is 0-50 scale; public API uses 0-5 float
+        min_rating_keepa = int(body.min_rating * 10) if body.min_rating is not None else None
+
+        internal_req = KeepaSearchRequest(
+            title=body.title,
+            brand=body.brand,
+            min_price=min_price_cents,
+            max_price=max_price_cents,
+            min_rating=min_rating_keepa,
+            domain=body.domain,
+            max_results=body.max_results,
+        )
+        result = await keepa_search(internal_req)
+
+        duration_ms = int((time.time() - start) * 1000)
+        await _finalise_audit(
+            audit_repo, request_id, tenant_id,
+            status_code=200, credits_used=credits, duration_ms=duration_ms,
+        )
+        logger.info(
+            "public_api.amazon.search.complete",
+            request_id=request_id,
+            count=result.get("count", 0),
+        )
+        return success_response(data=result, request=request, credits_used=credits)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        duration_ms = int((time.time() - start) * 1000)
+        await _finalise_audit(
+            audit_repo, request_id, tenant_id,
+            status_code=502, credits_used=0, duration_ms=duration_ms,
+            error_code="AMAZON_SEARCH_ERROR",
+        )
+        logger.error("public_api.amazon.search.failed", request_id=request_id, error=str(exc))
+        return error_response(
+            [{"code": "AMAZON_SEARCH_ERROR", "message": str(exc)}], request, 502,
+        )
+
+
+# ====================  15. POST /v1/amazon/deals  =========================
+
+
+@public_api_router.post("/amazon/deals", status_code=200)
+async def public_amazon_deals(
+    body: AmazonDealsRequest,
+    request: Request,
+    api_ctx: ApiKeyContext = Depends(require_api_key),
+    session: AsyncSession = Depends(get_session),
+):
+    """Find current Amazon deals. [3 credits]"""
+    start = time.time()
+    request.state.start_time = start
+    tenant_id = api_ctx.tenant_id
+    audit_repo = AuditLogRepository(session)
+    credits = 3
+    request_id = await _log_request(
+        audit_repo, tenant_id, api_ctx.api_key_id,
+        request, "/v1/amazon/deals",
+    )
+    request.state.request_id = request_id
+
+    try:
+        from services.control_plane.routers.keepa import (
+            KeepaDealsRequest,
+            keepa_deals,
+        )
+
+        internal_req = KeepaDealsRequest(
+            min_discount_percent=body.min_discount_percent,
+            domain=body.domain,
+        )
+        result = await keepa_deals(internal_req)
+
+        duration_ms = int((time.time() - start) * 1000)
+        await _finalise_audit(
+            audit_repo, request_id, tenant_id,
+            status_code=200, credits_used=credits, duration_ms=duration_ms,
+        )
+        logger.info(
+            "public_api.amazon.deals.complete",
+            request_id=request_id,
+            count=result.get("count", 0),
+        )
+        return success_response(data=result, request=request, credits_used=credits)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        duration_ms = int((time.time() - start) * 1000)
+        await _finalise_audit(
+            audit_repo, request_id, tenant_id,
+            status_code=502, credits_used=0, duration_ms=duration_ms,
+            error_code="AMAZON_DEALS_ERROR",
+        )
+        logger.error("public_api.amazon.deals.failed", request_id=request_id, error=str(exc))
+        return error_response(
+            [{"code": "AMAZON_DEALS_ERROR", "message": str(exc)}], request, 502,
+        )
+
+
+# =======================  16. POST /v1/maps  ==============================
+
+
+@public_api_router.post("/maps", status_code=200)
+async def public_maps_search(
+    body: MapsSearchRequest,
+    request: Request,
+    api_ctx: ApiKeyContext = Depends(require_api_key),
+    session: AsyncSession = Depends(get_session),
+):
+    """Search Google Maps for businesses by query + location. [2 credits]"""
+    start = time.time()
+    request.state.start_time = start
+    tenant_id = api_ctx.tenant_id
+    audit_repo = AuditLogRepository(session)
+    credits = 2
+    request_id = await _log_request(
+        audit_repo, tenant_id, api_ctx.api_key_id,
+        request, "/v1/maps",
+    )
+    request.state.request_id = request_id
+
+    try:
+        from services.control_plane.routers.maps import (
+            MapsSearchRequest as _MSR,
+            maps_search as _maps_search,
+        )
+
+        internal_req = _MSR(
+            query=body.query,
+            max_results=body.max_results,
+            location=body.location,
+        )
+        result = await _maps_search(internal_req)
+
+        duration_ms = int((time.time() - start) * 1000)
+        await _finalise_audit(
+            audit_repo, request_id, tenant_id,
+            status_code=200, credits_used=credits, duration_ms=duration_ms,
+        )
+        logger.info(
+            "public_api.maps.complete",
+            request_id=request_id,
+            count=result.get("count", 0),
+        )
+        return success_response(data=result, request=request, credits_used=credits)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        duration_ms = int((time.time() - start) * 1000)
+        await _finalise_audit(
+            audit_repo, request_id, tenant_id,
+            status_code=502, credits_used=0, duration_ms=duration_ms,
+            error_code="MAPS_ERROR",
+        )
+        logger.error("public_api.maps.failed", request_id=request_id, error=str(exc))
+        return error_response(
+            [{"code": "MAPS_ERROR", "message": str(exc)}], request, 502,
+        )
+
+
+# ==================  17. POST /v1/facebook/session  =======================
+
+
+@public_api_router.post("/facebook/session", status_code=200)
+async def public_facebook_session(
+    body: FacebookSessionRequest,
+    request: Request,
+    api_ctx: ApiKeyContext = Depends(require_api_key),
+    session: AsyncSession = Depends(get_session),
+):
+    """Upload Facebook cookies for authenticated access. [0 credits]"""
+    start = time.time()
+    request.state.start_time = start
+    tenant_id = api_ctx.tenant_id
+    audit_repo = AuditLogRepository(session)
+    request_id = await _log_request(
+        audit_repo, tenant_id, api_ctx.api_key_id,
+        request, "/v1/facebook/session",
+    )
+    request.state.request_id = request_id
+
+    try:
+        from services.control_plane.routers.facebook import upload_cookies as _upload_cookies
+
+        result = await _upload_cookies(cookies=body.cookies)
+
+        duration_ms = int((time.time() - start) * 1000)
+        await _finalise_audit(
+            audit_repo, request_id, tenant_id,
+            status_code=200, credits_used=0, duration_ms=duration_ms,
+        )
+        logger.info("public_api.facebook.session.created", request_id=request_id)
+        return success_response(data=result, request=request, credits_used=0)
+    except Exception as exc:
+        duration_ms = int((time.time() - start) * 1000)
+        await _finalise_audit(
+            audit_repo, request_id, tenant_id,
+            status_code=502, credits_used=0, duration_ms=duration_ms,
+            error_code="FACEBOOK_SESSION_ERROR",
+        )
+        logger.error("public_api.facebook.session.failed", request_id=request_id, error=str(exc))
+        return error_response(
+            [{"code": "FACEBOOK_SESSION_ERROR", "message": str(exc)}], request, 502,
+        )
+
+
+# ==================  18. POST /v1/facebook/scrape  ========================
+
+
+@public_api_router.post("/facebook/scrape", status_code=200)
+async def public_facebook_scrape(
+    body: FacebookScrapeRequest,
+    request: Request,
+    api_ctx: ApiKeyContext = Depends(require_api_key),
+    session: AsyncSession = Depends(get_session),
+):
+    """Scrape Facebook group posts. [5 credits]"""
+    start = time.time()
+    request.state.start_time = start
+    tenant_id = api_ctx.tenant_id
+    audit_repo = AuditLogRepository(session)
+    credits = 5
+    request_id = await _log_request(
+        audit_repo, tenant_id, api_ctx.api_key_id,
+        request, "/v1/facebook/scrape",
+    )
+    request.state.request_id = request_id
+
+    try:
+        from services.control_plane.routers.facebook import (
+            GroupScrapeRequest as _GSR,
+            scrape_group as _scrape_group,
+        )
+
+        internal_req = _GSR(url=str(body.url), max_posts=body.max_posts)
+        result = await _scrape_group(internal_req)
+
+        duration_ms = int((time.time() - start) * 1000)
+        await _finalise_audit(
+            audit_repo, request_id, tenant_id,
+            status_code=200, credits_used=credits, duration_ms=duration_ms,
+        )
+        logger.info("public_api.facebook.scrape.started", request_id=request_id)
+        return success_response(data=result, request=request, credits_used=credits)
+    except Exception as exc:
+        duration_ms = int((time.time() - start) * 1000)
+        await _finalise_audit(
+            audit_repo, request_id, tenant_id,
+            status_code=502, credits_used=0, duration_ms=duration_ms,
+            error_code="FACEBOOK_SCRAPE_ERROR",
+        )
+        logger.error("public_api.facebook.scrape.failed", request_id=request_id, error=str(exc))
+        return error_response(
+            [{"code": "FACEBOOK_SCRAPE_ERROR", "message": str(exc)}], request, 502,
+        )
+
+
+# =====================  19. GET /v1/templates  ============================
+
+
+@public_api_router.get("/templates", status_code=200)
+async def public_list_templates(
+    request: Request,
+    api_ctx: ApiKeyContext = Depends(require_api_key),
+    session: AsyncSession = Depends(get_session),
+    category: Optional[str] = Query(None),
+    platform: Optional[str] = Query(None),
+    tag: Optional[str] = Query(None),
+    q: Optional[str] = Query(None),
+):
+    """List all scraper templates. [0 credits]"""
+    start = time.time()
+    request.state.start_time = start
+    tenant_id = api_ctx.tenant_id
+    audit_repo = AuditLogRepository(session)
+    request_id = await _log_request(
+        audit_repo, tenant_id, api_ctx.api_key_id,
+        request, "/v1/templates",
+    )
+    request.state.request_id = request_id
+
+    try:
+        from services.control_plane.routers.templates import list_all_templates as _list_templates
+
+        result = await _list_templates(
+            category=category, platform=platform, tag=tag, q=q,
+        )
+
+        duration_ms = int((time.time() - start) * 1000)
+        await _finalise_audit(
+            audit_repo, request_id, tenant_id,
+            status_code=200, credits_used=0, duration_ms=duration_ms,
+        )
+        return success_response(data=result, request=request, credits_used=0)
+    except Exception as exc:
+        duration_ms = int((time.time() - start) * 1000)
+        await _finalise_audit(
+            audit_repo, request_id, tenant_id,
+            status_code=502, credits_used=0, duration_ms=duration_ms,
+            error_code="TEMPLATES_ERROR",
+        )
+        logger.error("public_api.templates.failed", request_id=request_id, error=str(exc))
+        return error_response(
+            [{"code": "TEMPLATES_ERROR", "message": str(exc)}], request, 502,
+        )
+
+
+# ================  20. POST /v1/templates/{template_id}/run  ==============
+
+
+@public_api_router.post("/templates/{template_id}/run", status_code=200)
+async def public_run_template(
+    template_id: str,
+    body: TemplateRunRequest,
+    request: Request,
+    api_ctx: ApiKeyContext = Depends(require_api_key),
+    session: AsyncSession = Depends(get_session),
+):
+    """Apply a template, create a task, and execute it. [credits vary by template]"""
+    start = time.time()
+    request.state.start_time = start
+    tenant_id = api_ctx.tenant_id
+    audit_repo = AuditLogRepository(session)
+    credits = 2  # Base cost; may vary by template
+    request_id = await _log_request(
+        audit_repo, tenant_id, api_ctx.api_key_id,
+        request, f"/v1/templates/{template_id}/run",
+    )
+    request.state.request_id = request_id
+
+    try:
+        # Step 1: Apply the template to create a policy
+        from services.control_plane.routers.templates import apply_template as _apply_template
+
+        policy_result = await _apply_template(
+            template_id=template_id,
+            overrides=body.overrides,
+            session=session,
+            tenant_id=tenant_id,
+        )
+        policy_id = policy_result.get("policy_id")
+
+        # Step 2: Create a task for the URL
+        from packages.core.storage.repositories import TaskRepository
+
+        task_repo = TaskRepository(session)
+        task_id = str(uuid4())
+        await task_repo.create(
+            tenant_id=tenant_id,
+            id=task_id,
+            url=str(body.url),
+            task_type="template",
+            status="pending",
+            policy_id=policy_id,
+        )
+        await session.flush()
+
+        # Step 3: Execute the task inline
+        from services.control_plane.routers.execution import execute_task as _execute_task
+
+        exec_result = await _execute_task(
+            task_id=task_id,
+            session=session,
+            tenant_id=tenant_id,
+        )
+
+        duration_ms = int((time.time() - start) * 1000)
+        await _finalise_audit(
+            audit_repo, request_id, tenant_id,
+            status_code=200, credits_used=credits, duration_ms=duration_ms,
+        )
+        logger.info(
+            "public_api.templates.run.complete",
+            request_id=request_id,
+            template_id=template_id,
+            task_id=task_id,
+        )
+        return success_response(
+            data={
+                "template_id": template_id,
+                "policy_id": policy_id,
+                "task_id": task_id,
+                "execution": exec_result,
+            },
+            request=request,
+            credits_used=credits,
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        duration_ms = int((time.time() - start) * 1000)
+        await _finalise_audit(
+            audit_repo, request_id, tenant_id,
+            status_code=502, credits_used=0, duration_ms=duration_ms,
+            error_code="TEMPLATE_RUN_ERROR",
+        )
+        logger.error(
+            "public_api.templates.run.failed",
+            request_id=request_id,
+            template_id=template_id,
+            error=str(exc),
+        )
+        return error_response(
+            [{"code": "TEMPLATE_RUN_ERROR", "message": str(exc)}], request, 502,
+        )
+
+
+# ====================  21. POST /v1/schedules  ============================
+
+
+@public_api_router.post("/schedules", status_code=201)
+async def public_create_schedule(
+    body: PublicScheduleCreateRequest,
+    request: Request,
+    api_ctx: ApiKeyContext = Depends(require_api_key),
+    session: AsyncSession = Depends(get_session),
+):
+    """Create a scheduled scrape. [0 credits]"""
+    start = time.time()
+    request.state.start_time = start
+    tenant_id = api_ctx.tenant_id
+    audit_repo = AuditLogRepository(session)
+    request_id = await _log_request(
+        audit_repo, tenant_id, api_ctx.api_key_id,
+        request, "/v1/schedules",
+    )
+    request.state.request_id = request_id
+
+    try:
+        from services.control_plane.routers.schedules import (
+            ScheduleCreateRequest as _IntSCR,
+            create_schedule as _create_schedule,
+        )
+
+        internal_req = _IntSCR(
+            url=body.url,
+            schedule=body.schedule,
+            task_type=body.task_type,
+        )
+        result = await _create_schedule(request=internal_req, tenant_id=tenant_id)
+
+        duration_ms = int((time.time() - start) * 1000)
+        await _finalise_audit(
+            audit_repo, request_id, tenant_id,
+            status_code=201, credits_used=0, duration_ms=duration_ms,
+        )
+        logger.info("public_api.schedules.created", request_id=request_id)
+        return success_response(data=result, request=request, credits_used=0)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        duration_ms = int((time.time() - start) * 1000)
+        await _finalise_audit(
+            audit_repo, request_id, tenant_id,
+            status_code=502, credits_used=0, duration_ms=duration_ms,
+            error_code="SCHEDULE_CREATE_ERROR",
+        )
+        logger.error("public_api.schedules.create.failed", request_id=request_id, error=str(exc))
+        return error_response(
+            [{"code": "SCHEDULE_CREATE_ERROR", "message": str(exc)}], request, 502,
+        )
+
+
+# =====================  22. GET /v1/schedules  ============================
+
+
+@public_api_router.get("/schedules", status_code=200)
+async def public_list_schedules(
+    request: Request,
+    api_ctx: ApiKeyContext = Depends(require_api_key),
+    session: AsyncSession = Depends(get_session),
+):
+    """List all schedules for the tenant. [0 credits]"""
+    start = time.time()
+    request.state.start_time = start
+    tenant_id = api_ctx.tenant_id
+    audit_repo = AuditLogRepository(session)
+    request_id = await _log_request(
+        audit_repo, tenant_id, api_ctx.api_key_id,
+        request, "/v1/schedules",
+    )
+    request.state.request_id = request_id
+
+    try:
+        from services.control_plane.routers.schedules import list_schedules as _list_schedules
+
+        result = await _list_schedules(tenant_id=tenant_id)
+
+        duration_ms = int((time.time() - start) * 1000)
+        await _finalise_audit(
+            audit_repo, request_id, tenant_id,
+            status_code=200, credits_used=0, duration_ms=duration_ms,
+        )
+        return success_response(data=result, request=request, credits_used=0)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        duration_ms = int((time.time() - start) * 1000)
+        await _finalise_audit(
+            audit_repo, request_id, tenant_id,
+            status_code=502, credits_used=0, duration_ms=duration_ms,
+            error_code="SCHEDULE_LIST_ERROR",
+        )
+        logger.error("public_api.schedules.list.failed", request_id=request_id, error=str(exc))
+        return error_response(
+            [{"code": "SCHEDULE_LIST_ERROR", "message": str(exc)}], request, 502,
+        )
+
+
+# ================  23. DELETE /v1/schedules/{schedule_id}  ================
+
+
+@public_api_router.delete("/schedules/{schedule_id}", status_code=200)
+async def public_delete_schedule(
+    schedule_id: str,
+    request: Request,
+    api_ctx: ApiKeyContext = Depends(require_api_key),
+    session: AsyncSession = Depends(get_session),
+):
+    """Delete a schedule. [0 credits]"""
+    start = time.time()
+    request.state.start_time = start
+    tenant_id = api_ctx.tenant_id
+    audit_repo = AuditLogRepository(session)
+    request_id = await _log_request(
+        audit_repo, tenant_id, api_ctx.api_key_id,
+        request, f"/v1/schedules/{schedule_id}",
+    )
+    request.state.request_id = request_id
+
+    try:
+        from services.control_plane.routers.schedules import delete_schedule as _delete_schedule
+
+        result = await _delete_schedule(schedule_id=schedule_id, tenant_id=tenant_id)
+
+        duration_ms = int((time.time() - start) * 1000)
+        await _finalise_audit(
+            audit_repo, request_id, tenant_id,
+            status_code=200, credits_used=0, duration_ms=duration_ms,
+        )
+        logger.info("public_api.schedules.deleted", request_id=request_id, schedule_id=schedule_id)
+        return success_response(data=result, request=request, credits_used=0)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        duration_ms = int((time.time() - start) * 1000)
+        await _finalise_audit(
+            audit_repo, request_id, tenant_id,
+            status_code=502, credits_used=0, duration_ms=duration_ms,
+            error_code="SCHEDULE_DELETE_ERROR",
+        )
+        logger.error("public_api.schedules.delete.failed", request_id=request_id, error=str(exc))
+        return error_response(
+            [{"code": "SCHEDULE_DELETE_ERROR", "message": str(exc)}], request, 502,
+        )
+
+
+# =====================  24. GET /v1/presets  ==============================
+
+
+@public_api_router.get("/presets", status_code=200)
+async def public_get_presets(
+    request: Request,
+    api_ctx: ApiKeyContext = Depends(require_api_key),
+    session: AsyncSession = Depends(get_session),
+):
+    """Get auth-scrape presets and template presets. [0 credits]"""
+    start = time.time()
+    request.state.start_time = start
+    tenant_id = api_ctx.tenant_id
+    audit_repo = AuditLogRepository(session)
+    request_id = await _log_request(
+        audit_repo, tenant_id, api_ctx.api_key_id,
+        request, "/v1/presets",
+    )
+    request.state.request_id = request_id
+
+    try:
+        from services.control_plane.routers.auth_scrape import PRESETS as AUTH_PRESETS
+
+        # Also gather template summaries as presets
+        template_presets: list[dict[str, Any]] = []
+        try:
+            from packages.core.template_registry import list_templates
+
+            for t in list_templates():
+                template_presets.append({
+                    "id": t.id,
+                    "name": t.name,
+                    "category": t.category.value,
+                    "description": t.description,
+                    "platform": t.platform,
+                })
+        except Exception:
+            pass  # Template registry may not be available
+
+        result = {
+            "auth_scrape_presets": AUTH_PRESETS,
+            "template_presets": template_presets,
+        }
+
+        duration_ms = int((time.time() - start) * 1000)
+        await _finalise_audit(
+            audit_repo, request_id, tenant_id,
+            status_code=200, credits_used=0, duration_ms=duration_ms,
+        )
+        return success_response(data=result, request=request, credits_used=0)
+    except Exception as exc:
+        duration_ms = int((time.time() - start) * 1000)
+        await _finalise_audit(
+            audit_repo, request_id, tenant_id,
+            status_code=502, credits_used=0, duration_ms=duration_ms,
+            error_code="PRESETS_ERROR",
+        )
+        logger.error("public_api.presets.failed", request_id=request_id, error=str(exc))
+        return error_response(
+            [{"code": "PRESETS_ERROR", "message": str(exc)}], request, 502,
+        )
