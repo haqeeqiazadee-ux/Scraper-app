@@ -24,6 +24,7 @@ export default function ScrapeTestPage() {
   const [result, setResult] = useState<TestScrapeResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<boolean | null>(null);
+  const [customSchema, setCustomSchema] = useState('{\n  "title": "string",\n  "price": "number",\n  "description": "string"\n}');
 
   const handleTest = async () => {
     if (!url.trim()) return;
@@ -106,6 +107,42 @@ export default function ScrapeTestPage() {
           <div style={{ fontSize: 12, color: "var(--color-text-secondary)", marginTop: 6 }}>
             {MODE_OPTIONS.find((o) => o.value === mode)?.description}
           </div>
+
+          {/* Custom Fields Schema Input */}
+          {mode === "custom" && (
+            <div style={{ marginTop: 12 }}>
+              <label style={{
+                display: "block",
+                fontSize: 12,
+                fontWeight: 600,
+                color: "var(--color-text-secondary)",
+                marginBottom: 6,
+              }}>
+                Extraction Schema (JSON)
+              </label>
+              <textarea
+                value={customSchema}
+                onChange={(e) => setCustomSchema(e.target.value)}
+                placeholder='{"title": "string", "price": "number", "description": "string"}'
+                rows={6}
+                style={{
+                  width: "100%",
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 13,
+                  padding: 12,
+                  borderRadius: 8,
+                  border: "1px solid var(--color-border)",
+                  background: "var(--color-bg)",
+                  color: "var(--color-text)",
+                  resize: "vertical",
+                  boxSizing: "border-box",
+                }}
+              />
+              <div style={{ fontSize: 11, color: "var(--color-text-secondary)", marginTop: 4 }}>
+                Define fields to extract as key-value pairs. Keys are field names, values are types (string, number, boolean).
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Saved confirmation */}
