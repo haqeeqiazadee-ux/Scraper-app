@@ -167,6 +167,9 @@ export function ScraperPage() {
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState("");
 
+  /* ── What to extract ── */
+  const [intent, setIntent] = useState("products");
+
   /* ── Advanced options (collapsed by default) ── */
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [cookieFile, setCookieFile] = useState<any[]>([]);
@@ -208,7 +211,7 @@ export function ScraperPage() {
     setResult(null);
 
     try {
-      const payload: any = { target: target.trim() };
+      const payload: any = { target: target.trim(), intent };
       if (cookieFile.length > 0) payload.cookies = cookieFile;
       if (schema.trim()) {
         try {
@@ -288,6 +291,41 @@ export function ScraperPage() {
                 </span>
               ) : "Scrape"}
             </button>
+          </div>
+
+          {/* What to extract */}
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text-secondary)", marginBottom: 6 }}>
+              What to extract
+            </div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {[
+                { id: "products", label: "Products & Prices", desc: "Product names, prices, images, availability" },
+                { id: "content", label: "Page Content", desc: "Article text, headings, paragraphs" },
+                { id: "contacts", label: "Contacts & Leads", desc: "Emails, phones, addresses, social links" },
+                { id: "links", label: "Links & Structure", desc: "All URLs, navigation, sitemap" },
+                { id: "everything", label: "Everything", desc: "All data: products + content + links + metadata" },
+              ].map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  title={opt.desc}
+                  onClick={() => setIntent(opt.id)}
+                  style={{
+                    padding: "5px 12px",
+                    fontSize: 12,
+                    fontWeight: intent === opt.id ? 700 : 500,
+                    borderRadius: 6,
+                    border: intent === opt.id ? "2px solid var(--color-primary)" : "1px solid var(--color-border)",
+                    background: intent === opt.id ? "rgba(99, 102, 241, 0.1)" : "transparent",
+                    color: intent === opt.id ? "var(--color-primary)" : "var(--color-text-secondary)",
+                    cursor: "pointer",
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Advanced options toggle */}

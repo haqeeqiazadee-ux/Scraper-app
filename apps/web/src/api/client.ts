@@ -803,6 +803,7 @@ export const authScrape = {
 export const smartScrape = {
   run(data: {
     target: string;
+    intent?: string;
     cookies?: any[];
     schema?: Record<string, any>;
     max_pages?: number;

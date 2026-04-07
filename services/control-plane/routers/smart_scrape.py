@@ -67,6 +67,10 @@ class SmartScrapeRequest(BaseModel):
         alias="schema",
         description="JSON schema for field extraction",
     )
+    intent: str = Field(
+        default="everything",
+        description="What to extract: products, content, contacts, links, everything",
+    )
     max_pages: int = Field(default=1, ge=1, le=1000)
     max_depth: int = Field(default=0, ge=0, le=10)
     output_format: str = "json"
@@ -241,6 +245,7 @@ async def _handle_url_scrape(
     steps: list[dict[str, Any]],
     op_start: float,
     session: AsyncSession,
+    request: SmartScrapeRequest | None = None,
 ) -> dict[str, Any]:
     """Execute the URL scrape path with lane routing and auto-escalation."""
     # Lazy imports to avoid circular dependencies
@@ -449,6 +454,51 @@ async def _handle_url_scrape(
             logger.warning("smart_scrape.enhance_failed", error=str(enh_err))
 
     html_content: str = html_snapshot
+
+    # ---- Step 5b: Filter by intent ----
+    intent = request.intent
+    if intent != "everything" and extracted_data:
+        filtered: list[dict[str, Any]] = []
+        for item in extracted_data:
+            cat = item.get("_category", "")
+            has_price = item.get("price") is not None
+            has_url = bool(item.get("product_url") or item.get("url"))
+
+            if intent == "products":
+                # Keep items that look like products (have price, or category=product)
+                if has_price or cat == "product" or item.get("currency"):
+                    filtered.append(item)
+            elif intent == "content":
+                # Keep article/heading/testimonial content
+                if cat in ("content", "heading", "testimonial", "stat", "metadata", "article"):
+                    filtered.append(item)
+                elif item.get("content_type") == "article" or item.get("full_content"):
+                    filtered.append(item)
+                elif item.get("heading_level"):
+                    filtered.append(item)
+            elif intent == "contacts":
+                # Keep items with email, phone, or address patterns
+                item_str = str(item).lower()
+                if ("@" in item_str or "phone" in item_str or "email" in item_str
+                    or "contact" in item_str or "address" in item_str
+                    or "tel:" in item_str or "mailto:" in item_str):
+                    filtered.append(item)
+                # Also keep social links
+                if any(s in str(item.get("url", "")).lower() for s in
+                       ["linkedin", "twitter", "facebook", "instagram", "github"]):
+                    filtered.append(item)
+            elif intent == "links":
+                # Keep items with URLs
+                if has_url or cat in ("link", "cta"):
+                    filtered.append(item)
+
+        if filtered:
+            step_ts = _record_step(
+                steps,
+                f"Filtered by intent '{intent}': {len(filtered)} items (from {len(extracted_data)})",
+                step_ts,
+            )
+            extracted_data = filtered
 
     # ---- Step 6: Schema matching ----
     schema_matched: dict[str, Any] | None = None
@@ -662,6 +712,7 @@ async def smart_scrape(
                 steps=steps,
                 op_start=op_start,
                 session=session,
+                request=request,
             )
 
             total_elapsed = int((time.time() - op_start) * 1000)
