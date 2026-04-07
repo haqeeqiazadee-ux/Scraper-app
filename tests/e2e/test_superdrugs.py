@@ -138,8 +138,12 @@ class TestSuperDrugsUI:
     def test_superdrugs_scrape_flow(self, page: Page):
         """Enter superdrugs.pk, click Scrape, verify results appear."""
         page.goto("/scraper", wait_until="networkidle", timeout=20_000)
-        page.fill('input[type="text"]', TARGET)
-        page.click("button:has-text('Scrape')")
+        inp = page.locator('input[type="text"]')
+        inp.click()
+        inp.fill(TARGET)
+        inp.dispatch_event("input")
+        page.wait_for_timeout(500)
+        page.locator("button:has-text('Scrape')").click(timeout=5_000)
 
         # Wait for results (smart scrape can take up to 30s)
         page.wait_for_timeout(5_000)
@@ -167,8 +171,12 @@ class TestSuperDrugsUI:
     def test_superdrugs_shows_items(self, page: Page):
         """After scraping superdrugs.pk, items should be visible in table."""
         page.goto("/scraper", wait_until="networkidle", timeout=20_000)
-        page.fill('input[type="text"]', TARGET)
-        page.click("button:has-text('Scrape')")
+        inp = page.locator('input[type="text"]')
+        inp.click()
+        inp.fill(TARGET)
+        inp.dispatch_event("input")
+        page.wait_for_timeout(500)
+        page.locator("button:has-text('Scrape')").click(timeout=5_000)
 
         # Wait for completion
         for _ in range(25):
