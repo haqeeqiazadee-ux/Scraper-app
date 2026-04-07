@@ -609,7 +609,9 @@ async def _handle_url_scrape(
             html_snapshot = worker_result.get("html_snapshot", "")
             html_size = len(html_snapshot.encode("utf-8", errors="replace")) if html_snapshot else 0
             bytes_downloaded = worker_result.get("bytes_downloaded", 0)
-            effective_size = html_size or bytes_downloaded
+            # Use bytes_downloaded (actual HTTP response size) if available,
+            # not html_snapshot which may be truncated
+            effective_size = bytes_downloaded if bytes_downloaded > 0 else html_size
 
             logger.info(
                 "smart_scrape.size_check",
