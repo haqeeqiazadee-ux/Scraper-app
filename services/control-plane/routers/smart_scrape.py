@@ -349,20 +349,31 @@ async def _handle_url_scrape(
         # Check escalation — with smart overrides for JS-rendered sites
         needs_escalation = _escalation_mgr.should_escalate(worker_result)
 
-        # Smart override: if HTTP lane returned very few items AND the HTML
-        # is suspiciously small (< 20KB = likely JS shell), force escalation
+        # Smart override: if HTTP lane returned few items, check if site
+        # is JS-rendered by examining HTML size. Force escalation to browser.
         if (
             not needs_escalation
             and current_lane == Lane.HTTP
             and succeeded
-            and worker_result.get("item_count", 0) <= 5
+            and worker_result.get("item_count", 0) <= 10
         ):
             html_snapshot = worker_result.get("html_snapshot", "")
             html_size = len(html_snapshot.encode("utf-8", errors="replace")) if html_snapshot else 0
-            bytes_downloaded = worker_result.get("bytes_downloaded", html_size)
+            bytes_downloaded = worker_result.get("bytes_downloaded", 0)
+            effective_size = html_size or bytes_downloaded
 
-            # Sites with < 20KB HTML that return ≤ 5 items are likely JS-rendered
-            if bytes_downloaded < 20_000 and bytes_downloaded > 0:
+            logger.info(
+                "smart_scrape.size_check",
+                task_id=task_id,
+                html_snapshot_size=html_size,
+                bytes_downloaded=bytes_downloaded,
+                effective_size=effective_size,
+                item_count=worker_result.get("item_count", 0),
+            )
+
+            # If HTML content is small (< 50KB) and few items found,
+            # the site is very likely JS-rendered (Shopify, React, etc.)
+            if effective_size < 50_000 and effective_size > 0:
                 needs_escalation = True
                 logger.info(
                     "smart_scrape.js_detected",
