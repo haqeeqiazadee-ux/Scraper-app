@@ -302,6 +302,7 @@ async def _handle_url_scrape(
     domain_lower = parsed_url.netloc.lower()
     is_amazon = "amazon." in domain_lower
     is_tiktok = "tiktok.com" in domain_lower
+    is_facebook = "facebook.com" in domain_lower or "fb.com" in domain_lower
 
     # TikTok → route based on URL type
     # /shop/* → ScrapeCreators API (paid, $0.0019/req)
@@ -445,6 +446,43 @@ async def _handle_url_scrape(
             except Exception as tiktok_err:
                 logger.warning("smart_scrape.tiktok_failed", error=str(tiktok_err)[:200])
                 step_ts = _record_step(steps, f"TikTok API failed: {str(tiktok_err)[:80]} — falling back to scraper", step_ts)
+
+    # Facebook → use Playwright browser with cookies for group scraping
+    if is_facebook and not platform_products and cookies:
+        try:
+            from packages.core.facebook_group_scraper import FacebookGroupScraper
+
+            is_group = "/groups/" in url
+            scraper = FacebookGroupScraper(cdp_url=None)  # Force Playwright, no CDP
+
+            if is_group:
+                posts = await scraper.scrape_group(
+                    url=url,
+                    cookies=cookies,
+                    max_posts=20,
+                )
+                if posts:
+                    platform_products = []
+                    for p in posts:
+                        platform_products.append({
+                            "name": p.get("author", p.get("user", "")),
+                            "content": p.get("text", p.get("content", ""))[:500],
+                            "likes": p.get("likes", 0),
+                            "comments": p.get("comments", 0),
+                            "shares": p.get("shares", 0),
+                            "url": p.get("url", p.get("link", "")),
+                            "timestamp": p.get("timestamp", p.get("date", "")),
+                            "_category": "content",
+                            "_extraction_method": "facebook_playwright",
+                        })
+                    step_ts = _record_step(steps, f"Facebook Groups: {len(platform_products)} posts via Playwright", step_ts)
+            else:
+                # Non-group Facebook URL — just scrape with browser lane
+                step_ts = _record_step(steps, "Facebook detected — will use browser lane with cookies", step_ts)
+
+        except Exception as fb_err:
+            logger.warning("smart_scrape.facebook_failed", error=str(fb_err)[:200])
+            step_ts = _record_step(steps, f"Facebook scraper failed: {str(fb_err)[:80]} — falling back to browser", step_ts)
 
     # Amazon → route ALL queries to Keepa API
 
