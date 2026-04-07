@@ -426,11 +426,11 @@ async def _handle_url_scrape(
     # Clean up escalation context
     _escalation_mgr.complete(task_id, worker_result)
 
-    # ---- Step 5: Enhanced extraction ----
+    # ---- Step 5: Universal product extraction ----
     extracted_data: list[dict[str, Any]] = worker_result.get("extracted_data", [])
     html_snapshot: str = worker_result.get("html_snapshot", "") or worker_result.get("html", "")
 
-    # Step 5a: Shopify API detection — if site is Shopify, use products.json
+    # Step 5a: Shopify API (if detected)
     if html_snapshot and ("shopify" in html_snapshot.lower() or "myshopify" in html_snapshot.lower()):
         try:
             import httpx as _httpx
@@ -438,8 +438,7 @@ async def _handle_url_scrape(
             async with _httpx.AsyncClient(timeout=15, follow_redirects=True) as _client:
                 shopify_resp = await _client.get(shopify_url)
                 if shopify_resp.status_code == 200:
-                    shopify_data = shopify_resp.json()
-                    shopify_products = shopify_data.get("products", [])
+                    shopify_products = shopify_resp.json().get("products", [])
                     if shopify_products:
                         shopify_items = []
                         for sp in shopify_products:
@@ -447,27 +446,87 @@ async def _handle_url_scrape(
                             shopify_items.append({
                                 "name": sp.get("title", ""),
                                 "price": variant.get("price", ""),
-                                "currency": "PKR" if "pk" in url.lower() else "USD",
                                 "product_url": f"{url.rstrip('/')}/products/{sp.get('handle', '')}",
-                                "image_url": sp.get("images", [{}])[0].get("src", "") if sp.get("images") else "",
+                                "image_url": (sp.get("images", [{}])[0].get("src", "") if sp.get("images") else ""),
                                 "vendor": sp.get("vendor", ""),
                                 "product_type": sp.get("product_type", ""),
-                                "available": variant.get("available", True),
                                 "_category": "product",
                                 "_extraction_method": "shopify_api",
                             })
                         extracted_data = shopify_items
-                        step_ts = _record_step(
-                            steps,
-                            f"Shopify API: {len(shopify_items)} products from /products.json",
-                            step_ts,
-                        )
-                        logger.info("smart_scrape.shopify_api", task_id=task_id, products=len(shopify_items))
+                        step_ts = _record_step(steps, f"Shopify API: {len(shopify_items)} products", step_ts)
         except Exception as shop_err:
             logger.debug("smart_scrape.shopify_api_failed", error=str(shop_err))
 
-    # Step 5b: Enhanced extraction if still few items
-    if html_snapshot and len(extracted_data) < 20:
+    # Step 5b: Generic DOM product extraction (if still few items)
+    if html_snapshot and len(extracted_data) < 10:
+        try:
+            import re as _re
+            from bs4 import BeautifulSoup as _BS
+            _soup = _BS(html_snapshot, "html.parser")
+            _seen: set[str] = set()
+            _dom_products: list[dict[str, Any]] = []
+            _price_re = _re.compile(r"[\$\u00a3\u20ac][\d,.]+|[\d,.]+\s*(?:Rs|PKR|USD|EUR|GBP)")
+
+            # Find containers that have BOTH a price AND a name element
+            for price_text_el in _soup.find_all(string=_price_re):
+                parent = price_text_el.parent
+                for _ in range(8):
+                    if parent is None or parent.name in ("body", "html"):
+                        break
+                    links = parent.find_all("a", href=True)
+                    has_link = any(l["href"] not in ("#", "", "javascript:void(0)") for l in links)
+                    name_el = parent.find(["h2", "h3", "h4", "h5"]) or parent.find("img", alt=True)
+                    if has_link and name_el:
+                        # Extract name
+                        _name = ""
+                        for h in parent.find_all(["h2", "h3", "h4", "h5"]):
+                            t = h.get_text(strip=True)
+                            if t and len(t) > 3:
+                                _name = t
+                                break
+                        if not _name:
+                            _img = parent.find("img", alt=True)
+                            if _img and len(_img["alt"].strip()) > 3:
+                                _name = _img["alt"].strip()
+                        if not _name:
+                            for a in parent.find_all("a"):
+                                t = a.get_text(strip=True)
+                                if t and 5 < len(t) < 200:
+                                    _name = t
+                                    break
+                        if not _name or len(_name) < 3:
+                            parent = parent.parent
+                            continue
+
+                        # Extract price
+                        _pm = _price_re.search(str(price_text_el))
+                        _price = _pm.group() if _pm else ""
+
+                        # Extract URL
+                        _link = parent.find("a", href=True)
+                        _href = _link["href"] if _link else ""
+                        _full_url = _href if _href.startswith("http") else f"{url.rstrip('/')}{_href}" if _href else ""
+
+                        _key = _name[:50]
+                        if _key not in _seen:
+                            _seen.add(_key)
+                            _dom_products.append({
+                                "name": _name, "price": _price, "product_url": _full_url,
+                                "_category": "product", "_extraction_method": "dom_group",
+                            })
+                        break
+                    parent = parent.parent
+
+            if len(_dom_products) > len(extracted_data):
+                extracted_data = _dom_products
+                step_ts = _record_step(steps, f"DOM extraction: {len(_dom_products)} products found", step_ts)
+
+        except Exception as dom_err:
+            logger.debug("smart_scrape.dom_extract_failed", error=str(dom_err))
+
+    # Step 5c: Enhanced full extraction if still few items
+    if html_snapshot and len(extracted_data) < 10:
         try:
             from services.control_plane.routers.execution import _extract_everything
             from packages.core.ai_providers.deterministic import DeterministicProvider
