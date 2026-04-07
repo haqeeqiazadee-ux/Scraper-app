@@ -5,7 +5,7 @@ Tests the Smart Scraper against a real JS-heavy Shopify pharmacy site.
 Verifies auto-detection, escalation, and extraction quality.
 
 Run:
-  C:\Python314\python.exe -m pytest tests/e2e/test_superdrugs.py -v --tb=short
+  python -m pytest tests/e2e/test_superdrugs.py -v --tb=short
 """
 
 import json
