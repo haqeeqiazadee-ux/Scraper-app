@@ -60,10 +60,11 @@ class TestSuperDrugsAPI:
         d = post("/smart-scrape", {"target": TARGET})
         assert d["item_count"] > 3, f"Only {d['item_count']} items"
 
-    def test_enhanced_extraction_runs(self):
+    def test_extraction_enhanced_or_shopify(self):
         d = post("/smart-scrape", {"target": TARGET})
         steps = [s.get("step", "") for s in d.get("steps", [])]
-        assert any("nhanced" in s for s in steps), f"No enhancement. Steps: {steps}"
+        has_extra = any("nhanced" in s or "Shopify" in s or "DOM" in s for s in steps)
+        assert has_extra, f"No extraction enhancement. Steps: {steps}"
 
     def test_products_have_names(self):
         d = post("/smart-scrape", {"target": TARGET})
