@@ -620,9 +620,9 @@ async def _handle_url_scrape(
                 item_count=worker_result.get("item_count", 0),
             )
 
-            # If HTML content is small (< 50KB) and few items found,
-            # the site is very likely JS-rendered (Shopify, React, etc.)
-            if effective_size < 50_000 and effective_size > 0:
+            # If HTML content is genuinely small (< 10KB), force escalation
+            # But skip for sites that return large HTML (eBay = 1.6MB)
+            if effective_size < 10_000 and effective_size > 0:
                 needs_escalation = True
                 logger.info(
                     "smart_scrape.js_detected",
