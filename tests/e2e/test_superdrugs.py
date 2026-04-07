@@ -138,8 +138,7 @@ class TestSuperDrugsUI:
     def test_superdrugs_scrape_flow(self, page: Page):
         """Enter superdrugs.pk, click Scrape, verify results appear."""
         page.goto("/scraper", wait_until="networkidle", timeout=20_000)
-        inp = page.locator('input[type="text"]')
-        inp.click()
+        inp = page.locator('input.form-input[placeholder*="example.com"]')
         inp.fill(TARGET)
         inp.dispatch_event("input")
         page.wait_for_timeout(500)
