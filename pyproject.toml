@@ -46,6 +46,9 @@ extraction = [
 mcp = [
     "mcp>=1.0",
 ]
+tiktok = [
+    "TikTokApi>=7.0",
+]
 observability = [
     "prometheus-client>=0.20",
     "opentelemetry-api>=1.22",

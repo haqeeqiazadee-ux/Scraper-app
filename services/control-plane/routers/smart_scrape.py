@@ -297,11 +297,154 @@ async def _handle_url_scrape(
     # Amazon → Keepa, Shopify → /products.json, WooCommerce → REST API
     platform_products: list[dict[str, Any]] | None = None
 
-    # Amazon → route ALL queries to Keepa API
-    from urllib.parse import urlparse
+    from urllib.parse import urlparse, unquote_plus
     parsed_url = urlparse(url)
     domain_lower = parsed_url.netloc.lower()
     is_amazon = "amazon." in domain_lower
+    is_tiktok = "tiktok.com" in domain_lower
+
+    # TikTok → route to TikTok API (davidteather/TikTok-Api)
+    if is_tiktok:
+        try:
+            import re as _re
+
+            # Detect TikTok URL type
+            path = parsed_url.path.lower()
+            query_params = parsed_url.query
+
+            # Extract ms_token from cookies if provided
+            ms_token = None
+            if cookies:
+                for c in cookies:
+                    if c.get("name") == "ms_token" or c.get("name") == "msToken":
+                        ms_token = c.get("value")
+                        break
+
+            from TikTokApi import TikTokApi as _TikTokApi
+            import asyncio
+
+            tiktok_items: list[dict[str, Any]] = []
+
+            async def _fetch_tiktok():
+                async with _TikTokApi() as api:
+                    if ms_token:
+                        await api.create_sessions(
+                            ms_tokens=[ms_token],
+                            num_sessions=1,
+                            headless=True,
+                            suppress_resource_load_types=["image", "font", "stylesheet"],
+                        )
+                    else:
+                        await api.create_sessions(
+                            num_sessions=1,
+                            headless=True,
+                            suppress_resource_load_types=["image", "font", "stylesheet"],
+                        )
+
+                    # /search?q=... → search videos
+                    search_match = _re.search(r'[?&]q=([^&]+)', url)
+                    # /@username → user profile + videos
+                    user_match = _re.match(r'.*/@([^/?]+)', path)
+                    # /tag/hashtag → hashtag videos
+                    hashtag_match = _re.match(r'.*/tag/([^/?]+)', path)
+                    # /video/id or /@user/video/id → single video
+                    video_match = _re.search(r'/video/(\d+)', path)
+
+                    if search_match:
+                        query = unquote_plus(search_match.group(1))
+                        async for video in api.search.videos(query, count=20):
+                            vd = video.as_dict
+                            tiktok_items.append({
+                                "name": (vd.get("desc") or "")[:200],
+                                "views": vd.get("stats", {}).get("playCount", 0),
+                                "likes": vd.get("stats", {}).get("diggCount", 0),
+                                "shares": vd.get("stats", {}).get("shareCount", 0),
+                                "comments": vd.get("stats", {}).get("commentCount", 0),
+                                "creator": vd.get("author", {}).get("uniqueId", ""),
+                                "music": vd.get("music", {}).get("title", ""),
+                                "url": f"https://www.tiktok.com/@{vd.get('author',{}).get('uniqueId','')}/video/{vd.get('id','')}",
+                                "hashtags": ",".join(h.get("name", "") for h in vd.get("challenges", [])),
+                                "_category": "content",
+                                "_extraction_method": "tiktok_api",
+                            })
+
+                    elif hashtag_match:
+                        tag_name = unquote_plus(hashtag_match.group(1))
+                        tag = api.hashtag(name=tag_name)
+                        async for video in tag.videos(count=20):
+                            vd = video.as_dict
+                            tiktok_items.append({
+                                "name": (vd.get("desc") or "")[:200],
+                                "views": vd.get("stats", {}).get("playCount", 0),
+                                "likes": vd.get("stats", {}).get("diggCount", 0),
+                                "shares": vd.get("stats", {}).get("shareCount", 0),
+                                "creator": vd.get("author", {}).get("uniqueId", ""),
+                                "hashtag": tag_name,
+                                "url": f"https://www.tiktok.com/@{vd.get('author',{}).get('uniqueId','')}/video/{vd.get('id','')}",
+                                "_category": "content",
+                                "_extraction_method": "tiktok_api",
+                            })
+
+                    elif user_match:
+                        username = user_match.group(1)
+                        user = api.user(username)
+                        user_data = await user.info()
+                        ud = user_data.as_dict if hasattr(user_data, "as_dict") else user_data
+                        user_stats = ud.get("stats", ud.get("userInfo", {}).get("stats", {}))
+                        tiktok_items.append({
+                            "name": username,
+                            "followers": user_stats.get("followerCount", 0),
+                            "following": user_stats.get("followingCount", 0),
+                            "likes": user_stats.get("heartCount", user_stats.get("heart", 0)),
+                            "videos": user_stats.get("videoCount", 0),
+                            "bio": ud.get("user", {}).get("signature", ""),
+                            "verified": ud.get("user", {}).get("verified", False),
+                            "url": f"https://www.tiktok.com/@{username}",
+                            "_category": "profile",
+                            "_extraction_method": "tiktok_api",
+                        })
+                        # Also get recent videos
+                        async for video in user.videos(count=10):
+                            vd = video.as_dict
+                            tiktok_items.append({
+                                "name": (vd.get("desc") or "")[:200],
+                                "views": vd.get("stats", {}).get("playCount", 0),
+                                "likes": vd.get("stats", {}).get("diggCount", 0),
+                                "creator": username,
+                                "url": f"https://www.tiktok.com/@{username}/video/{vd.get('id','')}",
+                                "_category": "content",
+                                "_extraction_method": "tiktok_api",
+                            })
+
+                    elif video_match:
+                        video_id = video_match.group(1)
+                        video = api.video(id=video_id)
+                        vd = (await video.info()).as_dict if hasattr(await video.info(), "as_dict") else await video.info()
+                        tiktok_items.append({
+                            "name": (vd.get("desc") or "")[:200],
+                            "views": vd.get("stats", {}).get("playCount", 0),
+                            "likes": vd.get("stats", {}).get("diggCount", 0),
+                            "shares": vd.get("stats", {}).get("shareCount", 0),
+                            "comments": vd.get("stats", {}).get("commentCount", 0),
+                            "creator": vd.get("author", {}).get("uniqueId", ""),
+                            "music": vd.get("music", {}).get("title", ""),
+                            "url": url,
+                            "_category": "content",
+                            "_extraction_method": "tiktok_api",
+                        })
+
+            await _fetch_tiktok()
+
+            if tiktok_items:
+                platform_products = tiktok_items
+                step_ts = _record_step(steps, f"TikTok API: {len(tiktok_items)} items", step_ts)
+                logger.info("smart_scrape.tiktok_api", task_id=task_id, count=len(tiktok_items))
+
+        except Exception as tiktok_err:
+            logger.warning("smart_scrape.tiktok_api_failed", error=str(tiktok_err)[:200])
+            step_ts = _record_step(steps, f"TikTok API failed: {str(tiktok_err)[:100]} — falling back to scraper", step_ts)
+
+    # Amazon → route ALL queries to Keepa API
 
     if is_amazon:
         try:
