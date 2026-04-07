@@ -218,18 +218,24 @@ export function ScraperPage() {
     { id: "price", label: "Price", group: "Product" },
     { id: "brand", label: "Brand", group: "Product" },
     { id: "sku", label: "SKU / Model", group: "Product" },
-    { id: "availability", label: "Stock / Availability", group: "Product" },
-    { id: "condition", label: "New / Used / Refurbished", group: "Product" },
+    { id: "availability", label: "In Stock", group: "Product" },
     { id: "image", label: "Image URL", group: "Product" },
     { id: "product_url", label: "Product URL", group: "Product" },
+    { id: "condition_new", label: "New", group: "Condition" },
+    { id: "condition_used", label: "Used", group: "Condition" },
+    { id: "condition_refurbished", label: "Refurbished", group: "Condition" },
     { id: "description", label: "Description", group: "Content" },
     { id: "category", label: "Category", group: "Content" },
-    { id: "rating", label: "Rating / Reviews", group: "Content" },
+    { id: "rating", label: "Rating", group: "Content" },
+    { id: "reviews", label: "Reviews Count", group: "Content" },
     { id: "shipping", label: "Postage / Delivery", group: "Logistics" },
+    { id: "shipping_cost", label: "Shipping Cost", group: "Logistics" },
+    { id: "delivery_time", label: "Delivery Time", group: "Logistics" },
     { id: "seller", label: "Seller / Vendor", group: "Logistics" },
     { id: "location", label: "Location", group: "Logistics" },
     { id: "email", label: "Email", group: "Contact" },
     { id: "phone", label: "Phone", group: "Contact" },
+    { id: "address", label: "Address", group: "Contact" },
   ];
   const [selectedFields, setSelectedFields] = useState<Set<string>>(
     new Set(["name", "price", "brand", "availability", "image", "product_url"])
@@ -388,7 +394,7 @@ export function ScraperPage() {
               </div>
             </div>
             <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-              {["Product", "Content", "Logistics", "Contact"].map((group) => (
+              {["Product", "Condition", "Content", "Logistics", "Contact"].map((group) => (
                 <div key={group} style={{ minWidth: 160 }}>
                   <div style={{ fontSize: 10, fontWeight: 700, color: "var(--color-text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>{group}</div>
                   {ALL_FIELDS.filter((f) => f.group === group).map((f) => (
