@@ -61,13 +61,57 @@ function StatsGrid({ stats }: { stats: { label: string; value: string | number; 
   );
 }
 
+function downloadCSV(data: Record<string, unknown>[], filename: string = "scrape-results.csv") {
+  const keys = Object.keys(data[0]).filter((k) => !k.startsWith("_") && k !== "full_content");
+  const header = keys.join(",");
+  const rows = data.map((item) =>
+    keys.map((k) => {
+      const val = String(item[k] ?? "").replace(/"/g, '""');
+      return val.includes(",") || val.includes('"') || val.includes("\n") ? `"${val}"` : val;
+    }).join(",")
+  );
+  const csv = [header, ...rows].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function downloadJSON(data: Record<string, unknown>[], filename: string = "scrape-results.json") {
+  const clean = data.map((item) => {
+    const obj: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(item)) {
+      if (!k.startsWith("_")) obj[k] = v;
+    }
+    return obj;
+  });
+  const blob = new Blob([JSON.stringify(clean, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function DataTable({ data }: { data: Record<string, unknown>[] }) {
   if (!data || data.length === 0) return null;
   const keys = Object.keys(data[0]).filter((k) => !k.startsWith("_") && k !== "full_content");
   return (
     <div className="card" style={{ marginBottom: 16 }}>
-      <div className="card-header">
-        <h3>Extracted Data ({data.length} items)</h3>
+      <div className="card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h3>Extracted Data ({data.length} records)</h3>
+        <div style={{ display: "flex", gap: 6 }}>
+          <button className="btn btn-sm btn-primary" onClick={() => downloadCSV(data)} style={{ fontSize: 12, padding: "4px 12px" }}>
+            Download CSV
+          </button>
+          <button className="btn btn-sm btn-secondary" onClick={() => downloadJSON(data)} style={{ fontSize: 12, padding: "4px 12px" }}>
+            Download JSON
+          </button>
+        </div>
       </div>
       <div className="table-container">
         <table>
