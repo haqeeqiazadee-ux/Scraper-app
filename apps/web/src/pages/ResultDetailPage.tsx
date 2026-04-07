@@ -55,13 +55,28 @@ export function ResultDetailPage() {
     );
   }
 
+  const apiBase = import.meta.env.VITE_API_URL ?? "/api/v1";
+
   return (
     <>
       <div className="page-header">
-        <h2>Result Detail</h2>
-        <p>
-          <Link to="/results">Results</Link> / {result.id}
-        </p>
+        <div className="page-header-left">
+          <h2>Result Detail</h2>
+          <p>
+            <Link to="/results">Results</Link> / {result.id}
+          </p>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <a href={`${apiBase}/tasks/${result.task_id}/export/csv`} className="btn btn-primary btn-sm" download>
+            Download CSV
+          </a>
+          <a href={`${apiBase}/tasks/${result.task_id}/export/json`} className="btn btn-secondary btn-sm" download>
+            Download JSON
+          </a>
+          <a href={`${apiBase}/tasks/${result.task_id}/export/xlsx`} className="btn btn-secondary btn-sm" download>
+            Download Excel
+          </a>
+        </div>
       </div>
       <div className="page-body">
         <ResultDetail result={result} />

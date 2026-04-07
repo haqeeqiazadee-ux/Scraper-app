@@ -212,6 +212,7 @@ export interface Result {
 
 export interface ResultListItem {
   id: string;
+  task_id: string;
   run_id: string;
   url: string;
   item_count: number;

@@ -211,8 +211,38 @@ export function ScraperPage() {
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState("");
 
-  /* ── What to extract ── */
-  const [intent, setIntent] = useState("products");
+  /* ── What to extract — field picker ── */
+  const [intent] = useState("products");
+  const ALL_FIELDS: { id: string; label: string; group: string }[] = [
+    { id: "name", label: "Product Name", group: "Product" },
+    { id: "price", label: "Price", group: "Product" },
+    { id: "brand", label: "Brand", group: "Product" },
+    { id: "sku", label: "SKU / Model", group: "Product" },
+    { id: "availability", label: "Stock / Availability", group: "Product" },
+    { id: "condition", label: "New / Used / Refurbished", group: "Product" },
+    { id: "image", label: "Image URL", group: "Product" },
+    { id: "product_url", label: "Product URL", group: "Product" },
+    { id: "description", label: "Description", group: "Content" },
+    { id: "category", label: "Category", group: "Content" },
+    { id: "rating", label: "Rating / Reviews", group: "Content" },
+    { id: "shipping", label: "Postage / Delivery", group: "Logistics" },
+    { id: "seller", label: "Seller / Vendor", group: "Logistics" },
+    { id: "location", label: "Location", group: "Logistics" },
+    { id: "email", label: "Email", group: "Contact" },
+    { id: "phone", label: "Phone", group: "Contact" },
+  ];
+  const [selectedFields, setSelectedFields] = useState<Set<string>>(
+    new Set(["name", "price", "brand", "availability", "image", "product_url"])
+  );
+  function toggleField(id: string) {
+    setSelectedFields((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+  function selectAllFields() { setSelectedFields(new Set(ALL_FIELDS.map((f) => f.id))); }
+  function clearAllFields() { setSelectedFields(new Set(["name", "price"])); }
 
   /* ── Advanced options (collapsed by default) ── */
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -256,6 +286,15 @@ export function ScraperPage() {
 
     try {
       const payload: any = { target: target.trim(), intent };
+      // Auto-generate schema from selected fields
+      if (selectedFields.size > 0) {
+        const fieldSchema: Record<string, string> = {};
+        for (const fid of selectedFields) {
+          const fdef = ALL_FIELDS.find((f) => f.id === fid);
+          fieldSchema[fid] = fdef?.group === "Product" && ["price"].includes(fid) ? "number" : "string";
+        }
+        payload.schema = fieldSchema;
+      }
       if (cookieFile.length > 0) payload.cookies = cookieFile;
       if (schema.trim()) {
         try {
@@ -337,37 +376,28 @@ export function ScraperPage() {
             </button>
           </div>
 
-          {/* What to extract */}
+          {/* What to extract — field picker */}
           <div style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text-secondary)", marginBottom: 6 }}>
-              What to extract
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text-secondary)" }}>
+                What to extract ({selectedFields.size} fields selected)
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <button type="button" onClick={selectAllFields} style={{ fontSize: 11, color: "var(--color-primary)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>Select All</button>
+                <button type="button" onClick={clearAllFields} style={{ fontSize: 11, color: "var(--color-text-secondary)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>Reset</button>
+              </div>
             </div>
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              {[
-                { id: "products", label: "Products & Prices", desc: "Product names, prices, images, availability" },
-                { id: "content", label: "Page Content", desc: "Article text, headings, paragraphs" },
-                { id: "contacts", label: "Contacts & Leads", desc: "Emails, phones, addresses, social links" },
-                { id: "links", label: "Links & Structure", desc: "All URLs, navigation, sitemap" },
-                { id: "everything", label: "Everything", desc: "All data: products + content + links + metadata" },
-              ].map((opt) => (
-                <button
-                  key={opt.id}
-                  type="button"
-                  title={opt.desc}
-                  onClick={() => setIntent(opt.id)}
-                  style={{
-                    padding: "5px 12px",
-                    fontSize: 12,
-                    fontWeight: intent === opt.id ? 700 : 500,
-                    borderRadius: 6,
-                    border: intent === opt.id ? "2px solid var(--color-primary)" : "1px solid var(--color-border)",
-                    background: intent === opt.id ? "rgba(99, 102, 241, 0.1)" : "transparent",
-                    color: intent === opt.id ? "var(--color-primary)" : "var(--color-text-secondary)",
-                    cursor: "pointer",
-                  }}
-                >
-                  {opt.label}
-                </button>
+            <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+              {["Product", "Content", "Logistics", "Contact"].map((group) => (
+                <div key={group} style={{ minWidth: 160 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "var(--color-text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>{group}</div>
+                  {ALL_FIELDS.filter((f) => f.group === group).map((f) => (
+                    <label key={f.id} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--color-text-secondary)", cursor: "pointer", padding: "2px 0" }}>
+                      <input type="checkbox" checked={selectedFields.has(f.id)} onChange={() => toggleField(f.id)} style={{ accentColor: "var(--color-primary)" }} />
+                      {f.label}
+                    </label>
+                  ))}
+                </div>
               ))}
             </div>
           </div>

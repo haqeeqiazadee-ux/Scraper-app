@@ -120,10 +120,18 @@ export function ResultsTable({
                   </span>
                 </td>
                 <td>{formatDate(r.created_at)}</td>
-                <td>
+                <td style={{ display: "flex", gap: 4 }}>
                   <Link to={`/results/${r.id}`} className="btn btn-secondary btn-sm">
                     View
                   </Link>
+                  <a
+                    href={`${import.meta.env.VITE_API_URL ?? "/api/v1"}/tasks/${r.task_id}/export/csv`}
+                    className="btn btn-secondary btn-sm"
+                    style={{ fontSize: 11 }}
+                    download
+                  >
+                    CSV
+                  </a>
                 </td>
               </tr>
             ))}
