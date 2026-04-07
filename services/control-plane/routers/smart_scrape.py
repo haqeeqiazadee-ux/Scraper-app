@@ -47,8 +47,8 @@ _LANE_CONNECTORS: dict[Lane, str] = {
     Lane.API: "api_collector",
 }
 
-# Total timeout for the entire smart-scrape operation
-_MAX_TIMEOUT_S = 120
+# Total timeout — must be under Railway's 120s proxy limit
+_MAX_TIMEOUT_S = 90
 
 
 # ---------------------------------------------------------------------------
@@ -272,9 +272,9 @@ async def _handle_url_scrape(
         "task_id": task_id,
         "tenant_id": tenant_id,
         "url": url,
-        "timeout_ms": 30000,
+        "timeout_ms": 25000,
         "scroll": True,
-        "max_scrolls": 5,
+        "max_scrolls": 3,
     }
 
     # Inject cookies
@@ -315,7 +315,7 @@ async def _handle_url_scrape(
     escalation_chain: list[dict[str, Any]] = []
     worker_result: dict[str, Any] = {}
 
-    for attempt in range(3):
+    for attempt in range(2):  # Max 2 attempts: HTTP → Browser (skip hard_target on Railway)
         # Check total timeout
         if (time.time() - op_start) > _MAX_TIMEOUT_S:
             logger.warning("smart_scrape.timeout", task_id=task_id, elapsed_s=time.time() - op_start)
