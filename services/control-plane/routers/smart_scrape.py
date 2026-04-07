@@ -416,9 +416,34 @@ async def _handle_url_scrape(
     # Clean up escalation context
     _escalation_mgr.complete(task_id, worker_result)
 
-    # ---- Step 5: Extract data ----
+    # ---- Step 5: Enhanced extraction (always run "everything" mode) ----
     extracted_data: list[dict[str, Any]] = worker_result.get("extracted_data", [])
-    html_content: str = worker_result.get("html", "")
+    html_snapshot: str = worker_result.get("html_snapshot", "") or worker_result.get("html", "")
+
+    # Always enhance with full extraction if we have HTML and got few items
+    if html_snapshot and len(extracted_data) < 20:
+        try:
+            from services.control_plane.routers.execution import _extract_everything
+            from packages.core.ai_providers.deterministic import DeterministicProvider
+            ai = DeterministicProvider()
+            enhanced = await _extract_everything(html_snapshot, url, ai)
+            if len(enhanced) > len(extracted_data):
+                extracted_data = enhanced
+                step_ts = _record_step(
+                    steps,
+                    f"Enhanced extraction: {len(enhanced)} items (was {worker_result.get('item_count', 0)})",
+                    step_ts,
+                )
+                logger.info(
+                    "smart_scrape.enhanced",
+                    task_id=task_id,
+                    original_items=worker_result.get("item_count", 0),
+                    enhanced_items=len(enhanced),
+                )
+        except Exception as enh_err:
+            logger.warning("smart_scrape.enhance_failed", error=str(enh_err))
+
+    html_content: str = html_snapshot
 
     # ---- Step 6: Schema matching ----
     schema_matched: dict[str, Any] | None = None
