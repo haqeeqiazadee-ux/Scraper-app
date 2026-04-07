@@ -426,11 +426,47 @@ async def _handle_url_scrape(
     # Clean up escalation context
     _escalation_mgr.complete(task_id, worker_result)
 
-    # ---- Step 5: Enhanced extraction (always run "everything" mode) ----
+    # ---- Step 5: Enhanced extraction ----
     extracted_data: list[dict[str, Any]] = worker_result.get("extracted_data", [])
     html_snapshot: str = worker_result.get("html_snapshot", "") or worker_result.get("html", "")
 
-    # Always enhance with full extraction if we have HTML and got few items
+    # Step 5a: Shopify API detection — if site is Shopify, use products.json
+    if html_snapshot and ("shopify" in html_snapshot.lower() or "myshopify" in html_snapshot.lower()):
+        try:
+            import httpx as _httpx
+            shopify_url = f"{url.rstrip('/')}/products.json?limit=250"
+            async with _httpx.AsyncClient(timeout=15, follow_redirects=True) as _client:
+                shopify_resp = await _client.get(shopify_url)
+                if shopify_resp.status_code == 200:
+                    shopify_data = shopify_resp.json()
+                    shopify_products = shopify_data.get("products", [])
+                    if shopify_products:
+                        shopify_items = []
+                        for sp in shopify_products:
+                            variant = sp.get("variants", [{}])[0] if sp.get("variants") else {}
+                            shopify_items.append({
+                                "name": sp.get("title", ""),
+                                "price": variant.get("price", ""),
+                                "currency": "PKR" if "pk" in url.lower() else "USD",
+                                "product_url": f"{url.rstrip('/')}/products/{sp.get('handle', '')}",
+                                "image_url": sp.get("images", [{}])[0].get("src", "") if sp.get("images") else "",
+                                "vendor": sp.get("vendor", ""),
+                                "product_type": sp.get("product_type", ""),
+                                "available": variant.get("available", True),
+                                "_category": "product",
+                                "_extraction_method": "shopify_api",
+                            })
+                        extracted_data = shopify_items
+                        step_ts = _record_step(
+                            steps,
+                            f"Shopify API: {len(shopify_items)} products from /products.json",
+                            step_ts,
+                        )
+                        logger.info("smart_scrape.shopify_api", task_id=task_id, products=len(shopify_items))
+        except Exception as shop_err:
+            logger.debug("smart_scrape.shopify_api_failed", error=str(shop_err))
+
+    # Step 5b: Enhanced extraction if still few items
     if html_snapshot and len(extracted_data) < 20:
         try:
             from services.control_plane.routers.execution import _extract_everything
