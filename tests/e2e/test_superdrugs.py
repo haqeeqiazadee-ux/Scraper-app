@@ -66,17 +66,17 @@ class TestSuperDrugsAPI:
         assert len(named) >= 3, f"Only {len(named)} items with names out of {len(items)}"
 
     def test_schema_extraction(self):
-        """Schema extraction should find title and price."""
+        """Schema extraction should find name and price from homepage."""
         resp = api_post("/smart-scrape", {
-            "target": f"{TARGET}/products/centrum-adult-multivitamin-tablets-30s",
+            "target": "https://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html",
             "schema": {"title": "string", "price": "number"},
         })
         if resp.status_code == 502:
-            pytest.skip("Railway timeout on product page (transient)")
+            pytest.skip("Railway timeout (transient)")
         d = ok(resp)
         sm = d.get("schema_matched")
-        if sm:
-            assert sm.get("title") or sm.get("price"), f"Schema match empty: {sm}"
+        assert sm, f"No schema match returned: {d.keys()}"
+        assert sm.get("title") or sm.get("price"), f"Schema match empty: {sm}"
 
     def test_crawl_mode(self):
         """Multi-page crawl should find more items."""

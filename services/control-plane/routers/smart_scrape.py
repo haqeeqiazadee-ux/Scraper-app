@@ -349,10 +349,15 @@ async def _handle_url_scrape(
         # Check escalation — with smart overrides for JS-rendered sites
         needs_escalation = _escalation_mgr.should_escalate(worker_result)
 
-        # Smart override: if HTTP lane returned few items, check if site
-        # is JS-rendered by examining HTML size. Force escalation to browser.
+        # Detect if URL is a detail page (not a listing) — don't over-escalate
+        detail_signals = ["/product/", "/products/", "/item/", "/dp/", "/catalogue/", "/p/"]
+        is_detail_page = any(s in url.lower() for s in detail_signals)
+
+        # Smart override: if HTTP lane returned few items on a LISTING page,
+        # check if site is JS-rendered by examining HTML size.
         if (
             not needs_escalation
+            and not is_detail_page
             and current_lane == Lane.HTTP
             and succeeded
             and worker_result.get("item_count", 0) <= 10
