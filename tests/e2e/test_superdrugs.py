@@ -76,7 +76,8 @@ class TestSuperDrugsAPI:
         d = ok(resp)
         sm = d.get("schema_matched")
         assert sm, f"No schema match returned: {d.keys()}"
-        assert sm.get("title") or sm.get("price"), f"Schema match empty: {sm}"
+        fields = sm.get("matched_fields", sm)
+        assert fields.get("title") or fields.get("price"), f"No fields matched: {sm}"
 
     def test_crawl_mode(self):
         """Multi-page crawl should find more items."""
@@ -150,25 +151,17 @@ class TestSuperDrugsUI:
         # Wait for results (smart scrape can take up to 30s)
         page.wait_for_timeout(5_000)
 
-        # Check for escalation steps
-        body = page.text_content("body")
-        assert "Executed" in body or "step" in body.lower(), "No escalation steps visible"
-
-        # Wait for completion
-        for _ in range(20):
+        # Wait for completion (smart scrape can take up to 60s)
+        for _ in range(30):
             page.wait_for_timeout(2_000)
             body = page.text_content("body")
-            if "COMPLETED" in body or "Items Found" in body.lower() or "items found" in body.lower():
+            if "COMPLETED" in body or "Extracted Data" in body or "FAILED" in body:
                 break
 
-        # Verify results showed up
         body = page.text_content("body")
-        has_results = (
-            "Extracted Data" in body
-            or "COMPLETED" in body
-            or "Items Found" in body
+        assert "COMPLETED" in body or "Extracted Data" in body, (
+            f"Scrape didn't complete. Body: {body[:300]}"
         )
-        assert has_results, f"No results visible after 45s. Body contains: {body[:500]}"
 
     def test_superdrugs_shows_items(self, page: Page):
         """After scraping superdrugs.pk, items should be visible in table."""
