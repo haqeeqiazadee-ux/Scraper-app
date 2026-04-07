@@ -230,6 +230,41 @@ async def _handle_search(
 
 
 # ---------------------------------------------------------------------------
+# Helper: save platform API results to DB
+# ---------------------------------------------------------------------------
+
+async def task_repo_create_and_save(
+    session: Any, tenant_id: str, task_id: str, run_id: str,
+    url: str, products: list[dict], steps: list, step_ts: float,
+    request: Any,
+) -> None:
+    """Create task + run + result records for platform API results."""
+    from packages.core.storage.repositories import TaskRepository, RunRepository, ResultRepository
+
+    task_repo = TaskRepository(session)
+    run_repo = RunRepository(session)
+    result_repo = ResultRepository(session)
+
+    await task_repo.create(
+        tenant_id=tenant_id, id=task_id, url=url,
+        task_type="scrape", status="completed",
+        metadata_json={"source": "smart_scrape", "method": "platform_api"},
+    )
+    await run_repo.create(
+        tenant_id=tenant_id, id=run_id, task_id=task_id,
+        lane="api", connector="platform_api", status="completed",
+    )
+    await result_repo.create(
+        tenant_id=tenant_id, task_id=task_id, run_id=run_id,
+        url=url, extracted_data=products,
+        item_count=len(products), confidence=0.95,
+        extraction_method="platform_api",
+    )
+    await session.commit()
+    _record_step(steps, "Saved results to database", step_ts)
+
+
+# ---------------------------------------------------------------------------
 # URL scrape path (with escalation)
 # ---------------------------------------------------------------------------
 
@@ -257,6 +292,90 @@ async def _handle_url_scrape(
     task_id = str(uuid4())
     run_id = str(uuid4())
     step_ts = time.time()
+
+    # ---- Step 0: Try platform APIs FIRST (before any lane execution) ----
+    # Shopify, WooCommerce, etc. have JSON APIs that return clean product data
+    # This is MUCH faster and more reliable than HTML parsing
+    platform_products: list[dict[str, Any]] | None = None
+    try:
+        import httpx as _httpx
+
+        # Shopify: /products.json
+        async with _httpx.AsyncClient(timeout=10, follow_redirects=True) as _api_client:
+            base = url.rstrip("/").split("?")[0].rstrip("/")  # strip query params
+            # Extract domain root for API call
+            from urllib.parse import urlparse
+            parsed = urlparse(url)
+            api_base = f"{parsed.scheme}://{parsed.netloc}"
+
+            shopify_resp = await _api_client.get(f"{api_base}/products.json?limit=250")
+            if shopify_resp.status_code == 200:
+                data = shopify_resp.json()
+                sp_list = data.get("products", [])
+                if sp_list:
+                    platform_products = []
+                    for sp in sp_list:
+                        v = sp.get("variants", [{}])[0] if sp.get("variants") else {}
+                        platform_products.append({
+                            "name": sp.get("title", ""),
+                            "price": v.get("price", ""),
+                            "product_url": f"{api_base}/products/{sp.get('handle', '')}",
+                            "image_url": (sp.get("images", [{}])[0].get("src", "") if sp.get("images") else ""),
+                            "vendor": sp.get("vendor", ""),
+                            "product_type": sp.get("product_type", ""),
+                            "_category": "product",
+                            "_extraction_method": "shopify_api",
+                        })
+                    step_ts = _record_step(
+                        steps, f"Shopify API: {len(platform_products)} products (skipping HTML extraction)", step_ts
+                    )
+                    logger.info("smart_scrape.shopify_api_direct", task_id=task_id, count=len(platform_products))
+
+            # WooCommerce: /wp-json/wc/store/v1/products
+            if not platform_products:
+                woo_resp = await _api_client.get(f"{api_base}/wp-json/wc/store/v1/products?per_page=100")
+                if woo_resp.status_code == 200:
+                    woo_list = woo_resp.json()
+                    if isinstance(woo_list, list) and woo_list:
+                        platform_products = []
+                        for wp in woo_list:
+                            prices = wp.get("prices", {})
+                            platform_products.append({
+                                "name": wp.get("name", ""),
+                                "price": prices.get("price", ""),
+                                "product_url": wp.get("permalink", ""),
+                                "image_url": (wp.get("images", [{}])[0].get("src", "") if wp.get("images") else ""),
+                                "_category": "product",
+                                "_extraction_method": "woocommerce_api",
+                            })
+                        step_ts = _record_step(
+                            steps, f"WooCommerce API: {len(platform_products)} products", step_ts
+                        )
+    except Exception as api_err:
+        logger.debug("smart_scrape.platform_api_skip", error=str(api_err)[:100])
+
+    # If platform API returned products, skip lane execution entirely
+    if platform_products and len(platform_products) >= 3:
+        # Save directly to DB
+        await task_repo_create_and_save(
+            session, tenant_id, task_id, run_id, url, platform_products, steps, step_ts, request,
+        )
+        total_elapsed = int((time.time() - op_start) * 1000)
+        return {
+            "target": url,
+            "detected_as": "url",
+            "status": "completed",
+            "item_count": len(platform_products),
+            "confidence": 0.95,
+            "lane_used": "api",
+            "steps": steps,
+            "escalation_chain": [],
+            "extracted_data": platform_products[:100],
+            "schema_matched": None,
+            "saved": True,
+            "saved_task_id": task_id,
+            "duration_ms": total_elapsed,
+        }
 
     # ---- Step 1: Route the task ----
     task_contract = Task(tenant_id=tenant_id, url=url)
