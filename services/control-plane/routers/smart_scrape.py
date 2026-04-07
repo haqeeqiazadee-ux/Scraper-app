@@ -294,21 +294,141 @@ async def _handle_url_scrape(
     step_ts = time.time()
 
     # ---- Step 0: Try platform APIs FIRST (before any lane execution) ----
-    # Shopify, WooCommerce, etc. have JSON APIs that return clean product data
-    # This is MUCH faster and more reliable than HTML parsing
+    # Amazon → Keepa, Shopify → /products.json, WooCommerce → REST API
     platform_products: list[dict[str, Any]] | None = None
-    try:
-        import httpx as _httpx
 
-        # Shopify: /products.json
-        async with _httpx.AsyncClient(timeout=10, follow_redirects=True) as _api_client:
-            base = url.rstrip("/").split("?")[0].rstrip("/")  # strip query params
-            # Extract domain root for API call
-            from urllib.parse import urlparse
-            parsed = urlparse(url)
-            api_base = f"{parsed.scheme}://{parsed.netloc}"
+    # Amazon → route ALL queries to Keepa API
+    from urllib.parse import urlparse
+    parsed_url = urlparse(url)
+    domain_lower = parsed_url.netloc.lower()
+    is_amazon = "amazon." in domain_lower
 
-            shopify_resp = await _api_client.get(f"{api_base}/products.json?limit=250")
+    if is_amazon:
+        try:
+            from services.control_plane.routers.keepa import _get_keepa_connector
+            connector = _get_keepa_connector()
+
+            # Detect query type: ASIN, search, bestsellers
+            import re as _re
+            asin_match = _re.search(r'/dp/([A-Z0-9]{10})', url)
+            if not asin_match:
+                asin_match = _re.search(r'/product/([A-Z0-9]{10})', url)
+
+            # Extract search keywords from URL
+            keyword_match = _re.search(r'[?&]k=([^&]+)', url)
+            category_match = _re.search(r'/best-sellers?/([^/?\s]+)', url, _re.I)
+
+            # Map amazon domain to Keepa domain
+            keepa_domain = "US"
+            if ".co.uk" in domain_lower: keepa_domain = "UK"
+            elif ".de" in domain_lower: keepa_domain = "DE"
+            elif ".fr" in domain_lower: keepa_domain = "FR"
+            elif ".it" in domain_lower: keepa_domain = "IT"
+            elif ".es" in domain_lower: keepa_domain = "ES"
+            elif ".ca" in domain_lower: keepa_domain = "CA"
+            elif ".co.jp" in domain_lower or ".jp" in domain_lower: keepa_domain = "JP"
+            elif ".in" in domain_lower: keepa_domain = "IN"
+            elif ".com.au" in domain_lower: keepa_domain = "AU"
+
+            if asin_match:
+                # Single ASIN lookup
+                asin = asin_match.group(1)
+                keepa_result = await connector.query(asin, domain=keepa_domain)
+                if keepa_result and keepa_result.get("products"):
+                    platform_products = []
+                    for p in keepa_result["products"]:
+                        platform_products.append({
+                            "name": p.get("name", ""),
+                            "price": p.get("price", p.get("amazon_price", "")),
+                            "asin": p.get("asin", ""),
+                            "brand": p.get("brand", ""),
+                            "rating": p.get("rating", ""),
+                            "review_count": p.get("reviews_count", ""),
+                            "sales_rank": p.get("sales_rank", 0),
+                            "image_url": p.get("image_url", ""),
+                            "product_url": p.get("product_url", ""),
+                            "category": p.get("category", ""),
+                            "stock_status": p.get("stock_status", ""),
+                            "_category": "product",
+                            "_extraction_method": "keepa_api",
+                        })
+                    step_ts = _record_step(steps, f"Keepa API: ASIN {asin} — {len(platform_products)} product(s)", step_ts)
+
+            elif keyword_match:
+                # Keyword search
+                from urllib.parse import unquote_plus
+                keywords = unquote_plus(keyword_match.group(1))
+                keepa_result = await connector.query(keywords, domain=keepa_domain, max_results=20)
+                if keepa_result and keepa_result.get("products"):
+                    platform_products = []
+                    for p in keepa_result["products"]:
+                        platform_products.append({
+                            "name": p.get("name", ""),
+                            "price": p.get("price", p.get("amazon_price", "")),
+                            "asin": p.get("asin", ""),
+                            "brand": p.get("brand", ""),
+                            "rating": p.get("rating", ""),
+                            "review_count": p.get("reviews_count", ""),
+                            "sales_rank": p.get("sales_rank", 0),
+                            "image_url": p.get("image_url", ""),
+                            "product_url": p.get("product_url", ""),
+                            "_category": "product",
+                            "_extraction_method": "keepa_api",
+                        })
+                    step_ts = _record_step(steps, f"Keepa API: search '{keywords}' — {len(platform_products)} products", step_ts)
+
+            elif category_match:
+                # Bestsellers by category
+                category = unquote_plus(category_match.group(1)) if 'unquote_plus' in dir() else category_match.group(1)
+                try:
+                    from urllib.parse import unquote_plus as _uqp
+                    category = _uqp(category)
+                except: pass
+                keepa_result = await connector.query(f"bestsellers {category}", domain=keepa_domain, max_results=20)
+                if keepa_result and keepa_result.get("products"):
+                    platform_products = []
+                    for p in keepa_result["products"]:
+                        platform_products.append({
+                            "name": p.get("name", ""),
+                            "price": p.get("price", ""),
+                            "asin": p.get("asin", ""),
+                            "sales_rank": p.get("sales_rank", 0),
+                            "rating": p.get("rating", ""),
+                            "review_count": p.get("reviews_count", ""),
+                            "image_url": p.get("image_url", ""),
+                            "product_url": p.get("product_url", ""),
+                            "_category": "product",
+                            "_extraction_method": "keepa_api",
+                        })
+                    step_ts = _record_step(steps, f"Keepa API: bestsellers '{category}' — {len(platform_products)} products", step_ts)
+
+            else:
+                # Generic Amazon URL — try as keyword search with domain
+                keepa_result = await connector.query(url, domain=keepa_domain, max_results=20)
+                if keepa_result and keepa_result.get("products"):
+                    platform_products = [{
+                        "name": p.get("name", ""), "price": p.get("price", ""),
+                        "asin": p.get("asin", ""), "brand": p.get("brand", ""),
+                        "rating": p.get("rating", ""), "review_count": p.get("reviews_count", ""),
+                        "image_url": p.get("image_url", ""), "product_url": p.get("product_url", ""),
+                        "_category": "product", "_extraction_method": "keepa_api",
+                    } for p in keepa_result["products"]]
+                    step_ts = _record_step(steps, f"Keepa API: {len(platform_products)} products", step_ts)
+
+            if platform_products:
+                logger.info("smart_scrape.keepa_routed", task_id=task_id, count=len(platform_products), domain=keepa_domain)
+        except Exception as keepa_err:
+            logger.warning("smart_scrape.keepa_failed", error=str(keepa_err)[:200])
+
+    # Non-Amazon: try Shopify/WooCommerce APIs
+    if not platform_products and not is_amazon:
+        try:
+            import httpx as _httpx
+            api_base = f"{parsed_url.scheme}://{parsed_url.netloc}"
+
+            # Shopify: /products.json
+            async with _httpx.AsyncClient(timeout=10, follow_redirects=True) as _api_client:
+                shopify_resp = await _api_client.get(f"{api_base}/products.json?limit=250")
             if shopify_resp.status_code == 200:
                 data = shopify_resp.json()
                 sp_list = data.get("products", [])
@@ -351,8 +471,8 @@ async def _handle_url_scrape(
                         step_ts = _record_step(
                             steps, f"WooCommerce API: {len(platform_products)} products", step_ts
                         )
-    except Exception as api_err:
-        logger.debug("smart_scrape.platform_api_skip", error=str(api_err)[:100])
+        except Exception as api_err:
+            logger.debug("smart_scrape.platform_api_skip", error=str(api_err)[:100])
 
     # If platform API returned products, skip lane execution entirely
     if platform_products and len(platform_products) >= 3:
