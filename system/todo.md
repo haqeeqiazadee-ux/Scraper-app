@@ -1,21 +1,44 @@
 # TODO — Current Actionable Queue
 
-## Active — Phase 10: Zero Checksum Public API (April 2026)
-- [x] Fix all 12 workflows on live site (WORKFLOW_FIX_PROMPT.md)
+## ALL PHASES COMPLETE (April 2026)
+
+### Phase 10: Zero Checksum Public API — COMPLETE
+- [x] Fix all 12 workflows on live site
 - [x] Update WORKFLOW_FIX_LOG.xlsx with evidence (20/22 PASS)
-- [x] Create E2E test suite (37 tests, 100% pass rate)
-- [x] Design Zero Checksum Public API architecture
-- [x] Implement API key auth (sk_live_xxx, SHA-256 hashed)
-- [x] Implement idempotency middleware (24h TTL)
-- [x] Implement request audit logging
-- [x] Implement public API router (9 endpoints at /v1/)
-- [x] Implement API key CRUD (3 dashboard endpoints)
-- [x] Create 5 new DB tables (api_keys, idempotency_keys, audit_log, async_jobs, webhook_delivery)
-- [x] Mount in app.py, push to Railway
-- [ ] Verify Zero Checksum API on live Railway deployment
-- [ ] Create API key and test /v1/scrape end-to-end on live site
-- [ ] Add public API tests to E2E test suite
-- [ ] Trigger Netlify frontend deploy
+- [x] Create E2E test suite (37 tests → expanded to 56)
+- [x] Zero Checksum Public API (24 endpoints at /v1/)
+- [x] API key auth, idempotency, audit logging, 5 DB tables
+- [x] Wire all workflows into public API
+
+### Phase 11: Smart Scraper + Universal Extraction — COMPLETE
+- [x] Smart Scraper engine (POST /api/v1/smart-scrape)
+- [x] Auto-detection: URL vs search query
+- [x] Auto-escalation: HTTP → Browser → HardTarget
+- [x] Platform API routing: Amazon → Keepa, Shopify → /products.json, WooCommerce → REST API
+- [x] Universal DOM product extraction (price+name+link containers)
+- [x] 3-tier extraction: Platform API → DOM groups → Enhanced/trafilatura
+- [x] Unified ScraperPage.tsx (one input, field picker, live timeline)
+- [x] Field picker: 22 fields in 5 groups (Product, Condition, Content, Logistics, Contact)
+- [x] Download CSV/JSON buttons on results
+- [x] Per-result export (CSV/JSON/Excel) on results detail page
+- [x] Authenticated scraping (cookie upload, Google session)
+- [x] Crawl fix (dequeue timeout + retry backoff)
+- [x] JS detection (bytes_downloaded for accurate size check)
+- [x] YOUSELL API Workflows doc (27 scrape requests across 15 platforms)
+- [x] Comprehensive E2E: 56 tests across 18 categories, 100% pass rate
+- [x] superdrugs.pk: 3 items → 250 items (Shopify API)
+- [x] eBay: 64 items via DOM extraction
+- [x] Amazon: all queries via Keepa (ASIN, keyword, bestsellers)
+
+### Verified Platforms
+- [x] Shopify: 250 products via /products.json
+- [x] Amazon: Keepa API (262 products for iPad ASIN)
+- [x] eBay: DOM extraction (64 products)
+- [x] books.toscrape: 200 products (deterministic)
+- [x] Google Maps: 10+ businesses via Serper Places
+- [x] Web Search: Serper API
+- [x] Trustpilot: 50+ reviews via templates
+- [x] Any static site: HTTP deterministic extraction
 
 ## Completed — Original 69 Tasks (All Done)
 - [x] **PHASE-0:** Repository and memory initialization

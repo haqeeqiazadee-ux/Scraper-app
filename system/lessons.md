@@ -295,3 +295,23 @@
 137. **API keys: store hash, show key once** — Generate with secrets.token_hex(16), prefix with sk_live_, store SHA-256 hash. Never store or display the raw key after creation.
 
 138. **Separate public API from internal API** — Public API at /v1/ uses API key auth. Internal API at /api/v1/ uses JWT + X-Tenant-ID. Don't mix auth mechanisms on the same prefix.
+
+139. **Shopify /products.json is the correct approach** — Don't parse Shopify HTML (card-product classes, lazy-loaded images). Call /products.json?limit=250 — returns clean JSON with title, price, variants, images. Works on ANY Shopify store without auth.
+
+140. **Try platform APIs BEFORE HTML parsing** — Shopify, WooCommerce, Amazon (Keepa) all have structured APIs. Call them in Step 0, before any lane execution. Returns in 2-3s vs 30s for HTML parsing.
+
+141. **html_snapshot vs bytes_downloaded** — The HttpWorker's html_snapshot may be truncated (13KB for a 1.6MB page). Always use bytes_downloaded for size checks, not len(html_snapshot). Using the wrong one triggers false JS-rendered detection.
+
+142. **DOM group extraction is universal** — Finding containers that have BOTH a price pattern AND a name element near a link works on ANY site structure. No CSS class hardcoding needed. Tested on eBay (64 products), books.toscrape (20).
+
+143. **Don't over-escalate on product detail pages** — URLs with /product/, /dp/, /item/ are single-product pages. 1 item is the correct result. Only force JS escalation on listing/homepage URLs.
+
+144. **Smart Scraper should ask what to extract** — Users need to specify fields (name, price, SKU, brand, stock, condition, shipping). A field picker with checkboxes is better than preset "modes" (Products/Content/Links).
+
+145. **Railway proxy timeout is 120s, not configurable** — Can't increase it on Railway's plan. Solution: keep per-lane timeout under 25s, total under 90s, max 2 escalation attempts (skip hard_target).
+
+146. **eBay returns large HTML via curl_cffi** — 1.6MB with TLS impersonation. The deterministic extractor finds 1 item from JSON-LD. DOM group extraction finds 64 products. Don't trigger JS escalation on large HTML.
+
+147. **Download CSV/JSON should be client-side** — Generate files in browser from extracted_data array. No server round-trip needed. Blob + URL.createObjectURL + anchor click.
+
+148. **56 E2E tests across 18 categories** — The comprehensive test suite covers: Smart Scrape Core, Amazon/Keepa, Shopify, eBay, Static Sites, Web Search, Schema Extract, Google Maps, Templates, Results/Export, Schedules, Change Detection, MCP Server, Crawl, API Keys, Public API, UI Flow, YOUSELL Requests.

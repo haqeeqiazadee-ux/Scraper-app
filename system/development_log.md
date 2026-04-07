@@ -2168,3 +2168,62 @@ Implemented complete external-facing API with full request accountability:
 9. `54c0290` — Lazy imports in conftest + run_e2e.bat
 10. `99af007` — Auto-install Playwright in bat
 11. `2bf6f66` — Zero Checksum Public API (2,128 lines)
+
+## 2026-04-07 — Phase 11: Smart Scraper + Universal Extraction
+
+### Smart Scraper Engine
+- Built `POST /api/v1/smart-scrape` — one endpoint that auto-detects URL vs search, routes to optimal lane, auto-escalates, extracts, saves
+- Platform API routing in Step 0 (BEFORE HTML): Amazon → Keepa, Shopify → /products.json, WooCommerce → REST API
+- Universal DOM product extraction: finds containers with price + name + link (no CSS class hardcoding)
+- 3-tier extraction cascade: Platform API → DOM groups → Enhanced/trafilatura
+- JS detection using bytes_downloaded (not truncated html_snapshot)
+- Auto-escalation: HTTP → Browser (skip hard_target on Railway)
+- Intent filtering: products/content/contacts/links/everything
+
+### Frontend Unification
+- Replaced 5 separate pages (Quick Scrape, Auth Scrape, Crawl, Search, Extract) with ONE unified ScraperPage
+- Field picker: 22 checkboxes in 5 groups (Product, Condition, Content, Logistics, Contact)
+- Download CSV/JSON buttons on results table
+- Per-result export (CSV/JSON/Excel) on results detail page
+
+### Amazon → Keepa Routing
+- ALL amazon.com URLs auto-route to Keepa API
+- ASIN lookup: /dp/B09V3KXJPB → 262 products
+- Keyword search: /s?k=earbuds → 14 products
+- Bestsellers: /best-sellers/category → Keepa search
+- Supports 10 Amazon domains (US/UK/DE/FR/IT/ES/CA/JP/IN/AU)
+
+### Shopify API Integration
+- Detects Shopify in HTML → calls /products.json?limit=250
+- superdrugs.pk: 3 items → 250 items in ~3s
+- Works on ANY Shopify store without auth
+
+### Bug Fixes
+- Crawl: dequeue timeout + retry backoff (was stopping after 1 page)
+- eBay: bytes_downloaded (1.6MB) vs html_snapshot (13KB truncated) → no false JS escalation
+- Product detail pages: don't over-escalate (1 item IS correct for /products/ URLs)
+- Railway timeouts: per-lane 25s, total 90s, 2 attempts max
+
+### YOUSELL Integration
+- docs/YOUSELL_API_WORKFLOWS.md: 27 scrape requests across 15 platforms
+- Curl + Python SDK examples for all requests
+- Status: 12 working now, 6 need cookies, 9 need testing
+
+### E2E Test Suite (56 tests)
+- test_all_workflows.py: 18 test classes, 56 tests, 100% pass
+- Covers: Amazon, Shopify, eBay, static sites, search, extract, maps, templates, schedules, crawl, API keys, public API, UI flow, YOUSELL requests
+- Runtime: 7:19 on live deployment
+
+### Commits (40+)
+1. `a2aa06e` — Smart Scraper engine
+2. `5e510d2` — Unified ScraperPage
+3. `c9d526a` — Wire all workflows into public API (24 endpoints)
+4. `43d25a2` — Route ALL Amazon URLs to Keepa
+5. `a5aa263` — Universal product extraction (3-tier)
+6. `f904647` — Shopify/WooCommerce API FIRST
+7. `02f903f` — Fix JS detection (bytes_downloaded)
+8. `48a8919` — Comprehensive E2E (56 tests)
+9. `d7b85de` — Field picker + per-result export
+10. `8955e6c` — Crawl dequeue fix
+11. `0ef5c15` — Intent selector
+12. `a22d3b9` — YOUSELL API Workflows doc

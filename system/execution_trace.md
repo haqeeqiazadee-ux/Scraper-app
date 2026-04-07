@@ -1266,3 +1266,54 @@
 - **WORKFLOW_FIX_LOG.xlsx:** 20/22 PASS, 0 FAILED, 0 BLOCKED
 - **New DB tables:** api_keys, idempotency_keys, request_audit_log, async_jobs, webhook_delivery_log
 - **Public API endpoints:** 9 at /v1/ + 3 admin at /api/v1/api-keys
+
+## Work Cycle — 2026-04-07 (Smart Scraper + Universal Extraction)
+
+- **Timestamp:** 2026-04-07
+- **Session:** Smart Scraper engine, universal extraction, YOUSELL integration
+- **Actions:**
+  1. Built Smart Scraper engine (POST /api/v1/smart-scrape) — auto-detects URL vs search, auto-escalates HTTP → Browser
+  2. Unified ScraperPage.tsx — replaced 5 tabs with one input + field picker
+  3. Added field picker: 22 checkboxes (Product/Condition/Content/Logistics/Contact)
+  4. Wired all 12 workflows into Zero Checksum Public API (24 total endpoints)
+  5. Added Authenticated Scrape (cookie upload + Google session)
+  6. Fixed crawl: dequeue timeout + retry backoff (was stopping after 1 page)
+  7. Built Shopify API integration (/products.json → 250 products in ~3s)
+  8. Built WooCommerce API integration (/wp-json/wc/store/v1/products)
+  9. Routed ALL Amazon URLs to Keepa API (ASIN, keyword, bestsellers, 10 domains)
+  10. Built universal DOM product extraction (price+name+link containers, any site)
+  11. Fixed JS detection: use bytes_downloaded not truncated html_snapshot
+  12. Fixed eBay: 13KB snapshot but 1.6MB actual HTML → no false escalation
+  13. Added Download CSV/JSON buttons to scraper results
+  14. Added per-result export (CSV/JSON/Excel) on results detail page
+  15. Created YOUSELL_API_WORKFLOWS.md — 27 scrape requests across 15 platforms
+  16. Created test_all_workflows.py — 56 E2E tests across 18 categories
+  17. All 56 tests passing on live deployment
+
+- **Commits (40+):** 2c5c7c7 through 87120c0
+- **Key files created/modified:**
+  - services/control-plane/routers/smart_scrape.py (Smart Scraper engine, ~800 lines)
+  - apps/web/src/pages/ScraperPage.tsx (unified UI)
+  - services/control-plane/routers/public_api.py (24 endpoints)
+  - tests/e2e/test_all_workflows.py (56 tests)
+  - docs/YOUSELL_API_WORKFLOWS.md (27 scrape request examples)
+
+- **Test results:** 56/56 PASS in 7:19
+  - Smart Scrape Core: 7 PASS
+  - Amazon/Keepa: 5 PASS
+  - Shopify: 2 PASS (250 products)
+  - eBay: 2 PASS (64 products)
+  - Static Sites: 3 PASS
+  - Web Search: 3 PASS
+  - Schema Extract: 2 PASS
+  - Google Maps: 3 PASS
+  - Templates: 3 PASS
+  - Results/Export: 3 PASS
+  - Schedules: 1 PASS
+  - Change Detection: 1 PASS
+  - MCP Server: 2 PASS
+  - Crawl: 2 PASS
+  - API Keys: 2 PASS
+  - Public API: 2 PASS
+  - UI Flow: 5 PASS
+  - YOUSELL Requests: 8 PASS
