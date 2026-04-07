@@ -32,3 +32,6 @@ healthcheckPath = "/health"
 healthcheckTimeout = 30
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
+# Allow long-running scrape requests (Amazon, Walmart can take 60-120s)
+# Railway default is 30s which causes 502 timeouts
+numReplicas = 1
