@@ -170,8 +170,7 @@ class TestSuperDrugsUI:
     def test_superdrugs_shows_items(self, page: Page):
         """After scraping superdrugs.pk, items should be visible in table."""
         page.goto("/scraper", wait_until="networkidle", timeout=20_000)
-        inp = page.locator('input[type="text"]')
-        inp.click()
+        inp = page.locator('input.form-input[placeholder*="example.com"]')
         inp.fill(TARGET)
         inp.dispatch_event("input")
         page.wait_for_timeout(500)
