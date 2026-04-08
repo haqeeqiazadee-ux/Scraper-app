@@ -315,3 +315,17 @@
 147. **Download CSV/JSON should be client-side** — Generate files in browser from extracted_data array. No server round-trip needed. Blob + URL.createObjectURL + anchor click.
 
 148. **56 E2E tests across 18 categories** — The comprehensive test suite covers: Smart Scrape Core, Amazon/Keepa, Shopify, eBay, Static Sites, Web Search, Schema Extract, Google Maps, Templates, Results/Export, Schedules, Change Detection, MCP Server, Crawl, API Keys, Public API, UI Flow, YOUSELL Requests.
+
+149. **Batch needs own DB session per concurrent item** — Running multiple `_handle_url_scrape` calls in parallel with `asyncio.gather` sharing one SQLAlchemy session causes conflicts. Each batch item needs `async with db.session() as item_session`.
+
+150. **Cost metering must be in the response, not just headers** — YOUSELL needs `costs.total_usd` and `costs.breakdown` in the JSON body, not just X-Cost-USD header. Both are needed.
+
+151. **MySQL ON DUPLICATE KEY UPDATE doesn't exist in PostgreSQL** — Use `on_conflict_do_update(index_elements=["mpn","brand"], set_={...})` with `from sqlalchemy.dialects.postgresql import insert`.
+
+152. **Supabase password with @ needs URL encoding** — `Ejobber@7415` in a connection URL breaks parsing. Use `%40` for `@`. Or use the pooler URL which handles this differently.
+
+153. **Supabase direct connection (port 5432) may timeout from IPv4 networks** — The DB host resolves to IPv6 first. Use the pooler URL or enable IPv4 add-on in Supabase dashboard.
+
+154. **FMS tables must be prefixed with fms_** — Sharing Supabase with the scraper means table names can collide. All FMS tables use `fms_` prefix: fms_products, fms_vendor_offers, fms_master_products, fms_supplier_feed_sources.
+
+155. **TikTok dual routing: free API for content, paid for Shop** — davidteather/TikTok-Api is free for videos/profiles/hashtags. ScrapeCreators ($0.0019/req) covers TikTok Shop products which the free API can't access.

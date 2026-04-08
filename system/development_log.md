@@ -2227,3 +2227,53 @@ Implemented complete external-facing API with full request accountability:
 10. `8955e6c` — Crawl dequeue fix
 11. `0ef5c15` — Intent selector
 12. `a22d3b9` — YOUSELL API Workflows doc
+
+## 2026-04-08 — Phase 12: Batch + Cost Metering + TikTok + FMS
+
+### Batch Processing
+- POST /api/v1/batch — accept lists of URLs/ASINs/queries
+- Keepa optimization: all ASINs in single API call (up to 100)
+- <10 items: sync, >=10: async with webhook callback
+- Own DB session per concurrent item (fixed SQLAlchemy conflicts)
+- Results stored for polling (GET /batch/{id})
+- 7/7 batch tests passing
+
+### Cost Metering
+- CostTracker class with COST_TABLE (13 APIs priced in real USD)
+- Every response includes costs: {total_usd, breakdown: [{api, calls, cost_usd}]}
+- CostAuditMiddleware: X-Request-ID, X-Cost-USD, X-Duration-MS headers
+- Async DB audit logging (fire-and-forget)
+
+### TikTok Integration
+- davidteather/TikTok-Api (FREE): search, profiles, hashtags, videos
+- ScrapeCreators ($0.0019/req): TikTok Shop products, prices, sellers
+- Auto-routing: /shop/* → ScrapeCreators, everything else → davidteather
+
+### Facebook Auto-Route
+- facebook.com/groups/* auto-detected in smart_scrape
+- Launches Playwright browser with cookie injection
+- No external Chrome/CDP needed
+
+### Feed Management System (FMS)
+- Extracted from public_html.zip into services/feed-management/
+- Migrated from MySQL (Hostinger) to Supabase PostgreSQL
+- Fixed matcher: mysql_insert → pg_insert, on_duplicate_key → on_conflict_do_update
+- Renamed tables: products → fms_products, vendor_offers → fms_vendor_offers
+- Created fms_supplier_feed_sources table (36 columns: SFTP/FTP/Email/URL config)
+- FMS API proxy: /api/v1/fms/products, /fms/offers, /fms/suppliers, /fms/feed-sources
+- Full pipeline verified: Shopify → CSV → matcher → Supabase (248 products)
+
+### Commits
+1. `aef4e52` — Batch Processing
+2. `cb17d42` — Fix missing import os in smart_scrape
+3. `6572e6f` — Fix batch: own DB session + store for polling
+4. `d85621e` — Cost Metering (CostTracker + middleware)
+5. `4dd0ed7` — Extract FMS code
+6. `b1cc418` — FMS API proxy
+7. `41a601a` — MySQL driver for FMS
+8. `2180e1f` — FMS uses Supabase
+9. `3d1234c` — FMS feed source management API
+10. `b83d563` — FMS ingestion to Supabase
+11. `a2d039e` — FMS matcher PostgreSQL fix
+12. `978886c` — TikTok dual routing
+13. `e3826e9` — Facebook auto-route

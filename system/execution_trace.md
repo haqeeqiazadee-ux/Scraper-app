@@ -1317,3 +1317,29 @@
   - Public API: 2 PASS
   - UI Flow: 5 PASS
   - YOUSELL Requests: 8 PASS
+
+## Work Cycle — 2026-04-08 (Batch + Cost Metering + TikTok + FMS)
+
+- **Timestamp:** 2026-04-08
+- **Actions:**
+  1. Built Batch Processing (POST /api/v1/batch) — concurrent items, Keepa batch optimization, async jobs, webhook
+  2. Built Cost Metering (CostTracker + CostAuditMiddleware) — real USD per API call in every response
+  3. Integrated TikTok API (davidteather, FREE) — search, profiles, hashtags, videos
+  4. Integrated ScrapeCreators for TikTok Shop ($0.0019/req)
+  5. Auto-routed Facebook Groups to Playwright browser
+  6. Extracted FMS code into services/feed-management/
+  7. Migrated FMS from MySQL (Hostinger) to Supabase PostgreSQL
+  8. Fixed FMS matcher: MySQL ON DUPLICATE KEY → PostgreSQL ON CONFLICT DO UPDATE
+  9. Created FMS API proxy (/api/v1/fms/* endpoints)
+  10. Created fms_supplier_feed_sources table for auto-fetch config
+  11. Verified full FMS pipeline: Shopify API → CSV → FMS matcher → Supabase (248 products)
+  12. Fixed smart_scrape missing import os
+  13. Fixed batch: own DB session per item + store results for polling
+  14. 56 E2E tests + 7 batch tests all passing
+- **Commits:** aef4e52 through a2d039e (15+ commits)
+- **Key files:**
+  - packages/core/cost_tracker.py (cost metering)
+  - services/control-plane/middleware/cost_audit.py (audit middleware)
+  - services/control-plane/routers/batch.py (batch processing)
+  - services/control-plane/routers/fms.py (FMS API proxy)
+  - services/feed-management/ (entire FMS codebase)

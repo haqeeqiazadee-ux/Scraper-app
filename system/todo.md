@@ -2,6 +2,20 @@
 
 ## ALL PHASES COMPLETE (April 2026)
 
+### Phase 12: Batch + Cost Metering + TikTok + FMS Integration — COMPLETE
+- [x] Batch Processing (POST /api/v1/batch) — lists of items, concurrent, Keepa batch optimization
+- [x] Cost Metering (CostTracker) — real USD per API call, breakdown in every response
+- [x] Cost Audit Middleware — X-Request-ID, X-Cost-USD, X-Duration-MS headers, DB logging
+- [x] TikTok API (davidteather) — search, profiles, hashtags, videos (FREE)
+- [x] TikTok Shop (ScrapeCreators) — products, prices, sellers ($0.0019/req)
+- [x] Facebook Groups — auto-route to Playwright browser with cookies
+- [x] Feed Management System (FMS) — integrated into monorepo
+- [x] FMS database on Supabase (fms_products, fms_vendor_offers, fms_master_products, fms_supplier_feed_sources)
+- [x] FMS matcher: MySQL → PostgreSQL (ON CONFLICT DO UPDATE)
+- [x] FMS API proxy (GET /api/v1/fms/products, /fms/offers, /fms/suppliers, /fms/feed-sources)
+- [x] FMS pipeline verified: 248 products ingested from Shopify → Supabase
+- [x] 56 E2E tests all passing (7/7 batch tests)
+
 ### Phase 10: Zero Checksum Public API — COMPLETE
 - [x] Fix all 12 workflows on live site
 - [x] Update WORKFLOW_FIX_LOG.xlsx with evidence (20/22 PASS)
