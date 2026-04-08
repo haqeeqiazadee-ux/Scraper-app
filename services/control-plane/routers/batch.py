@@ -414,7 +414,7 @@ async def process_batch(
             failed=failed,
             duration_ms=elapsed,
         )
-        return BatchResponse(
+        resp = BatchResponse(
             batch_id=batch_id,
             status="completed",
             total=len(items),
@@ -423,21 +423,40 @@ async def process_batch(
             results=results,
             duration_ms=elapsed,
         )
+        _batch_jobs[batch_id] = {
+            "status": "completed", "total": len(items),
+            "completed": completed, "failed": failed,
+            "results": [r.model_dump() for r in results],
+            "duration_ms": elapsed,
+        }
+        return resp
 
-    # If <10 items: process synchronously
+    # Store sync batch results for polling
+    _batch_jobs[batch_id] = {
+        "status": "processing",
+        "total": len(items),
+        "completed": 0,
+        "failed": 0,
+        "results": [],
+        "webhook_url": request.webhook_url,
+    }
+
+    # If <10 items: process synchronously (each gets own DB session)
     if len(items) < 10:
         sem = asyncio.Semaphore(request.concurrency)
+        db = get_database()
 
         async def _run(item: str) -> BatchItemResult:
             async with sem:
-                return await _process_single_item(
-                    item,
-                    request.intent,
-                    request.schema_fields,
-                    request.cookies,
-                    tenant_id,
-                    session,
-                )
+                async with db.session() as item_session:
+                    return await _process_single_item(
+                        item,
+                        request.intent,
+                        request.schema_fields,
+                        request.cookies,
+                        tenant_id,
+                        item_session,
+                    )
 
         tasks = [_run(item) for item in items]
         results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -465,7 +484,7 @@ async def process_batch(
             failed=failed,
             duration_ms=elapsed,
         )
-        return BatchResponse(
+        resp = BatchResponse(
             batch_id=batch_id,
             status="completed",
             total=len(items),
@@ -474,6 +493,17 @@ async def process_batch(
             results=final_results,
             duration_ms=elapsed,
         )
+        # Store for polling
+        _batch_jobs[batch_id] = {
+            "status": "completed",
+            "total": len(items),
+            "completed": completed,
+            "failed": failed,
+            "results": [r.model_dump() for r in final_results],
+            "duration_ms": elapsed,
+            "webhook_url": request.webhook_url,
+        }
+        return resp
 
     # >=10 items: async job — return immediately, process in background
     _batch_jobs[batch_id] = {
