@@ -68,4 +68,4 @@ mcp>=1.0
 prometheus-client>=0.20
 opentelemetry-api>=1.22
 opentelemetry-sdk>=1.22
-TikTokApi>=7.0
+# TikTokApi>=7.0  # optional — install locally, lazy-imported in smart_scrape
