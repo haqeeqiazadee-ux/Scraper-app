@@ -13,7 +13,7 @@ from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from typing import Any, Callable, Mapping, Sequence, TypeVar
 
 from sqlalchemy import delete, insert, select, text, tuple_, update
-from sqlalchemy.dialects.mysql import insert as mysql_insert
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
 from core.database import MasterIncompleteRow, MasterProduct, Product, VendorOffer
@@ -1506,10 +1506,13 @@ class ProductMatcher:
             }
             for p in rows
         ]
-        stmt = mysql_insert(Product).values(mappings)
-        stmt = stmt.on_duplicate_key_update(
-            title=stmt.inserted.title,
-            category=stmt.inserted.category,
-            ean=stmt.inserted.ean,
+        stmt = pg_insert(Product).values(mappings)
+        stmt = stmt.on_conflict_do_update(
+            index_elements=["mpn", "brand"],
+            set_={
+                "title": stmt.excluded.title,
+                "category": stmt.excluded.category,
+                "ean": stmt.excluded.ean,
+            },
         )
         self._session.execute(stmt)

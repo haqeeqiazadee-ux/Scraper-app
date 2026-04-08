@@ -1,0 +1,18 @@
+{
+  "sources": [
+    {
+      "id": "books_toscrape_url",
+      "protocol": "url",
+      "http_url": "https://raw.githubusercontent.com/zygmuntz/goodbooks-10k/master/books.csv",
+      "local_path": "data/feeds/books_catalog.csv",
+      "run_ingest": true,
+      "stamp_ingest": true,
+      "ingest_env": {
+        "VENDOR_A_CSV_PATH": "data/feeds/books_catalog.csv",
+        "VENDOR_A_NAME": "Books Catalog",
+        "VENDOR_A_STAMP_INGEST": "1"
+      },
+      "ingest_argv": ["python", "main.py"]
+    }
+  ]
+}
