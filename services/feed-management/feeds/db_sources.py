@@ -1,4 +1,4 @@
-"""Load supplier feed definitions from FMS table ``supplier_feed_sources`` (MySQL)."""
+"""Load supplier feed definitions from FMS table ``fms_fms_supplier_feed_sources`` (Supabase PostgreSQL)."""
 
 from __future__ import annotations
 
@@ -122,8 +122,8 @@ def list_enabled_feed_sources(engine: Engine) -> list[dict[str, Any]]:
     with engine.connect() as conn:
         rows = conn.execute(
             text(
-                "SELECT id, vendor_name, protocol FROM supplier_feed_sources "
-                "WHERE enabled = 1 ORDER BY vendor_name ASC, id ASC",
+                "SELECT id, vendor_name, protocol FROM fms_supplier_feed_sources "
+                "WHERE enabled = TRUE ORDER BY vendor_name ASC, id ASC",
             ),
         ).mappings().all()
     return [dict(r) for r in rows]
@@ -141,14 +141,14 @@ def load_enabled_sources(
             if not ids:
                 return []
             stmt = text(
-                "SELECT * FROM supplier_feed_sources WHERE enabled = 1 AND id IN :ids "
+                "SELECT * FROM fms_supplier_feed_sources WHERE enabled = TRUE AND id IN :ids "
                 "ORDER BY vendor_name ASC",
             ).bindparams(bindparam("ids", expanding=True))
             rows = conn.execute(stmt, {"ids": ids}).mappings().all()
         else:
             rows = conn.execute(
                 text(
-                    "SELECT * FROM supplier_feed_sources WHERE enabled = 1 ORDER BY vendor_name ASC",
+                    "SELECT * FROM fms_supplier_feed_sources WHERE enabled = TRUE ORDER BY vendor_name ASC",
                 ),
             ).mappings().all()
     return [row_to_fetch_dict(dict(r), project_root) for r in rows]
@@ -161,7 +161,7 @@ def update_run_status(engine: Engine, feed_id: int, ok: bool, message: str, max_
     with engine.begin() as conn:
         conn.execute(
             text(
-                "UPDATE supplier_feed_sources SET last_run_at = UTC_TIMESTAMP(), "
+                "UPDATE fms_supplier_feed_sources SET last_run_at = NOW(), "
                 "last_run_ok = :ok, last_run_message = :msg WHERE id = :id",
             ),
             {"ok": 1 if ok else 0, "msg": msg, "id": feed_id},

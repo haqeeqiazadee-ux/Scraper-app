@@ -209,3 +209,71 @@ async def fms_list_suppliers(
     )
     names = [str(r[0]) for r in result.fetchall() if r[0]]
     return {"vendors": names, "count": len(names)}
+
+
+# ---------------------------------------------------------------------------
+# Feed Sources — manage where supplier data comes from
+# ---------------------------------------------------------------------------
+
+@fms_router.get("/feed-sources")
+async def fms_list_feed_sources(
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
+):
+    """List all configured feed sources (SFTP/FTP/Email/URL)."""
+    result = await session.execute(
+        text("SELECT id, vendor_name, protocol, host, enabled, last_fetched_at, last_ingested_at FROM fms_supplier_feed_sources ORDER BY vendor_name")
+    )
+    sources = []
+    for r in result.fetchall():
+        d = dict(r._mapping)
+        for k in ("last_fetched_at", "last_ingested_at"):
+            if d.get(k):
+                d[k] = d[k].isoformat()
+        sources.append(d)
+    return {"sources": sources, "count": len(sources)}
+
+
+@fms_router.post("/feed-sources")
+async def fms_add_feed_source(
+    body: dict,
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
+):
+    """Add a new feed source (SFTP/FTP/Email/URL)."""
+    vendor_name = body.get("vendor_name", "").strip()
+    protocol = body.get("protocol", "sftp").strip().lower()
+    if not vendor_name:
+        raise HTTPException(status_code=422, detail="vendor_name is required")
+
+    cols = ["vendor_name", "protocol"]
+    vals = [f":vendor_name", f":protocol"]
+    params: dict[str, Any] = {"vendor_name": vendor_name, "protocol": protocol}
+
+    for field in ["host", "port", "username", "password_env", "remote_path", "remote_dir",
+                   "remote_pattern", "local_basename", "url", "imap_host", "imap_port",
+                   "imap_user", "imap_password_env", "imap_folder", "imap_subject_pattern",
+                   "col_mpn", "col_ean", "col_title", "col_brand", "col_category",
+                   "col_stock", "col_price", "region", "default_currency", "notes"]:
+        if field in body and body[field] is not None:
+            cols.append(field)
+            vals.append(f":{field}")
+            params[field] = body[field]
+
+    sql = f"INSERT INTO fms_supplier_feed_sources ({', '.join(cols)}) VALUES ({', '.join(vals)}) RETURNING id"
+    result = await session.execute(text(sql), params)
+    await session.commit()
+    new_id = result.scalar()
+    return {"id": new_id, "vendor_name": vendor_name, "protocol": protocol, "status": "created"}
+
+
+@fms_router.delete("/feed-sources/{source_id}")
+async def fms_delete_feed_source(
+    source_id: int,
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
+):
+    """Delete a feed source."""
+    await session.execute(text("DELETE FROM fms_supplier_feed_sources WHERE id = :id"), {"id": source_id})
+    await session.commit()
+    return {"status": "deleted", "id": source_id}
