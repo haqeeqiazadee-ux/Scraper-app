@@ -1,0 +1,4 @@
+# Deny HTTP access to environment files (Apache 2.4+)
+<FilesMatch "^\.env">
+    Require all denied
+</FilesMatch>

@@ -1,0 +1,10 @@
+sqlalchemy
+mysql-connector-python
+fastapi>=0.110.0
+uvicorn[standard]>=0.27.0
+certifi>=2024.0.0
+pandas
+python-dotenv
+streamlit>=1.28.0
+openpyxl
+paramiko>=3.4.0

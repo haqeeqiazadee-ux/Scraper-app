@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="FMS">
+  <defs>
+    <linearGradient id="fmsG" x1="6%" y1="45%" x2="94%" y2="55%">
+      <stop offset="0%" stop-color="#06B6D4"/>
+      <stop offset="45%" stop-color="#3B82F6"/>
+      <stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+    <linearGradient id="fmsFill" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22D3EE" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#A78BFA" stop-opacity="0.15"/>
+    </linearGradient>
+  </defs>
+  <circle cx="50" cy="50" r="48" fill="#FAFAFA"/>
+  <circle cx="50" cy="50" r="42" fill="url(#fmsFill)"/>
+  <circle cx="50" cy="50" r="45" fill="none" stroke="url(#fmsG)" stroke-width="2.2" stroke-dasharray="5 6" stroke-linecap="round"/>
+  <g fill="none" stroke="url(#fmsG)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+    <!-- stacked documents -->
+    <path d="M26 28h18q2 0 2 2v16l-7-5H26q-2 0-2-2V30q0-2 2-2z"/>
+    <path d="M31 22h17q2 0 2 2v13" opacity="0.55"/>
+    <path d="M33 36h10M33 41h7M33 46h10"/>
+    <!-- database stack -->
+    <ellipse cx="70" cy="28" rx="11" ry="4"/>
+    <path d="M59 28v12q0 3 11 4.5q11-1.5 11-4.5V28"/>
+    <ellipse cx="70" cy="40" rx="11" ry="4"/>
+    <path d="M59 40v10q0 3 11 4.5q11-1.5 11-4.5V40"/>
+    <ellipse cx="70" cy="50" rx="11" ry="4"/>
+    <!-- mini network -->
+    <path d="M83 30h5M86 27v11" stroke-width="2.2" opacity="0.75"/>
+    <circle cx="89.5" cy="27" r="1.8" stroke-width="0" fill="url(#fmsG)"/>
+    <circle cx="89.5" cy="38" r="1.8" stroke-width="0" fill="url(#fmsG)" opacity="0.85"/>
+    <!-- product cubes -->
+    <path d="M40 80l11-6.5V62l-11 6.5z"/>
+    <path d="M51 73.5l12-7V61l-12 7z"/>
+    <path d="M40 80l11-6.5 12 7"/>
+    <path d="M55 78l14-8V66l-14 8z"/>
+    <path d="M40 74l14-8 14 8"/>
+    <path d="M69 70V66"/>
+  </g>
+</svg>

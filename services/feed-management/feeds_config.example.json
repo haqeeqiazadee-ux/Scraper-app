@@ -1,0 +1,78 @@
+{
+  "sources": [
+    {
+      "id": "vendor_a_sftp",
+      "protocol": "sftp",
+      "host": "sftp.supplier.example",
+      "port": 22,
+      "username": "your_user",
+      "password_env": "VENDOR_A_SFTP_PASSWORD",
+      "remote_path": "/out/stockprice.csv",
+      "local_path": "data/feeds/vendor_a_latest.csv",
+      "run_ingest": true,
+      "stamp_ingest": true,
+      "ingest_env": {
+        "VENDOR_A_CSV_PATH": "data/feeds/vendor_a_latest.csv",
+        "VENDOR_A_STAMP_INGEST": "1"
+      },
+      "ingest_argv": ["python", "main.py"]
+    },
+    {
+      "id": "vendor_a_ftp",
+      "protocol": "ftp",
+      "host": "ftp.supplier.example",
+      "port": 21,
+      "use_tls": false,
+      "username": "ftpuser",
+      "password_env": "VENDOR_A_FTP_PASSWORD",
+      "remote_dir": "feeds",
+      "remote_pattern": "*.csv",
+      "local_path": "data/feeds/vendor_a_ftp.csv",
+      "run_ingest": true,
+      "stamp_ingest": true,
+      "ingest_env": {
+        "VENDOR_A_CSV_PATH": "data/feeds/vendor_a_ftp.csv",
+        "VENDOR_A_STAMP_INGEST": "1"
+      },
+      "ingest_argv": ["python", "main.py"]
+    },
+    {
+      "id": "vendor_a_url",
+      "protocol": "url",
+      "http_url": "https://supplier.example.com/export/stock.csv",
+      "username": "",
+      "password_env": "VENDOR_A_HTTP_PASSWORD",
+      "local_path": "data/feeds/vendor_a_url.csv",
+      "zip_inner_pattern": "*.csv",
+      "run_ingest": true,
+      "stamp_ingest": true,
+      "ingest_env": {
+        "VENDOR_A_CSV_PATH": "data/feeds/vendor_a_url.csv",
+        "VENDOR_A_STAMP_INGEST": "1"
+      },
+      "ingest_argv": ["python", "main.py"]
+    },
+    {
+      "id": "vendor_a_imap",
+      "protocol": "imap",
+      "imap_host": "imap.gmail.com",
+      "imap_port": 993,
+      "imap_user": "feeds@yourcompany.com",
+      "password_env": "VENDOR_A_IMAP_PASSWORD",
+      "imap_folder": "INBOX",
+      "search_unseen_only": true,
+      "subject_contains": "Price list",
+      "sender_contains": "supplier@",
+      "attachment_extensions": [".csv", ".zip"],
+      "mark_seen": true,
+      "local_path": "data/feeds/vendor_a_from_email.csv",
+      "run_ingest": true,
+      "stamp_ingest": true,
+      "ingest_env": {
+        "VENDOR_A_CSV_PATH": "data/feeds/vendor_a_from_email.csv",
+        "VENDOR_A_STAMP_INGEST": "1"
+      },
+      "ingest_argv": ["python", "main.py"]
+    }
+  ]
+}
