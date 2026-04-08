@@ -226,6 +226,14 @@ def create_app() -> FastAPI:
     app.include_router(batch_router, prefix="/api/v1")
     from services.control_plane.routers import keepa
     app.include_router(keepa.router, prefix="/api/v1", tags=["Keepa"])
+
+    # Feed Management System (FMS) — B2B product catalog
+    try:
+        from services.control_plane.routers.fms import fms_router
+        app.include_router(fms_router, prefix="/api/v1")
+        logger.info("FMS router mounted at /api/v1/fms")
+    except Exception as e:
+        logger.warning("FMS router not loaded: %s", e)
     from services.control_plane.routers import maps
     app.include_router(maps.router, prefix="/api/v1", tags=["Google Maps"])
     if _auth_available:

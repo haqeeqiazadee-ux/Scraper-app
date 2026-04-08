@@ -861,3 +861,42 @@ export const maps = {
     return request("/maps/status");
   },
 };
+
+/* ── Feed Management System (FMS) ── */
+
+export const fms = {
+  health(): Promise<{ ok: boolean; database: string }> {
+    return request("/fms/health");
+  },
+
+  products(params?: {
+    q?: string;
+    brand?: string;
+    mpn?: string;
+    offset?: number;
+    limit?: number;
+  }): Promise<{ items: any[]; offset: number; limit: number; has_more: boolean }> {
+    const qs = buildQuery(params || {});
+    return request(`/fms/products${qs}`);
+  },
+
+  product(id: number): Promise<any> {
+    return request(`/fms/products/${id}`);
+  },
+
+  offers(params?: {
+    vendor_name?: string;
+    product_id?: number;
+    region?: string;
+    min_stock?: number;
+    offset?: number;
+    limit?: number;
+  }): Promise<{ items: any[]; offset: number; limit: number; has_more: boolean }> {
+    const qs = buildQuery(params || {});
+    return request(`/fms/offers${qs}`);
+  },
+
+  suppliers(): Promise<{ vendors: string[]; count: number }> {
+    return request("/fms/suppliers");
+  },
+};
