@@ -23,15 +23,55 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from services.control_plane.routers import health, tasks, policies, results, execution, metrics, schedules, billing, artifacts, sessions, webhooks, templates  # noqa: E402 — uses symlink
-from services.control_plane.routers.crawl import crawl_router
-from services.control_plane.routers.search import search_router
-from services.control_plane.routers.extract import extract_router
-from services.control_plane.routers.facebook import facebook_router
-from services.control_plane.routers.smart_scrape import smart_scrape_router
+
+# --- Defensive imports: any of these failing must NOT crash the app ---
+_crawl_router = _search_router = _extract_router = _facebook_router = None
+_smart_scrape_router = _batch_router = _keepa_router = _maps_router = None
+_CostAuditMiddleware = None
+
+try:
+    from services.control_plane.routers.crawl import crawl_router as _crawl_router
+except Exception as _e:
+    logging.getLogger(__name__).warning("crawl router not loaded: %s", _e)
+try:
+    from services.control_plane.routers.search import search_router as _search_router
+except Exception as _e:
+    logging.getLogger(__name__).warning("search router not loaded: %s", _e)
+try:
+    from services.control_plane.routers.extract import extract_router as _extract_router
+except Exception as _e:
+    logging.getLogger(__name__).warning("extract router not loaded: %s", _e)
+try:
+    from services.control_plane.routers.facebook import facebook_router as _facebook_router
+except Exception as _e:
+    logging.getLogger(__name__).warning("facebook router not loaded: %s", _e)
+try:
+    from services.control_plane.routers.smart_scrape import smart_scrape_router as _smart_scrape_router
+except Exception as _e:
+    logging.getLogger(__name__).warning("smart_scrape router not loaded: %s", _e)
+try:
+    from services.control_plane.routers.batch import batch_router as _batch_router
+except Exception as _e:
+    logging.getLogger(__name__).warning("batch router not loaded: %s", _e)
+try:
+    from services.control_plane.routers import keepa as _keepa_module
+    _keepa_router = _keepa_module.router
+except Exception as _e:
+    logging.getLogger(__name__).warning("keepa router not loaded: %s", _e)
+try:
+    from services.control_plane.routers import maps as _maps_module
+    _maps_router = _maps_module.router
+except Exception as _e:
+    logging.getLogger(__name__).warning("maps router not loaded: %s", _e)
+
 from services.control_plane.middleware.metrics import MetricsMiddleware
 from services.control_plane.middleware.rate_limit import RateLimitMiddleware
 from services.control_plane.middleware.quota import QuotaMiddleware
-from services.control_plane.middleware.cost_audit import CostAuditMiddleware
+
+try:
+    from services.control_plane.middleware.cost_audit import CostAuditMiddleware as _CostAuditMiddleware
+except Exception as _e:
+    logging.getLogger(__name__).warning("cost audit middleware not loaded: %s", _e)
 
 # Auth router requires PyJWT — import conditionally (PyJWT may raise PanicException)
 try:
@@ -188,7 +228,8 @@ def create_app() -> FastAPI:
     app.add_middleware(QuotaMiddleware)
 
     # Cost audit middleware — tracks API costs and logs to audit table
-    app.add_middleware(CostAuditMiddleware)
+    if _CostAuditMiddleware is not None:
+        app.add_middleware(_CostAuditMiddleware)
 
     # Global exception handler for debugging
     from fastapi.responses import JSONResponse
@@ -217,15 +258,20 @@ def create_app() -> FastAPI:
     app.include_router(sessions.router, prefix="/api/v1", tags=["Sessions"])
     app.include_router(webhooks.router, prefix="/api/v1", tags=["Webhooks"])
     app.include_router(templates.router, prefix="/api/v1", tags=["Templates"])
-    app.include_router(crawl_router, prefix="/api/v1")
-    app.include_router(search_router, prefix="/api/v1")
-    app.include_router(extract_router, prefix="/api/v1")
-    app.include_router(facebook_router, prefix="/api/v1")
-    app.include_router(smart_scrape_router, prefix="/api/v1")
-    from services.control_plane.routers.batch import batch_router
-    app.include_router(batch_router, prefix="/api/v1")
-    from services.control_plane.routers import keepa
-    app.include_router(keepa.router, prefix="/api/v1", tags=["Keepa"])
+    if _crawl_router:
+        app.include_router(_crawl_router, prefix="/api/v1")
+    if _search_router:
+        app.include_router(_search_router, prefix="/api/v1")
+    if _extract_router:
+        app.include_router(_extract_router, prefix="/api/v1")
+    if _facebook_router:
+        app.include_router(_facebook_router, prefix="/api/v1")
+    if _smart_scrape_router:
+        app.include_router(_smart_scrape_router, prefix="/api/v1")
+    if _batch_router:
+        app.include_router(_batch_router, prefix="/api/v1")
+    if _keepa_router:
+        app.include_router(_keepa_router, prefix="/api/v1", tags=["Keepa"])
 
     # Feed Management System (FMS) — B2B product catalog
     try:
@@ -234,8 +280,8 @@ def create_app() -> FastAPI:
         logger.info("FMS router mounted at /api/v1/fms")
     except Exception as e:
         logger.warning("FMS router not loaded: %s", e)
-    from services.control_plane.routers import maps
-    app.include_router(maps.router, prefix="/api/v1", tags=["Google Maps"])
+    if _maps_router:
+        app.include_router(_maps_router, prefix="/api/v1", tags=["Google Maps"])
     if _auth_available:
         app.include_router(auth_router.router, prefix="/api/v1", tags=["Auth"])
 
