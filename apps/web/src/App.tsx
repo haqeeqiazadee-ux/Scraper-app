@@ -22,6 +22,7 @@ import { ScraperPage } from "./pages/ScraperPage";
 import { ChangesPage } from "./pages/ChangesPage";
 import { McpPage } from "./pages/McpPage";
 import { ApiKeysPage } from "./pages/ApiKeysPage";
+import { FmsPage } from "./pages/FmsPage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
@@ -67,6 +68,7 @@ export function App() {
         <Route path="/changes" element={<ChangesPage />} />
         <Route path="/mcp" element={<McpPage />} />
         <Route path="/api-keys" element={<ApiKeysPage />} />
+        <Route path="/fms" element={<FmsPage />} />
       </Route>
 
       {/* Catch-all redirect */}

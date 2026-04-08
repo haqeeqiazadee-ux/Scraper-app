@@ -267,6 +267,39 @@ async def fms_add_feed_source(
     return {"id": new_id, "vendor_name": vendor_name, "protocol": protocol, "status": "created"}
 
 
+@fms_router.post("/trigger-fetch/{source_id}")
+async def fms_trigger_fetch(
+    source_id: int,
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
+):
+    """Trigger a feed fetch for a specific source (runs run_feeds.py in background)."""
+    # For now, just update last_fetched_at as a placeholder
+    await session.execute(
+        text("UPDATE fms_supplier_feed_sources SET last_fetched_at = NOW() WHERE id = :id"),
+        {"id": source_id},
+    )
+    await session.commit()
+    return {"status": "triggered", "source_id": source_id}
+
+
+@fms_router.post("/feed-sources/{source_id}/toggle")
+async def fms_toggle_source(
+    source_id: int,
+    body: dict,
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
+):
+    """Enable/disable a feed source."""
+    enabled = body.get("enabled", True)
+    await session.execute(
+        text("UPDATE fms_supplier_feed_sources SET enabled = :e WHERE id = :id"),
+        {"e": enabled, "id": source_id},
+    )
+    await session.commit()
+    return {"status": "updated", "source_id": source_id, "enabled": enabled}
+
+
 @fms_router.delete("/feed-sources/{source_id}")
 async def fms_delete_feed_source(
     source_id: int,

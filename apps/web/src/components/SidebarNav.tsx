@@ -146,6 +146,7 @@ const NAV_GROUPS: NavGroupStyled[] = [
       { to: "/google-maps",      label: "Google Maps",     Icon: IconMap },
       { to: "/facebook-groups",  label: "Facebook Groups",  Icon: IconFacebook },
       { to: "/templates",        label: "Templates",       Icon: IconTemplate },
+      { to: "/fms",              label: "Feed Management", Icon: IconDatabase },
     ],
   },
   {

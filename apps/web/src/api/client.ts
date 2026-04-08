@@ -899,4 +899,19 @@ export const fms = {
   suppliers(): Promise<{ vendors: string[]; count: number }> {
     return request("/fms/suppliers");
   },
+
+  feedSources(): Promise<{ sources: any[]; count: number }> {
+    return request("/fms/feed-sources");
+  },
+
+  triggerFetch(sourceId: number): Promise<any> {
+    return request(`/fms/trigger-fetch/${sourceId}`, { method: "POST" });
+  },
+
+  toggleSource(sourceId: number, enabled: boolean): Promise<any> {
+    return request(`/fms/feed-sources/${sourceId}/toggle`, {
+      method: "POST",
+      body: JSON.stringify({ enabled }),
+    });
+  },
 };
