@@ -99,6 +99,7 @@ class SmartScrapeResponse(BaseModel):
     saved: bool
     saved_task_id: str
     duration_ms: int
+    costs: dict[str, Any] | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -158,7 +159,9 @@ async def _handle_search(
 ) -> dict[str, Any]:
     """Execute the search-and-scrape path using Serper + HTTP scraping."""
     import os
+    from packages.core.cost_tracker import CostTracker
 
+    tracker = CostTracker()
     step_ts = time.time()
 
     api_key = os.environ.get("SERPER_API_KEY", "").strip()
@@ -171,6 +174,7 @@ async def _handle_search(
             "item_count": 0,
             "confidence": 0,
             "lane_used": "search",
+            "costs": tracker.to_dict(),
         }
 
     # Lazy import to avoid circular deps
@@ -178,6 +182,7 @@ async def _handle_search(
 
     # Step 1 — Serper search
     search_hits = await _serper_search(query, max_results, api_key)
+    tracker.record("serper_search", detail=f"query: {query[:50]}")
     step_ts = _record_step(
         steps,
         f"Serper search returned {len(search_hits)} results for query",
@@ -191,12 +196,14 @@ async def _handle_search(
             "item_count": 0,
             "confidence": 0,
             "lane_used": "search",
+            "costs": tracker.to_dict(),
         }
 
     # Step 2 — scrape each URL concurrently
     semaphore = asyncio.Semaphore(3)
     scrape_coros = [_scrape_url(hit["url"], semaphore) for hit in search_hits]
     raw_results = await asyncio.gather(*scrape_coros, return_exceptions=True)
+    tracker.record("curl_cffi_page", calls=len(raw_results), detail=f"{len(raw_results)} search result URLs")
     step_ts = _record_step(
         steps, f"Scraped {len(raw_results)} search result URLs", step_ts
     )
@@ -227,6 +234,7 @@ async def _handle_search(
         "item_count": len(all_items),
         "confidence": 0.8,
         "lane_used": "search",
+        "costs": tracker.to_dict(),
     }
 
 
@@ -289,6 +297,9 @@ async def _handle_url_scrape(
     from packages.core.storage.repositories import (
         TaskRepository, RunRepository, ResultRepository,
     )
+    from packages.core.cost_tracker import CostTracker
+
+    tracker = CostTracker()
 
     task_id = str(uuid4())
     run_id = str(uuid4())
@@ -374,6 +385,7 @@ async def _handle_url_scrape(
 
                 if platform_products:
                     logger.info("smart_scrape.scrapecreators_tiktok", task_id=task_id, count=len(platform_products))
+                    tracker.record("scrapecreators_shop", detail="TikTok Shop")
 
             except Exception as sc_err:
                 logger.warning("smart_scrape.scrapecreators_failed", error=str(sc_err)[:200])
@@ -443,6 +455,7 @@ async def _handle_url_scrape(
                 if tiktok_items:
                     platform_products = tiktok_items
                     step_ts = _record_step(steps, f"TikTok API: {len(tiktok_items)} items", step_ts)
+                    tracker.record("tiktok_api", detail="davidteather free")
 
             except Exception as tiktok_err:
                 logger.warning("smart_scrape.tiktok_failed", error=str(tiktok_err)[:200])
@@ -477,6 +490,7 @@ async def _handle_url_scrape(
                             "_extraction_method": "facebook_playwright",
                         })
                     step_ts = _record_step(steps, f"Facebook Groups: {len(platform_products)} posts via Playwright", step_ts)
+                    tracker.record("facebook_playwright", detail="group scrape")
             else:
                 # Non-group Facebook URL — just scrape with browser lane
                 step_ts = _record_step(steps, "Facebook detected — will use browser lane with cookies", step_ts)
@@ -537,6 +551,7 @@ async def _handle_url_scrape(
                             "_extraction_method": "keepa_api",
                         })
                     step_ts = _record_step(steps, f"Keepa API: ASIN {asin} — {len(platform_products)} product(s)", step_ts)
+                    tracker.record("keepa_asin", calls=1, detail=f"ASIN {asin}")
 
             elif keyword_match:
                 # Keyword search
@@ -560,6 +575,7 @@ async def _handle_url_scrape(
                             "_extraction_method": "keepa_api",
                         })
                     step_ts = _record_step(steps, f"Keepa API: search '{keywords}' — {len(platform_products)} products", step_ts)
+                    tracker.record("keepa_search", detail=f"keyword: {keywords[:50]}")
 
             elif category_match:
                 # Bestsellers by category
@@ -585,6 +601,7 @@ async def _handle_url_scrape(
                             "_extraction_method": "keepa_api",
                         })
                     step_ts = _record_step(steps, f"Keepa API: bestsellers '{category}' — {len(platform_products)} products", step_ts)
+                    tracker.record("keepa_deals", detail=f"bestsellers: {category[:50]}")
 
             else:
                 # Generic Amazon URL — try as keyword search with domain
@@ -598,6 +615,7 @@ async def _handle_url_scrape(
                         "_category": "product", "_extraction_method": "keepa_api",
                     } for p in keepa_result["products"]]
                     step_ts = _record_step(steps, f"Keepa API: {len(platform_products)} products", step_ts)
+                    tracker.record("keepa_search", detail="generic Amazon URL")
 
             if platform_products:
                 logger.info("smart_scrape.keepa_routed", task_id=task_id, count=len(platform_products), domain=keepa_domain)
@@ -633,6 +651,7 @@ async def _handle_url_scrape(
                     step_ts = _record_step(
                         steps, f"Shopify API: {len(platform_products)} products (skipping HTML extraction)", step_ts
                     )
+                    tracker.record("shopify_api", detail="/products.json")
                     logger.info("smart_scrape.shopify_api_direct", task_id=task_id, count=len(platform_products))
 
             # WooCommerce: /wp-json/wc/store/v1/products
@@ -655,6 +674,7 @@ async def _handle_url_scrape(
                         step_ts = _record_step(
                             steps, f"WooCommerce API: {len(platform_products)} products", step_ts
                         )
+                        tracker.record("woocommerce_api", detail="/wp-json/wc/store/v1/products")
         except Exception as api_err:
             logger.debug("smart_scrape.platform_api_skip", error=str(api_err)[:100])
 
@@ -679,6 +699,7 @@ async def _handle_url_scrape(
             "saved": True,
             "saved_task_id": task_id,
             "duration_ms": total_elapsed,
+            "costs": tracker.to_dict(),
         }
 
     # ---- Step 1: Route the task ----
@@ -759,6 +780,12 @@ async def _handle_url_scrape(
                 task_payload["cookies"] = _cookies_to_simple_dict(cookies)
 
         worker_result = await _execute_lane(current_lane, task_payload)
+
+        # Track lane execution cost
+        if current_lane == Lane.HTTP:
+            tracker.record("curl_cffi_page", detail=f"HTTP lane attempt {attempt + 1}")
+        elif current_lane in (Lane.BROWSER, Lane.HARD_TARGET):
+            tracker.record("playwright_page", detail=f"Browser lane attempt {attempt + 1}")
 
         succeeded = worker_result.get("status") == "success"
         escalation_chain.append({
@@ -880,6 +907,7 @@ async def _handle_url_scrape(
                             })
                         extracted_data = shopify_items
                         step_ts = _record_step(steps, f"Shopify API: {len(shopify_items)} products", step_ts)
+                        tracker.record("shopify_api", detail="/products.json (post-lane)")
         except Exception as shop_err:
             logger.debug("smart_scrape.shopify_api_failed", error=str(shop_err))
 
@@ -1141,6 +1169,7 @@ async def _handle_url_scrape(
         "schema_matched": schema_matched,
         "saved": saved,
         "saved_task_id": task_id,
+        "costs": tracker.to_dict(),
     }
 
 
@@ -1214,6 +1243,7 @@ async def smart_scrape(
                 saved=False,
                 saved_task_id=task_id,
                 duration_ms=total_elapsed,
+                costs=result.get("costs"),
             )
 
         else:
@@ -1250,6 +1280,7 @@ async def smart_scrape(
                 saved=result.get("saved", False),
                 saved_task_id=result.get("saved_task_id", task_id),
                 duration_ms=total_elapsed,
+                costs=result.get("costs"),
             )
 
     except Exception:

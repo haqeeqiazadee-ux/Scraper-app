@@ -31,6 +31,7 @@ from services.control_plane.routers.smart_scrape import smart_scrape_router
 from services.control_plane.middleware.metrics import MetricsMiddleware
 from services.control_plane.middleware.rate_limit import RateLimitMiddleware
 from services.control_plane.middleware.quota import QuotaMiddleware
+from services.control_plane.middleware.cost_audit import CostAuditMiddleware
 
 # Auth router requires PyJWT — import conditionally (PyJWT may raise PanicException)
 try:
@@ -185,6 +186,9 @@ def create_app() -> FastAPI:
 
     # Quota enforcement middleware
     app.add_middleware(QuotaMiddleware)
+
+    # Cost audit middleware — tracks API costs and logs to audit table
+    app.add_middleware(CostAuditMiddleware)
 
     # Global exception handler for debugging
     from fastapi.responses import JSONResponse

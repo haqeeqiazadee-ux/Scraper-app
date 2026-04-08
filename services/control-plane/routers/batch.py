@@ -25,9 +25,24 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from packages.core.cost_tracker import CostTracker
 from services.control_plane.dependencies import get_session, get_database, get_tenant_id
 
 logger = structlog.get_logger(__name__)
+
+
+def _aggregate_costs(results: list[BatchItemResult]) -> dict[str, Any]:
+    """Merge per-item costs into a single aggregate cost breakdown."""
+    tracker = CostTracker()
+    for r in results:
+        if r.costs:
+            for entry in r.costs.get("breakdown", []):
+                tracker.record(
+                    api=entry.get("api", "unknown"),
+                    calls=entry.get("calls", 1),
+                    detail=entry.get("detail", ""),
+                )
+    return tracker.to_dict()
 batch_router = APIRouter(tags=["Batch"])
 
 ASIN_RE = re.compile(r"^[A-Z0-9]{10}$")
@@ -57,6 +72,7 @@ class BatchItemResult(BaseModel):
     data: list[dict[str, Any]] = []
     error: str | None = None
     duration_ms: int = 0
+    costs: dict[str, Any] | None = None
 
 
 class BatchResponse(BaseModel):
@@ -68,6 +84,7 @@ class BatchResponse(BaseModel):
     results: list[BatchItemResult] = []
     duration_ms: int = 0
     webhook_url: str | None = None
+    costs: dict[str, Any] | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -138,6 +155,7 @@ async def _process_single_item(
                 item_count=len(extracted),
                 data=extracted[:50],
                 duration_ms=elapsed,
+                costs=result.get("costs"),
             )
         else:
             # Search query — use smart scrape's _handle_search
@@ -158,6 +176,7 @@ async def _process_single_item(
                 item_count=len(extracted),
                 data=extracted[:50],
                 duration_ms=elapsed,
+                costs=result.get("costs"),
             )
     except Exception as e:
         elapsed = int((time.time() - start) * 1000)
@@ -192,6 +211,11 @@ async def _process_keepa_batch(
             history_days=30,
         )
 
+        # Build per-item Keepa cost dict (single batch call, amortised)
+        item_tracker = CostTracker()
+        item_tracker.record("keepa_asin", calls=1, detail="batch ASIN lookup (amortised)")
+        keepa_item_costs = item_tracker.to_dict()
+
         # Map each ASIN to its product data
         products_by_asin: dict[str, dict[str, Any]] = {}
         for p in products if isinstance(products, list) else []:
@@ -225,6 +249,7 @@ async def _process_keepa_batch(
                             }
                         ],
                         duration_ms=elapsed,
+                        costs=keepa_item_costs,
                     )
                 )
             else:
@@ -315,6 +340,7 @@ async def _run_async_batch(
                 final_results.append(res)
 
         elapsed = int((time.time() - start) * 1000)
+        aggregate_costs = _aggregate_costs(final_results)
         job.update(
             {
                 "status": "completed",
@@ -322,6 +348,7 @@ async def _run_async_batch(
                 "failed": failed_count,
                 "results": final_results,
                 "duration_ms": elapsed,
+                "costs": aggregate_costs,
             }
         )
 
@@ -338,6 +365,7 @@ async def _run_async_batch(
                     results=final_results,
                     duration_ms=elapsed,
                     webhook_url=request.webhook_url,
+                    costs=aggregate_costs,
                 ),
             )
     except Exception as e:
@@ -414,6 +442,7 @@ async def process_batch(
             failed=failed,
             duration_ms=elapsed,
         )
+        aggregate_costs = _aggregate_costs(results)
         resp = BatchResponse(
             batch_id=batch_id,
             status="completed",
@@ -422,12 +451,14 @@ async def process_batch(
             failed=failed,
             results=results,
             duration_ms=elapsed,
+            costs=aggregate_costs,
         )
         _batch_jobs[batch_id] = {
             "status": "completed", "total": len(items),
             "completed": completed, "failed": failed,
             "results": [r.model_dump() for r in results],
             "duration_ms": elapsed,
+            "costs": aggregate_costs,
         }
         return resp
 
@@ -484,6 +515,7 @@ async def process_batch(
             failed=failed,
             duration_ms=elapsed,
         )
+        aggregate_costs = _aggregate_costs(final_results)
         resp = BatchResponse(
             batch_id=batch_id,
             status="completed",
@@ -492,6 +524,7 @@ async def process_batch(
             failed=failed,
             results=final_results,
             duration_ms=elapsed,
+            costs=aggregate_costs,
         )
         # Store for polling
         _batch_jobs[batch_id] = {
@@ -502,6 +535,7 @@ async def process_batch(
             "results": [r.model_dump() for r in final_results],
             "duration_ms": elapsed,
             "webhook_url": request.webhook_url,
+            "costs": aggregate_costs,
         }
         return resp
 
@@ -549,4 +583,5 @@ async def get_batch_status(batch_id: str) -> BatchResponse:
         results=results if isinstance(results, list) else [],
         duration_ms=job.get("duration_ms", 0),
         webhook_url=job.get("webhook_url"),
+        costs=job.get("costs"),
     )
