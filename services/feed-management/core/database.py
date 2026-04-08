@@ -1,4 +1,8 @@
-"""MySQL connection (Hostinger) and table initialization."""
+"""PostgreSQL connection (Supabase) and table initialization.
+
+Uses DATABASE_URL from env (same Supabase instance as the scraper).
+All tables prefixed with fms_ to avoid conflicts with scraper tables.
+"""
 
 from __future__ import annotations
 
@@ -19,7 +23,7 @@ from sqlalchemy import (
     create_engine,
     func,
 )
-from sqlalchemy.engine import Engine, URL
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -28,7 +32,7 @@ class Base(DeclarativeBase):
 
 
 class Product(Base):
-    __tablename__ = "products"
+    __tablename__ = "fms_products"
     __table_args__ = (
         UniqueConstraint("mpn", "brand", name="uq_products_mpn_brand"),
     )
@@ -50,7 +54,7 @@ class Product(Base):
 
 
 class VendorOffer(Base):
-    __tablename__ = "vendor_offers"
+    __tablename__ = "fms_vendor_offers"
     __table_args__ = (
         CheckConstraint(
             "region IN ('UK', 'EU', 'USA')",
@@ -60,7 +64,7 @@ class VendorOffer(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     product_id: Mapped[int] = mapped_column(
-        ForeignKey("products.id", ondelete="CASCADE"),
+        ForeignKey("fms_products.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
@@ -83,7 +87,7 @@ class VendorOffer(Base):
 class MasterIncompleteRow(Base):
     """Rows from master uploads that still need MPN, Brand, or Title; edited in PHP Master tab."""
 
-    __tablename__ = "master_incomplete_rows"
+    __tablename__ = "fms_master_incomplete_rows"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     mpn: Mapped[str | None] = mapped_column(String(128), nullable=True)
@@ -104,7 +108,7 @@ class MasterIncompleteRow(Base):
 class MasterProduct(Base):
     """Canonical datasheet (MPN + brand) used to standardize ``products`` titles, EAN, category."""
 
-    __tablename__ = "master_products"
+    __tablename__ = "fms_master_products"
     __table_args__ = (
         UniqueConstraint("mpn", "brand", name="uq_master_mpn_brand"),
     )
@@ -126,34 +130,24 @@ class MasterProduct(Base):
     )
 
 
-def _database_url() -> URL:
-    """Build DSN from env. Accepts ``DB_USER``/``DB_USERNAME``, ``DB_PASS``/``DB_PASSWORD``, etc."""
+def _database_url() -> str:
+    """Get DATABASE_URL from env (same Supabase as the scraper).
+
+    Supports both async (asyncpg) and sync (psycopg2) URLs.
+    For the FMS sync ingestion, converts asyncpg URL to psycopg2.
+    """
     load_dotenv()
-    user = (os.environ.get("DB_USER") or os.environ.get("DB_USERNAME") or "").strip()
-    password = (os.environ.get("DB_PASS") or os.environ.get("DB_PASSWORD") or "").strip()
-    host = (os.environ.get("DB_HOST") or "").strip()
-    database = (os.environ.get("DB_NAME") or os.environ.get("DB_DATABASE") or "").strip()
-    port_raw = (os.environ.get("DB_PORT") or "").strip()
-    port = int(port_raw) if port_raw else None
-    if not user or not host or not database:
-        raise ValueError(
-            "Database env incomplete: set DB_HOST, DB_USER or DB_USERNAME, "
-            "DB_NAME or DB_DATABASE, and DB_PASS or DB_PASSWORD.",
-        )
-    kwargs: dict = dict(
-        drivername="mysql+mysqlconnector",
-        username=user,
-        password=password,
-        host=host,
-        database=database,
-    )
-    if port is not None:
-        kwargs["port"] = port
-    return URL.create(**kwargs)
+    url = (os.environ.get("DATABASE_URL") or "").strip()
+    if not url:
+        raise ValueError("DATABASE_URL not set. Use the same Supabase URL as the scraper.")
+    # Convert async URL to sync for FMS ingestion scripts
+    url = url.replace("postgresql+asyncpg://", "postgresql://")
+    url = url.replace("sqlite+aiosqlite://", "sqlite://")
+    return url
 
 
 def get_engine(*, echo: bool = False) -> Engine:
-    """Create a SQLAlchemy engine for the configured MySQL database."""
+    """Create a SQLAlchemy engine for Supabase PostgreSQL."""
     return create_engine(_database_url(), echo=echo, pool_pre_ping=True)
 
 
