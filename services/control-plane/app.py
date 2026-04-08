@@ -108,83 +108,87 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Validate DATABASE_URL before connecting — catch common misconfiguration
     db_url = settings.database_url
     if "asyncpg" in db_url and "#" in db_url:
-        raise RuntimeError(
+        logger.error(
             "DATABASE_URL contains an unescaped '#' character. "
-            "URL-encode it as '%23' and quote the value in .env. "
-            "Example: DATABASE_URL=\"postgresql+asyncpg://user:pass%23word@host:5432/db\""
+            "URL-encode it as '%%23' and quote the value in .env."
         )
 
-    db = init_database(db_url)
+    try:
+        db = init_database(db_url)
 
-    # Brief network diagnostic for PostgreSQL connections
-    if "asyncpg" in db_url:
-        import socket
-        try:
-            host_part = db_url.split("@")[1].split("/")[0]
-            db_host = host_part.rsplit(":", 1)[0]
-            db_port = int(host_part.rsplit(":", 1)[1]) if ":" in host_part else 5432
-            addrs = socket.getaddrinfo(db_host, db_port, socket.AF_UNSPEC, socket.SOCK_STREAM)
-            ipv4 = [a for a in addrs if a[0] == socket.AF_INET]
-            ipv6 = [a for a in addrs if a[0] == socket.AF_INET6]
-            logger.info(
-                "DB host %s:%d → %d IPv4, %d IPv6 addresses",
-                db_host, db_port, len(ipv4), len(ipv6),
-            )
-        except Exception as dns_err:
-            logger.warning("DNS lookup failed for DB host: %s", dns_err)
-
-    # Auto-create tables with retry for transient network issues in containers.
-    # Railway / cloud containers may take a moment to establish network routes.
-    import asyncio
-    max_retries = 5
-    for attempt in range(1, max_retries + 1):
-        try:
-            await db.create_tables()
-            if "sqlite" in db_url:
-                logger.info("Database tables created (SQLite dev mode)")
-            else:
-                logger.info("Database tables ensured (PostgreSQL)")
-            break
-        except Exception as e:
-            # Walk the exception chain to find the root cause
-            root = e
-            while root.__cause__:
-                root = root.__cause__
-            error_msg = f"{type(root).__name__}: {root}"
-            full_msg = f"{type(e).__name__}: {e} (root: {error_msg})"
-
-            is_network_error = any(s in full_msg.lower() for s in [
-                "network is unreachable", "connection refused",
-                "could not connect", "timeout", "name resolution",
-                "no route to host", "connection reset", "errno 101",
-                "errno 111", "errno 110",
-            ])
-            if is_network_error and attempt < max_retries:
-                wait = 2 ** attempt  # 2, 4, 8, 16, 32 seconds
-                logger.warning(
-                    "Database connection attempt %d/%d failed, retrying in %ds: %s",
-                    attempt, max_retries, wait, full_msg,
+        # Brief network diagnostic for PostgreSQL connections
+        if "asyncpg" in db_url:
+            import socket
+            try:
+                host_part = db_url.split("@")[1].split("/")[0]
+                db_host = host_part.rsplit(":", 1)[0]
+                db_port = int(host_part.rsplit(":", 1)[1]) if ":" in host_part else 5432
+                addrs = socket.getaddrinfo(db_host, db_port, socket.AF_UNSPEC, socket.SOCK_STREAM)
+                ipv4 = [a for a in addrs if a[0] == socket.AF_INET]
+                ipv6 = [a for a in addrs if a[0] == socket.AF_INET6]
+                logger.info(
+                    "DB host %s:%d → %d IPv4, %d IPv6 addresses",
+                    db_host, db_port, len(ipv4), len(ipv6),
                 )
-                await asyncio.sleep(wait)
-            else:
-                logger.error(
-                    "Failed to connect to database after %d attempts: %s",
-                    attempt, full_msg,
-                )
-                raise
-    logger.info("Database initialized")
+            except Exception as dns_err:
+                logger.warning("DNS lookup failed for DB host: %s", dns_err)
+
+        # Auto-create tables with retry for transient network issues in containers.
+        import asyncio
+        max_retries = 3
+        for attempt in range(1, max_retries + 1):
+            try:
+                await db.create_tables()
+                if "sqlite" in db_url:
+                    logger.info("Database tables created (SQLite dev mode)")
+                else:
+                    logger.info("Database tables ensured (PostgreSQL)")
+                break
+            except Exception as e:
+                root = e
+                while root.__cause__:
+                    root = root.__cause__
+                error_msg = f"{type(root).__name__}: {root}"
+                full_msg = f"{type(e).__name__}: {e} (root: {error_msg})"
+
+                is_network_error = any(s in full_msg.lower() for s in [
+                    "network is unreachable", "connection refused",
+                    "could not connect", "timeout", "name resolution",
+                    "no route to host", "connection reset", "errno 101",
+                    "errno 111", "errno 110",
+                ])
+                if is_network_error and attempt < max_retries:
+                    wait = 2 ** attempt
+                    logger.warning(
+                        "Database connection attempt %d/%d failed, retrying in %ds: %s",
+                        attempt, max_retries, wait, full_msg,
+                    )
+                    await asyncio.sleep(wait)
+                else:
+                    logger.error(
+                        "Failed to connect to database after %d attempts: %s",
+                        attempt, full_msg,
+                    )
+                    # Don't crash — app will start, but DB-dependent endpoints will fail
+                    break
+        logger.info("Database initialized")
+    except Exception as db_err:
+        logger.error("Database initialization failed (app will still start): %s", db_err)
 
     # Initialize webhook executor
-    _webhook_executor = WebhookExecutor()
+    try:
+        _webhook_executor = WebhookExecutor()
 
-    # Initialize and start task scheduler
-    async def _enqueue_task(task):
-        logger.info("Scheduled task enqueued", extra={"task_id": str(task.id)})
+        # Initialize and start task scheduler
+        async def _enqueue_task(task):
+            logger.info("Scheduled task enqueued", extra={"task_id": str(task.id)})
 
-    _task_scheduler = TaskScheduler(enqueue_fn=_enqueue_task)
-    schedules.set_scheduler(_task_scheduler)
-    await _task_scheduler.start()
-    logger.info("Task scheduler started")
+        _task_scheduler = TaskScheduler(enqueue_fn=_enqueue_task)
+        schedules.set_scheduler(_task_scheduler)
+        await _task_scheduler.start()
+        logger.info("Task scheduler started")
+    except Exception as sched_err:
+        logger.error("Scheduler/webhook init failed (non-fatal): %s", sched_err)
 
     yield
 
