@@ -29,7 +29,7 @@ dockerfilePath = "infrastructure/docker/Dockerfile.railway"
 [deploy]
 startCommand = "python run.py"
 healthcheckPath = "/health"
-healthcheckTimeout = 30
+healthcheckTimeout = 120
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
 # Allow long-running scrape requests (Amazon, Walmart can take 60-120s)
