@@ -798,6 +798,28 @@ export const authScrape = {
   },
 };
 
+/* ── Batch ── */
+
+export const batch = {
+  run(data: {
+    items: string[];
+    intent?: string;
+    schema?: Record<string, any>;
+    cookies?: any[];
+    concurrency?: number;
+    webhook_url?: string;
+  }): Promise<any> {
+    return request("/batch", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
+  status(batchId: string): Promise<any> {
+    return request(`/batch/${batchId}`);
+  },
+};
+
 /* ── Smart Scrape ── */
 
 export const smartScrape = {

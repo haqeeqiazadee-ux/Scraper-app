@@ -1752,3 +1752,104 @@ async def public_get_presets(
         return error_response(
             [{"code": "PRESETS_ERROR", "message": str(exc)}], request, 502,
         )
+
+
+# =======================  25. POST /v1/batch  ==============================
+
+
+@public_api_router.post("/batch", status_code=200)
+async def public_batch(
+    request: Request,
+    api_ctx: ApiKeyContext = Depends(require_api_key),
+    session: AsyncSession = Depends(get_session),
+):
+    """Process a batch of URLs/ASINs/queries concurrently. [1 credit per item]"""
+    start = time.time()
+    request.state.start_time = start
+    tenant_id = api_ctx.tenant_id
+    audit_repo = AuditLogRepository(session)
+    request_id = await _log_request(
+        audit_repo, tenant_id, api_ctx.api_key_id,
+        request, "/v1/batch",
+    )
+    request.state.request_id = request_id
+
+    try:
+        body_json = await request.json()
+
+        from services.control_plane.routers.batch import (
+            BatchRequest as _BatchRequest,
+            process_batch as _process_batch,
+        )
+
+        batch_req = _BatchRequest(**body_json)
+        result = await _process_batch(
+            request=batch_req,
+            session=session,
+            tenant_id=tenant_id,
+        )
+
+        credits = len(batch_req.items)
+        duration_ms = int((time.time() - start) * 1000)
+        await _finalise_audit(
+            audit_repo, request_id, tenant_id,
+            status_code=200, credits_used=credits, duration_ms=duration_ms,
+        )
+        logger.info(
+            "public_api.batch.complete",
+            request_id=request_id,
+            total=result.total,
+            completed=result.completed,
+            failed=result.failed,
+        )
+        return success_response(
+            data=result.model_dump(mode="json"),
+            request=request,
+            credits_used=credits,
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        duration_ms = int((time.time() - start) * 1000)
+        await _finalise_audit(
+            audit_repo, request_id, tenant_id,
+            status_code=502, credits_used=0, duration_ms=duration_ms,
+            error_code="BATCH_ERROR",
+        )
+        logger.error("public_api.batch.failed", request_id=request_id, error=str(exc))
+        return error_response(
+            [{"code": "BATCH_ERROR", "message": str(exc)}], request, 502,
+        )
+
+
+# =======================  26. GET /v1/batch/{batch_id}  ====================
+
+
+@public_api_router.get("/batch/{batch_id}", status_code=200)
+async def public_batch_status(
+    batch_id: str,
+    request: Request,
+    api_ctx: ApiKeyContext = Depends(require_api_key),
+    session: AsyncSession = Depends(get_session),
+):
+    """Poll the status of an async batch job. [0 credits]"""
+    request.state.start_time = time.time()
+    tenant_id = api_ctx.tenant_id
+
+    try:
+        from services.control_plane.routers.batch import get_batch_status as _get_batch_status
+
+        result = await _get_batch_status(batch_id=batch_id)
+
+        return success_response(
+            data=result.model_dump(mode="json"),
+            request=request,
+            credits_used=0,
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("public_api.batch.status.failed", batch_id=batch_id, error=str(exc))
+        return error_response(
+            [{"code": "BATCH_STATUS_ERROR", "message": str(exc)}], request, 502,
+        )

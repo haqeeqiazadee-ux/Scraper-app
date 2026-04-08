@@ -218,6 +218,8 @@ def create_app() -> FastAPI:
     app.include_router(extract_router, prefix="/api/v1")
     app.include_router(facebook_router, prefix="/api/v1")
     app.include_router(smart_scrape_router, prefix="/api/v1")
+    from services.control_plane.routers.batch import batch_router
+    app.include_router(batch_router, prefix="/api/v1")
     from services.control_plane.routers import keepa
     app.include_router(keepa.router, prefix="/api/v1", tags=["Keepa"])
     from services.control_plane.routers import maps
