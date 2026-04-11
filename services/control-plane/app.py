@@ -29,6 +29,11 @@ _crawl_router = _search_router = _extract_router = _facebook_router = None
 _smart_scrape_router = _batch_router = _keepa_router = _maps_router = None
 _CostAuditMiddleware = None
 
+# Phase 0A — 8 upstream signal routers (YOUSELL composite-ai data sources)
+_meta_ad_library_router = _tiktok_cc_router = _google_trends_router = None
+_cj_router = _aliexpress_router = _alibaba_1688_router = None
+_temu_router = _dhgate_router = None
+
 try:
     from services.control_plane.routers.crawl import crawl_router as _crawl_router
 except Exception as _e:
@@ -63,6 +68,48 @@ try:
     _maps_router = _maps_module.router
 except Exception as _e:
     logging.getLogger(__name__).warning("maps router not loaded: %s", _e)
+
+# --- Phase 0A — 8 upstream signal routes for YOUSELL composite-ai ---
+try:
+    from services.control_plane.routers.meta_ad_library import (
+        meta_ad_library_router as _meta_ad_library_router,
+    )
+except Exception as _e:
+    logging.getLogger(__name__).warning("meta_ad_library router not loaded: %s", _e)
+try:
+    from services.control_plane.routers.tiktok_creative_center import (
+        tiktok_cc_router as _tiktok_cc_router,
+    )
+except Exception as _e:
+    logging.getLogger(__name__).warning("tiktok_creative_center router not loaded: %s", _e)
+try:
+    from services.control_plane.routers.google_trends import (
+        google_trends_router as _google_trends_router,
+    )
+except Exception as _e:
+    logging.getLogger(__name__).warning("google_trends router not loaded: %s", _e)
+try:
+    from services.control_plane.routers.cj_dropshipping import cj_router as _cj_router
+except Exception as _e:
+    logging.getLogger(__name__).warning("cj_dropshipping router not loaded: %s", _e)
+try:
+    from services.control_plane.routers.aliexpress import aliexpress_router as _aliexpress_router
+except Exception as _e:
+    logging.getLogger(__name__).warning("aliexpress router not loaded: %s", _e)
+try:
+    from services.control_plane.routers.alibaba_1688 import (
+        alibaba_1688_router as _alibaba_1688_router,
+    )
+except Exception as _e:
+    logging.getLogger(__name__).warning("alibaba_1688 router not loaded: %s", _e)
+try:
+    from services.control_plane.routers.temu import temu_router as _temu_router
+except Exception as _e:
+    logging.getLogger(__name__).warning("temu router not loaded: %s", _e)
+try:
+    from services.control_plane.routers.dhgate import dhgate_router as _dhgate_router
+except Exception as _e:
+    logging.getLogger(__name__).warning("dhgate router not loaded: %s", _e)
 
 from services.control_plane.middleware.metrics import MetricsMiddleware
 from services.control_plane.middleware.rate_limit import RateLimitMiddleware
@@ -286,6 +333,24 @@ def create_app() -> FastAPI:
         logger.warning("FMS router not loaded: %s", e)
     if _maps_router:
         app.include_router(_maps_router, prefix="/api/v1", tags=["Google Maps"])
+
+    # --- Phase 0A — 8 upstream signal routers (YOUSELL composite-ai) ---
+    if _meta_ad_library_router:
+        app.include_router(_meta_ad_library_router, prefix="/api/v1")
+    if _tiktok_cc_router:
+        app.include_router(_tiktok_cc_router, prefix="/api/v1")
+    if _google_trends_router:
+        app.include_router(_google_trends_router, prefix="/api/v1")
+    if _cj_router:
+        app.include_router(_cj_router, prefix="/api/v1")
+    if _aliexpress_router:
+        app.include_router(_aliexpress_router, prefix="/api/v1")
+    if _alibaba_1688_router:
+        app.include_router(_alibaba_1688_router, prefix="/api/v1")
+    if _temu_router:
+        app.include_router(_temu_router, prefix="/api/v1")
+    if _dhgate_router:
+        app.include_router(_dhgate_router, prefix="/api/v1")
     if _auth_available:
         app.include_router(auth_router.router, prefix="/api/v1", tags=["Auth"])
 
