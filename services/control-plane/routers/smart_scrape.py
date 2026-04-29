@@ -319,7 +319,7 @@ async def _handle_url_scrape(
     # TikTok → route based on URL type
     # /shop/* → ScrapeCreators API (paid, $0.0019/req)
     # everything else → davidteather TikTok-Api (free)
-    SCRAPECREATORS_API_KEY = os.environ.get("SCRAPECREATORS_API_KEY", "0FQ0veBBGJSlr3z3yQToiDJQVRZ2")
+    SCRAPECREATORS_API_KEY = os.environ.get("SCRAPECREATORS_API_KEY", "").strip()
     _SC_BASE = "https://api.scrapecreators.com/v1"
 
     if is_tiktok:
@@ -501,10 +501,37 @@ async def _handle_url_scrape(
 
     # Amazon → route ALL queries to Keepa API
 
-    if is_amazon:
+    if is_amazon and not os.environ.get("KEEPA_API_KEY", "").strip():
+        step_ts = _record_step(
+            steps,
+            "Amazon detected; KEEPA_API_KEY not configured, falling back to scraper",
+            step_ts,
+        )
+
+    if is_amazon and os.environ.get("KEEPA_API_KEY", "").strip():
         try:
-            from services.control_plane.routers.keepa import _get_keepa_connector
-            connector = _get_keepa_connector()
+            from services.control_plane.routers.keepa import _get_keepa
+            connector = _get_keepa()
+
+            def _normalise_keepa_products(products: list[dict[str, Any]]) -> list[dict[str, Any]]:
+                normalized: list[dict[str, Any]] = []
+                for p in products:
+                    normalized.append({
+                        "name": p.get("name", ""),
+                        "price": p.get("price", p.get("amazon_price", "")),
+                        "asin": p.get("asin", ""),
+                        "brand": p.get("brand", ""),
+                        "rating": p.get("rating", ""),
+                        "review_count": p.get("reviews_count", p.get("review_count", "")),
+                        "sales_rank": p.get("sales_rank", 0),
+                        "image_url": p.get("image_url", ""),
+                        "product_url": p.get("product_url", ""),
+                        "category": p.get("category", ""),
+                        "stock_status": p.get("stock_status", ""),
+                        "_category": "product",
+                        "_extraction_method": "keepa_api",
+                    })
+                return normalized
 
             # Detect query type: ASIN, search, bestsellers
             import re as _re
@@ -518,7 +545,7 @@ async def _handle_url_scrape(
 
             # Map amazon domain to Keepa domain
             keepa_domain = "US"
-            if ".co.uk" in domain_lower: keepa_domain = "UK"
+            if ".co.uk" in domain_lower: keepa_domain = "GB"
             elif ".de" in domain_lower: keepa_domain = "DE"
             elif ".fr" in domain_lower: keepa_domain = "FR"
             elif ".it" in domain_lower: keepa_domain = "IT"
@@ -526,30 +553,20 @@ async def _handle_url_scrape(
             elif ".ca" in domain_lower: keepa_domain = "CA"
             elif ".co.jp" in domain_lower or ".jp" in domain_lower: keepa_domain = "JP"
             elif ".in" in domain_lower: keepa_domain = "IN"
-            elif ".com.au" in domain_lower: keepa_domain = "AU"
+            elif ".com.au" in domain_lower: keepa_domain = "US"
 
             if asin_match:
                 # Single ASIN lookup
                 asin = asin_match.group(1)
-                keepa_result = await connector.query(asin, domain=keepa_domain)
-                if keepa_result and keepa_result.get("products"):
-                    platform_products = []
-                    for p in keepa_result["products"]:
-                        platform_products.append({
-                            "name": p.get("name", ""),
-                            "price": p.get("price", p.get("amazon_price", "")),
-                            "asin": p.get("asin", ""),
-                            "brand": p.get("brand", ""),
-                            "rating": p.get("rating", ""),
-                            "review_count": p.get("reviews_count", ""),
-                            "sales_rank": p.get("sales_rank", 0),
-                            "image_url": p.get("image_url", ""),
-                            "product_url": p.get("product_url", ""),
-                            "category": p.get("category", ""),
-                            "stock_status": p.get("stock_status", ""),
-                            "_category": "product",
-                            "_extraction_method": "keepa_api",
-                        })
+                products = await connector.query_products(
+                    asins=[asin],
+                    domain=keepa_domain,
+                    include_rating=True,
+                    stats_days=90,
+                    history_days=30,
+                )
+                if products:
+                    platform_products = _normalise_keepa_products(products)
                     step_ts = _record_step(steps, f"Keepa API: ASIN {asin} — {len(platform_products)} product(s)", step_ts)
                     tracker.record("keepa_asin", calls=1, detail=f"ASIN {asin}")
 
@@ -557,23 +574,24 @@ async def _handle_url_scrape(
                 # Keyword search
                 from urllib.parse import unquote_plus
                 keywords = unquote_plus(keyword_match.group(1))
-                keepa_result = await connector.query(keywords, domain=keepa_domain, max_results=20)
-                if keepa_result and keepa_result.get("products"):
-                    platform_products = []
-                    for p in keepa_result["products"]:
-                        platform_products.append({
-                            "name": p.get("name", ""),
-                            "price": p.get("price", p.get("amazon_price", "")),
-                            "asin": p.get("asin", ""),
-                            "brand": p.get("brand", ""),
-                            "rating": p.get("rating", ""),
-                            "review_count": p.get("reviews_count", ""),
-                            "sales_rank": p.get("sales_rank", 0),
-                            "image_url": p.get("image_url", ""),
-                            "product_url": p.get("product_url", ""),
-                            "_category": "product",
-                            "_extraction_method": "keepa_api",
-                        })
+                asins = await connector.search_products(
+                    domain=keepa_domain,
+                    n_products=20,
+                    title=keywords,
+                )
+                products = (
+                    await connector.query_products(
+                        asins=asins[:20],
+                        domain=keepa_domain,
+                        include_rating=True,
+                        stats_days=90,
+                        history_days=7,
+                    )
+                    if asins
+                    else []
+                )
+                if products:
+                    platform_products = _normalise_keepa_products(products)
                     step_ts = _record_step(steps, f"Keepa API: search '{keywords}' — {len(platform_products)} products", step_ts)
                     tracker.record("keepa_search", detail=f"keyword: {keywords[:50]}")
 
@@ -584,36 +602,48 @@ async def _handle_url_scrape(
                     from urllib.parse import unquote_plus as _uqp
                     category = _uqp(category)
                 except: pass
-                keepa_result = await connector.query(f"bestsellers {category}", domain=keepa_domain, max_results=20)
-                if keepa_result and keepa_result.get("products"):
-                    platform_products = []
-                    for p in keepa_result["products"]:
-                        platform_products.append({
-                            "name": p.get("name", ""),
-                            "price": p.get("price", ""),
-                            "asin": p.get("asin", ""),
-                            "sales_rank": p.get("sales_rank", 0),
-                            "rating": p.get("rating", ""),
-                            "review_count": p.get("reviews_count", ""),
-                            "image_url": p.get("image_url", ""),
-                            "product_url": p.get("product_url", ""),
-                            "_category": "product",
-                            "_extraction_method": "keepa_api",
-                        })
+                asins = await connector.search_products(
+                    domain=keepa_domain,
+                    n_products=20,
+                    title=f"bestsellers {category}",
+                )
+                products = (
+                    await connector.query_products(
+                        asins=asins[:20],
+                        domain=keepa_domain,
+                        include_rating=True,
+                        stats_days=90,
+                        history_days=7,
+                    )
+                    if asins
+                    else []
+                )
+                if products:
+                    platform_products = _normalise_keepa_products(products)
                     step_ts = _record_step(steps, f"Keepa API: bestsellers '{category}' — {len(platform_products)} products", step_ts)
                     tracker.record("keepa_deals", detail=f"bestsellers: {category[:50]}")
 
             else:
                 # Generic Amazon URL — try as keyword search with domain
-                keepa_result = await connector.query(url, domain=keepa_domain, max_results=20)
-                if keepa_result and keepa_result.get("products"):
-                    platform_products = [{
-                        "name": p.get("name", ""), "price": p.get("price", ""),
-                        "asin": p.get("asin", ""), "brand": p.get("brand", ""),
-                        "rating": p.get("rating", ""), "review_count": p.get("reviews_count", ""),
-                        "image_url": p.get("image_url", ""), "product_url": p.get("product_url", ""),
-                        "_category": "product", "_extraction_method": "keepa_api",
-                    } for p in keepa_result["products"]]
+                search_text = unquote_plus(parsed_url.path.strip("/").replace("-", " ")) or domain_lower
+                asins = await connector.search_products(
+                    domain=keepa_domain,
+                    n_products=20,
+                    title=search_text,
+                )
+                products = (
+                    await connector.query_products(
+                        asins=asins[:20],
+                        domain=keepa_domain,
+                        include_rating=True,
+                        stats_days=90,
+                        history_days=7,
+                    )
+                    if asins
+                    else []
+                )
+                if products:
+                    platform_products = _normalise_keepa_products(products)
                     step_ts = _record_step(steps, f"Keepa API: {len(platform_products)} products", step_ts)
                     tracker.record("keepa_search", detail="generic Amazon URL")
 
