@@ -335,10 +335,10 @@ async def execute_task(
         raise HTTPException(status_code=404, detail="Task not found")
 
     # Allow re-running from pending, queued (stuck), running (stuck), or failed
-    non_runnable = {TaskStatus.COMPLETED.value, TaskStatus.CANCELLED.value}
+    non_runnable = {TaskStatus.COMPLETED.value, TaskStatus.CANCELLED.value, TaskStatus.RUNNING.value, TaskStatus.FAILED.value}
     if task_model.status in non_runnable:
         raise HTTPException(
-            status_code=400,
+            status_code=409,
             detail=f"Task cannot be re-run (current status: {task_model.status})",
         )
 
@@ -374,7 +374,7 @@ async def execute_task(
         connector=_LANE_CONNECTORS.get(decision.lane, "http_collector"),
         status="running",
     )
-    await session.flush()
+    await session.commit()
 
     logger.info("Task %s executing inline (lane=%s)", task_id, decision.lane.value)
 
@@ -413,7 +413,7 @@ async def execute_task(
                     connector=_LANE_CONNECTORS.get(current_lane, "http_collector"),
                     status="running",
                 )
-                await session.flush()
+                await session.commit()
 
             worker_result = await _execute_lane(current_lane, task_payload)
 
@@ -484,6 +484,9 @@ async def execute_task(
                 dedup_applied=worker_result.get("dedup_applied", False),
             )
 
+        await task_repo.update(task_id, tenant_id, status=final_status)
+        await session.commit()
+        await session.flush()
         elapsed = int((time.time() - start_time) * 1000)
         logger.info("Task %s completed: status=%s items=%d in %dms (chain=%s)",
                      task_id, final_status, worker_result.get("item_count", 0), elapsed,

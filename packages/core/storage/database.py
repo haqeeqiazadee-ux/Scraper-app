@@ -16,6 +16,7 @@ from __future__ import annotations
 import logging
 
 from sqlalchemy import NullPool
+from sqlalchemy.pool import StaticPool
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from packages.core.storage.models import Base
@@ -56,6 +57,10 @@ class Database:
         }
 
         connect_args: dict = {}
+
+        if "sqlite" in url and ":memory:" in url:
+            engine_kwargs["poolclass"] = StaticPool
+            connect_args["check_same_thread"] = False
 
         if "asyncpg" in url:
             is_supavisor = _is_supavisor_url(url)

@@ -109,6 +109,7 @@ async def delete_task(
     deleted = await repo.delete(task_id, tenant_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Task not found")
+    await session.commit()
 
 
 @router.post("/tasks/{task_id}/cancel")
