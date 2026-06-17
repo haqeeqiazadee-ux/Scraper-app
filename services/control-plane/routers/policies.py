@@ -142,3 +142,4 @@ async def delete_policy(
     deleted = await repo.delete(policy_id, tenant_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Policy not found")
+    await session.commit()

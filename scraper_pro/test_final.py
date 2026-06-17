@@ -115,7 +115,7 @@ def test_ai_connectivity():
     """Test Gemini AI connectivity"""
     print_header("2. GEMINI AI CONNECTIVITY")
     
-    api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY") or "AIzaSyAj_pmZsfw3-fQwVXzd3K6Ldb18odTMk54"
+    api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY") or ""
     
     def check_api_key():
         return len(api_key) > 10

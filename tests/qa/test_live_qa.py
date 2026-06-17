@@ -279,6 +279,8 @@ class TestSection03_PolicyCRUD:
 
         resp = await live_app.delete(f"/api/v1/policies/{policy_id}", headers=TENANT_A)
         assert resp.status_code == 204
+        import asyncio
+        await asyncio.sleep(0.1)
 
         # Verify deleted
         resp2 = await live_app.get(f"/api/v1/policies/{policy_id}", headers=TENANT_A)

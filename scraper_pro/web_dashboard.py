@@ -36,7 +36,7 @@ logger = logging.getLogger("Dashboard")
 sys.path.insert(0, str(Path(__file__).parent))
 
 # Gemini API Key (FREE tier)
-GEMINI_API_KEY = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY") or "AIzaSyAj_pmZsfw3-fQwVXzd3K6Ldb18odTMk54"
+GEMINI_API_KEY = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY") or ""
 
 try:
     from flask import Flask, render_template_string, request, jsonify, send_file
