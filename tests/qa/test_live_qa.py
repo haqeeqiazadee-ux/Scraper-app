@@ -369,6 +369,8 @@ class TestSection04_Execution:
         task_id = task_resp.json()["id"]
 
         # Execute
+        import asyncio
+        await asyncio.sleep(1.5)
         resp = await live_app.post(f"/api/v1/tasks/{task_id}/execute", headers=TENANT_A)
         assert resp.status_code == 200
         import asyncio
