@@ -116,13 +116,30 @@ class AINormalizationWorker:
         # Step 2 — deduplication
         items = self._dedup.deduplicate(items)
 
+
         # Step 3 — optional AI normalisation for low-confidence results
-        if confidence < self._confidence_threshold and self._ai_provider is not None:
-            items = await self._ai_normalize_items(items)
+        extraction_type = result.get("extraction_type", "auto")
+        schema_format = None
+
+        if extraction_type == "job_board":
+            from packages.contracts.schemas.job_board import JobListing
+            schema_format = JobListing
+            result["schema_version"] = "job_board_1.0"
+        elif extraction_type == "real_estate":
+            from packages.contracts.schemas.real_estate import RealEstateListing
+            schema_format = RealEstateListing
+            result["schema_version"] = "real_estate_1.0"
+
+        if (confidence < self._confidence_threshold or schema_format is not None) and self._ai_provider is not None:
+            if schema_format is not None:
+                items = await self._ai_provider.extract(str(items), response_format=schema_format)
+            else:
+                items = await self._ai_normalize_items(items)
             logger.info(
                 "AI normalisation applied",
                 extra={"items": len(items), "original_confidence": confidence},
             )
+
 
         # Step 4 — recalculate confidence
         new_confidence = _compute_confidence(items, confidence)

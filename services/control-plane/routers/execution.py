@@ -335,7 +335,7 @@ async def execute_task(
         raise HTTPException(status_code=404, detail="Task not found")
 
     # Allow re-running from pending, queued (stuck), running (stuck), or failed
-    non_runnable = {TaskStatus.COMPLETED.value, TaskStatus.CANCELLED.value, TaskStatus.RUNNING.value, TaskStatus.FAILED.value}
+    non_runnable = {TaskStatus.COMPLETED.value, TaskStatus.CANCELLED.value, TaskStatus.RUNNING.value}
     if task_model.status in non_runnable:
         raise HTTPException(
             status_code=409,
@@ -355,6 +355,8 @@ async def execute_task(
 
     # Route via ExecutionRouter
     decision = _execution_router.route(task, policy)
+    if not task_model.extraction_type or task_model.extraction_type == "auto":
+        task_model.extraction_type = _execution_router.classify_domain(str(task.url))
 
     # Extraction config from policy
     extraction_config = {
@@ -486,7 +488,6 @@ async def execute_task(
 
         await task_repo.update(task_id, tenant_id, status=final_status)
         await session.commit()
-        await session.flush()
         elapsed = int((time.time() - start_time) * 1000)
         logger.info("Task %s completed: status=%s items=%d in %dms (chain=%s)",
                      task_id, final_status, worker_result.get("item_count", 0), elapsed,

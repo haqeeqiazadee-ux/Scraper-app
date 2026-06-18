@@ -8,6 +8,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
+import asyncio
+from packages.connectors.youtube_dlp_connector import YoutubeDlpConnector
 import time
 from datetime import datetime, timezone
 from typing import Optional
@@ -178,8 +181,53 @@ class HttpWorker:
         run_id = str(uuid4())
         css_selectors = task.get("css_selectors")  # B2
 
+
         logger.info("Processing HTTP task", extra={"task_id": task_id, "url": url})
         start_time = time.time()
+
+        # Step 0: Video Platform Detection (yt-dlp integration)
+        video_platforms = [r"youtube\.com", r"youtu\.be", r"vimeo\.com", r"dailymotion\.com"]
+        is_video = any(re.search(p, url) for p in video_platforms)
+        if is_video:
+            logger.info("Video platform detected, using YoutubeDlpConnector")
+            ydl_connector = YoutubeDlpConnector()
+            metadata = await asyncio.to_thread(ydl_connector.extract_metadata, url)
+
+            if "error" in metadata:
+                logger.warning("yt-dlp extraction failed, escalating", extra={"error": metadata["error"]})
+                # Fallback to escalation
+                elapsed = int((time.time() - start_time) * 1000)
+                return {
+                    "task_id": task_id,
+                    "run_id": run_id,
+                    "status": "failed",
+                    "status_code": 0,
+                    "error": metadata["error"],
+                    "duration_ms": elapsed,
+                    "bytes_downloaded": 0,
+                    "should_escalate": True,
+                    "escalation_reason": f"yt-dlp failed: {metadata['error']}"
+                }
+
+            transcript_info = await asyncio.to_thread(ydl_connector.extract_transcript, url)
+            if "error" not in transcript_info:
+                metadata["transcript_info"] = transcript_info
+
+            elapsed = int((time.time() - start_time) * 1000)
+            return {
+                "task_id": task_id,
+                "run_id": run_id,
+                "status": "success",
+                "status_code": 200,
+                "item_count": 1,
+                "extracted_data": [metadata],
+                "confidence": 0.95,
+                "extraction_method": "yt-dlp",
+                "duration_ms": elapsed,
+                "bytes_downloaded": 0,
+                "artifacts": []
+            }
+
 
         # Step 1: Fetch the page (with Retry-After support — B4)
         request = FetchRequest(

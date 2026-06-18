@@ -141,7 +141,36 @@ STEALTH_SCRIPTS: list[str] = [
 ]
 
 
+
+class TravelStealthProfile(Fingerprint):
+    """Specialised stealth profile for travel aggregators (Datadome/PerimeterX)."""
+
+    @classmethod
+    def create(cls, proxy_manager=None) -> 'TravelStealthProfile':
+        # Require residential proxies
+        if proxy_manager:
+            proxy_manager.require_residential = True
+
+        profile = DeviceProfile(
+            vendor="Google Inc.",
+            renderer="ANGLE (Intel, Intel(R) Iris(R) Xe Graphics (0x000046A6) Direct3D11 vs_11_0 ps_5_0, D3D11)",
+            platform="Win32",
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+            screen_width=1920,
+            screen_height=1080,
+            device_pixel_ratio=1.0,
+            color_depth=24,
+            max_touch_points=0,
+            hardware_concurrency=8,
+            device_memory=8,
+            os_cpu="Windows NT 10.0; Win64; x64",
+            languages=["en-US", "en"],
+            timezone="America/New_York"
+        )
+        return cls.from_profile(profile)
+
 class HardTargetWorker:
+
     """Stealth browser connector for sites with aggressive anti-bot measures.
 
     Combines:

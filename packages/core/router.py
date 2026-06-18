@@ -169,7 +169,20 @@ class ExecutionRouter:
         self._rate_limiter = rate_limiter
         self._quota_manager = quota_manager
 
+
+    def classify_domain(self, url: str) -> str:
+        domain = self._extract_domain(url).lower()
+        job_boards = ["indeed.com", "glassdoor.com", "linkedin.com/jobs", "monster.com", "simplyhired.com"]
+        real_estate = ["zillow.com", "redfin.com", "realtor.com", "trulia.com", "rightmove.com"]
+
+        if any(board in url.lower() for board in job_boards):
+            return "job_board"
+        elif any(re in url.lower() for re in real_estate):
+            return "real_estate"
+        return "auto"
+
     def route(self, task: Task, policy: Optional[Policy] = None) -> RouteDecision:
+
         """Determine which execution lane should handle this task."""
         domain = self._extract_domain(str(task.url))
 

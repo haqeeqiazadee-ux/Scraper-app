@@ -104,7 +104,24 @@ class HardTargetLaneWorker:
         if task.get("wait_until"):
             metadata["wait_until"] = task["wait_until"]
 
+
+        # Select Travel Profile for Travel/Flight URLs
+        if any(k in url.lower() for k in ["booking.com", "skyscanner", "kayak", "expedia", "flights"]):
+            from packages.connectors.hard_target_worker import TravelStealthProfile
+            logger.info("Using specialized TravelStealthProfile for aggressive Datadome/PerimeterX evasion")
+            # Actively set the profile on the hard target worker instance for this request
+            old_stealth = self._hard_target.stealth_profile
+            self._hard_target.stealth_profile = TravelStealthProfile.create()
+            # Force proxy manager to use residential proxy explicitly
+            old_residential = None
+            if hasattr(self._hard_target, "_proxy_adapter") and self._hard_target._proxy_adapter:
+                old_residential = getattr(self._hard_target._proxy_adapter, "require_residential", False)
+                self._hard_target._proxy_adapter.require_residential = True
+            metadata["stealth_profile"] = "travel"
+            metadata["require_residential_proxy"] = True
+
         # Step 1: Stealth fetch
+
         request = FetchRequest(
             url=url,
             timeout_ms=task.get("timeout_ms", 60000),
@@ -112,6 +129,12 @@ class HardTargetLaneWorker:
         )
 
         response = await self._hard_target.fetch(request)
+
+        # Restore state
+        if "old_stealth" in locals():
+            self._hard_target.stealth_profile = old_stealth
+        if "old_residential" in locals() and hasattr(self._hard_target, "_proxy_adapter") and self._hard_target._proxy_adapter:
+            self._hard_target._proxy_adapter.require_residential = old_residential
 
         if not response.ok:
             elapsed = int((time.time() - start_time) * 1000)
