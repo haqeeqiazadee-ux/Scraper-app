@@ -593,6 +593,11 @@ class HardTargetWorker:
             # Fresh fingerprint each attempt (but coherent within itself)
             fingerprint = Fingerprint.random(geo=geo)
             proxy_url = self._get_proxy_url(domain=domain)
+            import os
+            # Phase 1: Dynamic Proxy Injection
+            dynamic_proxy = os.getenv("RESIDENTIAL_PROXY_URL")
+            if dynamic_proxy:
+                proxy_url = dynamic_proxy
 
             context = await self._create_context(fingerprint, proxy_url)
             page = None
