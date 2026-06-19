@@ -2,10 +2,10 @@
 
 ## Current State
 
-- Phase: 2 - Apify-style SaaS dashboard and workflow UX
+- Phase: 2 - Apify-style SaaS dashboard and workflow UX (dashboard overhaul committed)
 - Branch: `saas-repair`
 - Working directory: `C:\Users\PC\Scraper-app-fresh`
-- Latest branch commit: `5c8cd8e`
+- Latest branch commit: pending (dashboard overhaul)
 - Production frontend: https://myscraper.netlify.app
 - Production backend: https://scraper.exsel.ai
 - Railway project: https://railway.com/project/c63725e4-4da6-4bf2-9fc4-068578a9bde6?environmentId=ffa7f443-0c4e-4dc8-8217-0b9fefe1a8ae
@@ -23,17 +23,23 @@
 8. Smart scrape through Netlify proxy succeeded and saved results.
 9. Backend API key datetime bug was fixed, committed, pushed, and deployed to Railway.
 10. The temporary test API key with ID `9b67ef21-f702-4e92-a38c-24f1693b5553` was revoked successfully.
+11. Created `TopBar` component with search trigger, environment health badge, account indicator.
+12. Updated `Layout` with TopBar, mobile hamburger toggle, sidebar overlay.
+13. Redesigned `Dashboard`: stats row, scraper catalog cards, recent runs table, quick links, usage summary, platform info.
+14. Updated CSS: TopBar, dashboard, mobile responsive sidebar (slide-out overlay).
+15. Frontend build passes: 47KB CSS (8KB gzip), 425KB JS (113KB gzip).
 
 ## Commits
 
 - `3ca014f` - fix: deploy React/Vite app instead of stale Next.js, harden /check-connection
 - `5c8cd8e` - fix: use naive UTC datetimes for API key lifecycle
+- `4c24e48` - docs: refresh agent handoff and release gate
+- (pending) - feat: Apify-style SaaS dashboard with TopBar, catalog, runs table
 
 ## Deployments
 
 - Netlify production URL: https://myscraper.netlify.app
 - Netlify production deploy: `6a35b47d34af399c9bdb27ea`
-- Netlify production unique URL: https://6a35b47d34af399c9bdb27ea--myscraper.netlify.app
 - Railway backend deployment: `26cbd7b2-5f60-4381-8c42-429c46217083`
 
 ## Security Incident Handling
@@ -46,9 +52,9 @@
 
 ## Remaining Work
 
-1. Build the `/scraper` and dashboard experience into an Apify-client-style SaaS UI: dense sidebar navigation, actor/task cards, status chips, run table, detail pane, live timeline, exports, API keys, templates, and schedules.
-2. Use the attached Apify reference screenshot as the design target, but implement original branding and layout.
-3. Verify the UI with screenshots at desktop and mobile widths.
-4. Retest `/check-connection`, `/ready`, public API auth, smart scrape, results, exports, templates, schedules, and error envelopes.
-5. Fix global raw exception leakage before final acceptance.
-6. Keep deployment provenance clear: current Netlify and Railway production deploys were direct CLI deploys from the `saas-repair` working tree, not a merged `main` deployment.
+1. Commit and push the dashboard overhaul to `saas-repair`.
+2. Deploy to Netlify (draft or production) and verify visually with screenshots.
+3. Phase 3: Verify ScraperPage end-to-end workflow (scrape, progress, results, export).
+4. Phase 4: Fix global raw exception leakage, verify API key workflows with redacted output.
+5. Phase 5: Run build checks, live route status checks, desktop and mobile screenshots.
+6. Keep deployment provenance clear.

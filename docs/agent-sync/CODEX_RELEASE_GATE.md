@@ -7,11 +7,19 @@ Codex is the final QA gate for this mission. Claude and Antigravity may implemen
 - Overall: NOT READY
 - Frontend deploy route fix: PASS
 - Backend API key revoke hotfix: PASS
-- Apify-style dashboard UI: NOT DONE
+- Apify-style dashboard UI: IN PROGRESS — code committed, awaiting deploy + visual review
 - End-to-end SaaS workflow proof: PARTIAL
 - Secret-handling discipline: NEEDS STRICT CONTINUATION GUARDRAILS
 - Global raw exception leakage: OPEN
 - Main branch provenance: OPEN
+
+## What Changed This Session
+
+1. TopBar component added: search trigger, environment health badge, account indicator.
+2. Layout updated: TopBar integration, mobile hamburger menu, slide-out sidebar with overlay.
+3. Dashboard redesigned: stats row, scraper catalog cards (6 scrapers), recent runs table, quick links panel, usage summary, platform info panel.
+4. CSS updated: TopBar styles, dashboard layout, catalog cards, runs table, side panels, mobile responsive breakpoints.
+5. Frontend build passes: `tsc && vite build` succeeds. CSS 47KB, JS 425KB.
 
 ## Required Before Done
 
