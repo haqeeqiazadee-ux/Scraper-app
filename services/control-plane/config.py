@@ -2,7 +2,13 @@
 
 from __future__ import annotations
 
-from pydantic_settings import BaseSettings
+import os
+from pydantic import Field
+import os
+from pydantic import Field
+import os
+import os
+from pydantic_settings import BaseSettings, SettingsConfigDict, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -16,7 +22,7 @@ class Settings(BaseSettings):
     workers: int = 4
 
     # Database
-    database_url: str = "sqlite+aiosqlite:///./scraper.db"
+    database_url: str
 
     # Redis
     redis_url: str = ""
@@ -41,7 +47,25 @@ class Settings(BaseSettings):
     async_job_result_ttl_hours: int = 24
     public_api_rate_limit_per_minute: int = 60
 
-    model_config = {"env_file": ".env", "case_sensitive": False, "extra": "ignore"}
+
+    environment: str = Field(default="development", env="ENVIRONMENT")
+
+    @property
+    def is_production(self) -> bool:
+        return self.environment.lower() == "production"
+
+    model_config = SettingsConfigDict(
+        env_file=".env" if os.getenv("ENVIRONMENT", "development") != "production" else None,
+        case_sensitive=False,
+        extra="ignore"
+    )
 
 
-settings = Settings()
+
+
+import os
+if os.environ.get("ENVIRONMENT") == "production":
+    settings = Settings(_env_file=None)
+else:
+    settings = Settings()
+

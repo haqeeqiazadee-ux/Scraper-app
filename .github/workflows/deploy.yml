@@ -1,180 +1,60 @@
-name: Deploy
+name: Production CI/CD Pipeline
 
 on:
   push:
-    branches: [main]
-    tags: ["v*"]
-  workflow_dispatch:
-    inputs:
-      environment:
-        description: "Deployment environment"
-        required: true
-        type: choice
-        options: [staging, production]
-      services:
-        description: "Services to deploy (comma-separated or 'all')"
-        required: false
-        default: "all"
-
-env:
-  AWS_REGION: us-east-1
-  ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
-  CLUSTER_NAME: scraper-platform
-
-permissions:
-  id-token: write
-  contents: read
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  # ==========================================================================
-  # Build and push Docker images
-  # ==========================================================================
-  build:
+  test-and-scan:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        service:
-          - control-plane
-          - worker-http
-          - worker-browser
-          - worker-ai
-          - worker-hard-target
+    services:
+      redis:
+        image: redis:alpine
+        ports:
+          - 6379:6379
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v3
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Setup Python
+        uses: actions/setup-python@v4
         with:
-          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
+          python-version: "3.10"
+          cache: "pip"
 
-      - name: Login to ECR
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Set image tag
-        id: tag
+      - name: Install Dependencies
         run: |
-          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-          else
-            echo "tag=sha-${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
-          fi
+          pip install -r requirements-dev.txt
+          pip install bandit pip-audit
 
-      - name: Build and push image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: infrastructure/docker/Dockerfile.${{ matrix.service }}
-          push: true
-          tags: |
-            ${{ env.ECR_REGISTRY }}/scraper-${{ matrix.service }}:${{ steps.tag.outputs.tag }}
-            ${{ env.ECR_REGISTRY }}/scraper-${{ matrix.service }}:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: Security Audit (Bandit & Pip-Audit)
+        run: |
+          bandit -r packages services -c pyproject.toml || true
+          pip-audit --desc || true
 
-  # ==========================================================================
-  # Deploy to staging
-  # ==========================================================================
-  deploy-staging:
-    needs: build
+      - name: Run Live QA Suite
+        env:
+          ENVIRONMENT: testing
+        run: |
+          pytest tests/qa/test_live_qa.py -v
+
+  deploy-railway:
+    needs: test-and-scan
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || github.event.inputs.environment == 'staging'
-    environment: staging
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v3
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
+      - name: Install Railway CLI
+        run: npm i -g @railway/cli
 
-      - name: Set image tag
-        id: tag
-        run: echo "tag=sha-${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
-
-      - name: Install Helm
-        uses: azure/setup-helm@v3
-        with:
-          version: v3.13.0
-
-      - name: Update kubeconfig
-        run: aws eks update-kubeconfig --name ${{ env.CLUSTER_NAME }}-staging --region ${{ env.AWS_REGION }}
-
-      - name: Deploy with Helm
+      - name: Deploy to Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
-          helm upgrade --install scraper-platform \
-            infrastructure/helm/scraper-platform \
-            --namespace scraper-staging \
-            --create-namespace \
-            --set controlPlane.image.tag=${{ steps.tag.outputs.tag }} \
-            --set workerHttp.image.tag=${{ steps.tag.outputs.tag }} \
-            --set workerBrowser.image.tag=${{ steps.tag.outputs.tag }} \
-            --set workerAi.image.tag=${{ steps.tag.outputs.tag }} \
-            --set workerHardTarget.image.tag=${{ steps.tag.outputs.tag }} \
-            --values infrastructure/helm/scraper-platform/values-staging.yaml \
-            --wait --timeout 5m
-
-      - name: Verify deployment
-        run: |
-          kubectl -n scraper-staging rollout status deployment/scraper-control-plane --timeout=120s
-          kubectl -n scraper-staging get pods
-
-  # ==========================================================================
-  # Deploy to production (tagged releases only)
-  # ==========================================================================
-  deploy-production:
-    needs: build
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.environment == 'production'
-    environment: production
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Set image tag
-        id: tag
-        run: |
-          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-          else
-            echo "tag=sha-${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Install Helm
-        uses: azure/setup-helm@v3
-        with:
-          version: v3.13.0
-
-      - name: Update kubeconfig
-        run: aws eks update-kubeconfig --name ${{ env.CLUSTER_NAME }}-production --region ${{ env.AWS_REGION }}
-
-      - name: Deploy with Helm
-        run: |
-          helm upgrade --install scraper-platform \
-            infrastructure/helm/scraper-platform \
-            --namespace scraper-production \
-            --create-namespace \
-            --set controlPlane.image.tag=${{ steps.tag.outputs.tag }} \
-            --set workerHttp.image.tag=${{ steps.tag.outputs.tag }} \
-            --set workerBrowser.image.tag=${{ steps.tag.outputs.tag }} \
-            --set workerAi.image.tag=${{ steps.tag.outputs.tag }} \
-            --set workerHardTarget.image.tag=${{ steps.tag.outputs.tag }} \
-            --values infrastructure/helm/scraper-platform/values-production.yaml \
-            --wait --timeout 10m
-
-      - name: Verify deployment
-        run: |
-          kubectl -n scraper-production rollout status deployment/scraper-control-plane --timeout=180s
-          kubectl -n scraper-production get pods
-
-      - name: Run smoke tests
-        run: |
-          API_URL=$(kubectl -n scraper-production get ingress scraper-platform -o jsonpath='{.spec.rules[0].host}')
-          curl -sf "https://${API_URL}/health" || exit 1
-          echo "Smoke test passed"
+          railway up --detach

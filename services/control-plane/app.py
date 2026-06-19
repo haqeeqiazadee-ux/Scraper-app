@@ -17,6 +17,24 @@ from typing import AsyncGenerator
 
 from pathlib import Path
 
+
+import os
+if os.environ.get("ENVIRONMENT") == "production" and os.environ.get("SENTRY_DSN"):
+    import sentry_sdk
+    from sentry_sdk.integrations.fastapi import FastApiIntegration
+    from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
+    sentry_sdk.init(
+        dsn=os.environ.get("SENTRY_DSN"),
+        integrations=[
+            FastApiIntegration(),
+            SqlalchemyIntegration(),
+        ],
+        traces_sample_rate=1.0,
+        profiles_sample_rate=1.0,
+    )
+
+
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
