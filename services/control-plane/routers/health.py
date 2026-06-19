@@ -45,10 +45,10 @@ async def readiness_check() -> dict:
             result = await session.execute(text("SELECT 1"))
             result.scalar()  # ensure result is consumed
         checks["database"] = "healthy"
-    except RuntimeError as e:
-        checks["database"] = f"error: {e}"
-    except Exception as e:
-        checks["database"] = f"error: {type(e).__name__}: {e}"
+    except RuntimeError:
+        checks["database"] = "error"
+    except Exception:
+        checks["database"] = "error"
 
     # --- Redis connectivity ---
     redis_url = settings.redis_url or os.environ.get("REDIS_URL", "")
@@ -61,8 +61,8 @@ async def readiness_check() -> dict:
             pong = await client.ping()
             await client.aclose()
             checks["redis"] = "healthy" if pong else "error: no PONG"
-        except Exception as e:
-            checks["redis"] = f"error: {type(e).__name__}: {e}"
+        except Exception:
+            checks["redis"] = "error"
     else:
         checks["redis"] = "skipped (in-memory mode)"
 
@@ -97,91 +97,45 @@ async def readiness_check() -> dict:
 
 @router.get("/check-connection")
 async def check_connection() -> dict:
-    """Deep connection check — tests database with table introspection.
+    """Deep connection check — removed from public access for security.
 
-    Returns detailed diagnostic info useful for debugging deployment issues.
+    This endpoint previously leaked database host, version, table names,
+    and Redis metadata. It now returns only a simple connectivity status.
     """
-    from services.control_plane.config import settings
     from services.control_plane.dependencies import get_database
     from sqlalchemy import text
 
-    result: dict = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "database": {},
-        "redis": {},
-    }
-
-    # --- Database deep check ---
-    db_url = settings.database_url
-    # Mask password in URL for safe display
-    masked_url = _mask_url(db_url)
-    result["database"]["url"] = masked_url
+    db_ok = False
+    redis_ok = False
 
     try:
         db = get_database()
         async with db.session() as session:
-            # Basic connectivity
-            row = await session.execute(text("SELECT 1 AS connected"))
-            result["database"]["connected"] = bool(row.scalar())
+            row = await session.execute(text("SELECT 1"))
+            db_ok = bool(row.scalar())
+    except Exception:
+        logger.warning("Database check failed")
 
-            # Check if tables exist
-            if "asyncpg" in db_url:
-                # PostgreSQL — query information_schema
-                tables_result = await session.execute(text(
-                    "SELECT table_name FROM information_schema.tables "
-                    "WHERE table_schema = 'public' ORDER BY table_name"
-                ))
-                tables = [r[0] for r in tables_result.fetchall()]
-
-                # Get database version
-                ver = await session.execute(text("SELECT version()"))
-                result["database"]["server_version"] = ver.scalar()
-            else:
-                # SQLite
-                tables_result = await session.execute(text(
-                    "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
-                ))
-                tables = [r[0] for r in tables_result.fetchall()]
-                result["database"]["server_version"] = "SQLite"
-
-            result["database"]["tables"] = tables
-            result["database"]["table_count"] = len(tables)
-            result["database"]["status"] = "healthy"
-
-    except Exception as e:
-        logger.error("Database connection check failed", extra={"error": str(e)})
-        result["database"]["status"] = "error"
-        result["database"]["error"] = f"{type(e).__name__}: {e}"
-
-    # --- Redis deep check ---
-    redis_url = settings.redis_url or os.environ.get("REDIS_URL", "")
+    redis_url = os.environ.get("REDIS_URL", "")
     queue_backend = os.environ.get("QUEUE_BACKEND", "memory")
-    result["redis"]["backend"] = queue_backend
-
     if queue_backend == "redis" and redis_url and not redis_url.startswith("${{"):
-        result["redis"]["url"] = _mask_url(redis_url)
         try:
             import redis.asyncio as aioredis
 
             client = aioredis.from_url(redis_url, decode_responses=True)
-            info = await client.info("server")
+            pong = await client.ping()
             await client.aclose()
-            result["redis"]["status"] = "healthy"
-            result["redis"]["server_version"] = info.get("redis_version", "unknown")
-        except Exception as e:
-            result["redis"]["status"] = "error"
-            result["redis"]["error"] = f"{type(e).__name__}: {e}"
+            redis_ok = bool(pong)
+        except Exception:
+            logger.warning("Redis check failed")
     else:
-        result["redis"]["status"] = "skipped"
-        result["redis"]["reason"] = "in-memory mode or REDIS_URL not set"
+        redis_ok = True  # in-memory mode
 
-    overall = (
-        result["database"].get("status") == "healthy"
-        and result["redis"].get("status") in ("healthy", "skipped")
-    )
-    result["overall"] = "connected" if overall else "degraded"
-
-    return result
+    overall = db_ok and redis_ok
+    return {
+        "status": "connected" if overall else "degraded",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
 
 
 def _mask_url(url: str) -> str:
