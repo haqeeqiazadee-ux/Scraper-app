@@ -1,9 +1,9 @@
 # Current Phase
 
-**Phase:** 2 - Apify-style SaaS Dashboard and Workflow UX  
-**Status:** IN PROGRESS — Dashboard overhaul committed  
+**Phase:** 3 - Workflow and Security Follow-up  
+**Status:** READY TO CONTINUE  
 **Branch:** `saas-repair`  
-**Updated:** 2026-06-19T23:30:00Z
+**Updated:** 2026-06-19T22:05:00Z
 
 ## Phase 0 - Complete
 
@@ -29,23 +29,17 @@
 - Deployed Railway backend hotfix deployment `26cbd7b2-5f60-4381-8c42-429c46217083`.
 - Revoked exposed temporary test key ID `9b67ef21-f702-4e92-a38c-24f1693b5553`.
 
-## Phase 2 — Dashboard Overhaul (current)
+## Phase 2 - Dashboard Overhaul Complete
 
-### Completed in this session
+- Created `TopBar` component: search trigger, environment health badge, account indicator.
+- Updated `Layout` with TopBar integration, mobile hamburger toggle, and sidebar overlay.
+- Redesigned `Dashboard` page with stats, scraper catalog cards, recent runs table, quick links, usage, and platform info.
+- Updated `globals.css` for dashboard, catalog, runs table, side panels, and mobile breakpoints.
+- Committed and pushed `d2ccf9a`.
+- Deployed Netlify production deploy `6a35ba4839d8c89db918ec68`.
+- Codex visual QA passed desktop dashboard, mobile dashboard, mobile drawer, and scraper workflow smoke.
+- Antigravity read-only QA returned PASS with no blockers.
 
-1. Created `TopBar` component: search trigger (Cmd+K), environment health badge, account indicator.
-2. Updated `Layout` with TopBar integration, mobile hamburger toggle, sidebar overlay for mobile.
-3. Redesigned `Dashboard` page: Apify-style with stats row, scraper catalog cards, recent runs table, quick links panel, usage summary panel, platform info panel.
-4. Updated `globals.css`: TopBar styles, dashboard stats/catalog/runs/panel styles, mobile responsive sidebar (slide-out with overlay), cleaned up old mobile sidebar collapse.
-5. Frontend build passes (`tsc && vite build`): 47KB CSS, 425KB JS.
+## Phase 3 - Current
 
-### Remaining
-
-- Deploy to Netlify (draft or production) and verify visually.
-- Phase 3 workflow verification.
-- Phase 4 security hardening.
-- Phase 5 verification + screenshots.
-
-## Next
-
-Deploy the dashboard UI changes. Then verify ScraperPage workflow end-to-end. Then security hardening. Do not print any API keys or secrets.
+Next work should focus on redacted API-key workflow validation, raw exception hardening, and broader E2E proof. Do not create or print API keys unless full raw output stays only in ignored `.agent-secrets/` files and only masked status is printed.

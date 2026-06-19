@@ -7,29 +7,32 @@ Codex is the final QA gate for this mission. Claude and Antigravity may implemen
 - Overall: NOT READY
 - Frontend deploy route fix: PASS
 - Backend API key revoke hotfix: PASS
-- Apify-style dashboard UI: IN PROGRESS — code committed, awaiting deploy + visual review
-- End-to-end SaaS workflow proof: PARTIAL
-- Secret-handling discipline: NEEDS STRICT CONTINUATION GUARDRAILS
+- Apify-style dashboard UI: PASS
+- Core scraper workflow smoke: PASS
+- Secret-handling discipline: PARTIAL
 - Global raw exception leakage: OPEN
 - Main branch provenance: OPEN
 
-## What Changed This Session
+## Verification Evidence
 
-1. TopBar component added: search trigger, environment health badge, account indicator.
-2. Layout updated: TopBar integration, mobile hamburger menu, slide-out sidebar with overlay.
-3. Dashboard redesigned: stats row, scraper catalog cards (6 scrapers), recent runs table, quick links panel, usage summary, platform info panel.
-4. CSS updated: TopBar styles, dashboard layout, catalog cards, runs table, side panels, mobile responsive breakpoints.
-5. Frontend build passes: `tsc && vite build` succeeds. CSS 47KB, JS 425KB.
+1. `d2ccf9a` is pushed to `origin/saas-repair`.
+2. Codex reran `cmd /c npm run build` in `apps/web`; build passed.
+3. Netlify production deploy `6a35ba4839d8c89db918ec68` is live at https://myscraper.netlify.app.
+4. Live routes `/`, `/dashboard`, `/scraper`, and `/api/v1/health` returned 200.
+5. Backend `/health`, `/ready`, `/check-connection`, and `/api/v1/check-connection` returned 200.
+6. `/check-connection` response contained only `status` and `timestamp`.
+7. Browser QA found no console warnings/errors during dashboard and scraper checks.
+8. Desktop screenshot showed Apify-style sidebar, topbar, catalog cards, recent runs, quick links, and usage panel.
+9. Mobile screenshot showed clean responsive layout; hamburger interaction opened the sidebar drawer.
+10. Scraper UI smoke filled `https://example.com`, completed, saved results, and displayed stats/results.
+11. Antigravity read-only visual QA returned PASS with no blockers.
 
 ## Required Before Done
 
-1. `apps/web` must present a polished Apify-client-style SaaS dashboard, not a minimal scraper shell.
-2. `/scraper` must support a full scrape run with visible progress, saved results, and export controls.
-3. API key workflows must be validated with redacted output only.
-4. Live Netlify routes must pass desktop and mobile screenshot review.
-5. Backend endpoints must return structured error envelopes without raw internal exception detail.
-6. Railway and Netlify deployment provenance must be documented.
-7. Git status must be clean except intentionally ignored local-only secret/build files.
+1. API key workflows must be validated with redacted output only.
+2. Backend endpoints must return structured error envelopes without raw internal exception detail.
+3. Railway and Netlify deployment provenance must be normalized or documented for main-branch release.
+4. Broader E2E/regression tests should run before declaring the SaaS fully production-complete.
 
 ## Secret Rules
 
