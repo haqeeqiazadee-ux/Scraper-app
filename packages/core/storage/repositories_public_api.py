@@ -24,6 +24,11 @@ from packages.core.storage.models_public_api import (
 logger = logging.getLogger(__name__)
 
 
+def _utcnow_naive() -> datetime:
+    """Return UTC time in the naive format used by legacy DateTime columns."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
 class ApiKeyRepository:
     """CRUD operations for API keys with tenant isolation."""
 
@@ -69,7 +74,7 @@ class ApiKeyRepository:
         if not api_key:
             return None
         api_key.is_active = False
-        api_key.revoked_at = datetime.now(timezone.utc)
+        api_key.revoked_at = _utcnow_naive()
         await self._session.flush()
         return api_key
 
@@ -77,7 +82,7 @@ class ApiKeyRepository:
         stmt = (
             update(ApiKeyModel)
             .where(ApiKeyModel.id == api_key_id)
-            .values(last_used_at=datetime.now(timezone.utc))
+            .values(last_used_at=_utcnow_naive())
         )
         await self._session.execute(stmt)
 

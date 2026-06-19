@@ -25,6 +25,11 @@ logger = logging.getLogger(__name__)
 _bearer_scheme = HTTPBearer(auto_error=False)
 
 
+def _utcnow_naive() -> datetime:
+    """Return UTC time in the naive format used by legacy DateTime columns."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
 @dataclass
 class ApiKeyContext:
     """Resolved identity for an authenticated API-key request."""
@@ -114,7 +119,7 @@ async def require_api_key(
         )
 
     # Validate expiration
-    now = datetime.now(timezone.utc)
+    now = _utcnow_naive()
     if api_key.expires_at is not None and api_key.expires_at < now:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
