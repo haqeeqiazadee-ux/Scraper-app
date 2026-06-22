@@ -1,13 +1,17 @@
 [build]
-base = "apps/frontend"
-command = "npm run build"
-publish = ".next"
+base = "apps/web"
+command = "npm install && npm run build"
+publish = "dist"
 
-[[plugins]]
-package = "@netlify/plugin-nextjs"
-
+# Proxy API requests to Railway backend
 [[redirects]]
 from = "/api/*"
-to = "https://scraper-platform-production-17cb.up.railway.app/api/:splat"
+to = "https://scraper.exsel.ai/api/:splat"
 status = 200
 force = true
+
+# SPA fallback — all other routes serve index.html
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 200

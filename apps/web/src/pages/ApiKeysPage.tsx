@@ -270,7 +270,7 @@ export function ApiKeysPage() {
           overflow: "auto",
         }}>
           <pre style={{ color: "#cdd6f4", fontSize: 13, fontFamily: "monospace", lineHeight: 1.6, margin: 0 }}>
-{`curl -X POST https://scraper-platform-production-17cb.up.railway.app/v1/scrape \\
+{`curl -X POST https://scraper.exsel.ai/v1/scrape \\
   -H "Authorization: Bearer sk_live_YOUR_KEY_HERE" \\
   -H "Content-Type: application/json" \\
   -d '{"url": "https://example.com", "formats": ["json"]}'`}

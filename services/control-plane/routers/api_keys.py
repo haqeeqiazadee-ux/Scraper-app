@@ -46,6 +46,11 @@ def _key_prefix(raw_key: str) -> str:
     return raw_key[:12]
 
 
+def _utcnow_naive() -> datetime:
+    """Return UTC time in the naive format used by legacy DateTime columns."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
 # ---------------------------------------------------------------------------
 # Router
 # ---------------------------------------------------------------------------
@@ -70,7 +75,7 @@ async def create_api_key(
 
     expires_at: Optional[datetime] = None
     if body.expires_in_days is not None:
-        expires_at = datetime.now(timezone.utc) + timedelta(days=body.expires_in_days)
+        expires_at = _utcnow_naive() + timedelta(days=body.expires_in_days)
 
     repo = ApiKeyRepository(session)
     api_key = await repo.create(
