@@ -8,7 +8,7 @@
 **Live Site:** https://myscraper.netlify.app
 **Backend API:** https://scraper-platform-production-17cb.up.railway.app
 **Public API:** https://scraper-platform-production-17cb.up.railway.app/v1
-**Repo:** https://github.com/fahad-scraper/Scraper-app
+**Repo:** https://github.com/haqeeqiazadee-ux/Scraper-app
 **Owner:** Muhammad Usman
 **Status:** PRODUCTION — All phases complete, 56 E2E tests passing, 24 public API endpoints
 
@@ -105,7 +105,7 @@ Step 6: Save to database + return results
 | 21-23 | POST/GET/DELETE /v1/schedules | 0 | Schedule CRUD |
 | 24 | GET /v1/presets | 0 | Platform presets |
 
-**Auth:** API keys (`sk_live_xxx`) — `POST /api/v1/api-keys` to create
+**Auth:** API keys (redacted live-key format) — `POST /api/v1/api-keys` to create
 **Tracking:** Every request gets `req_xxx` ID, idempotency keys, full audit trail
 
 ## E2E Test Suite — 56 Tests, 100% Pass
@@ -188,4 +188,14 @@ Step 6: Save to database + return results
 
 ## Repository
 
-**Canonical Remote:** `https://github.com/fahad-scraper/Scraper-app`
+**Canonical Remote:** `https://github.com/haqeeqiazadee-ux/Scraper-app`
+
+## Current Agent Boundary
+
+For the 27,753 actor own-stack implementation, Claude and Codex must work only in `haqeeqiazadee-ux/Scraper-app`.
+
+- Canonical local baseline: `C:\Users\PC\Scraper-app-verified`
+- Candidate prior work to inspect before recoding: `C:\Users\PC\Scraper-app-fresh`
+- Forbidden repo for this project: `C:\Users\PC\yousell-admin`
+- Apify URLs are metadata only; execution must use this platform's native backend stack.
+- Before writing code, inspect existing code and record the reuse decision in `docs/agent-sync/IMPLEMENTATION_LEDGER.md`.

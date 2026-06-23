@@ -1,0 +1,117 @@
+{
+  "generated_at": "2026-06-23T14:53:22Z",
+  "canonical_repo_url": "https://github.com/haqeeqiazadee-ux/Scraper-app",
+  "folders": {
+    "verified_main": {
+      "path": "C:\\Users\\PC\\Scraper-app-verified",
+      "exists": true,
+      "file_count": 631,
+      "status": {
+        "ok": true,
+        "stdout": "## main...origin/main\n?? docs/agent-sync/",
+        "stderr": "",
+        "code": 0
+      },
+      "remote": {
+        "ok": true,
+        "stdout": "origin\thttps://github.com/haqeeqiazadee-ux/Scraper-app.git (fetch)\norigin\thttps://github.com/haqeeqiazadee-ux/Scraper-app.git (push)",
+        "stderr": "",
+        "code": 0
+      },
+      "head": {
+        "ok": true,
+        "stdout": "45bdb35dcfd4764500b4b132dde186cedc767455",
+        "stderr": "",
+        "code": 0
+      },
+      "branch": {
+        "ok": true,
+        "stdout": "main",
+        "stderr": "",
+        "code": 0
+      }
+    },
+    "saas_repair_worktree": {
+      "path": "C:\\Users\\PC\\Scraper-app-fresh",
+      "exists": true,
+      "file_count": 679,
+      "status": {
+        "ok": true,
+        "stdout": "## saas-repair...origin/saas-repair\n M apps/web/src/App.tsx\n M apps/web/src/components/SidebarNav.tsx\n M docs/agent-sync/CLAUDE_STATUS.md\n M docs/agent-sync/CODEX_RELEASE_GATE.md\n M services/control-plane/app.py\n?? apps/web/public/\n?? apps/web/src/data/\n?? apps/web/src/pages/ActorDetailPage.tsx\n?? apps/web/src/pages/ActorsPage.tsx\n?? docs/agent-sync/APIFY_ACTOR_INVENTORY.md\n?? docs/agent-sync/APIFY_ACTOR_STATIC_CATALOG_MANIFEST.md\n?? docs/agent-sync/CLAUDE_APIFY_27000_ACTOR_COMPLETION_PLAN.md\n?? docs/agent-sync/CLAUDE_CODEX_OWN_STACK_WORKFLOW_PROMPT.md\n?? docs/agent-sync/CLAUDE_PROMPT_VALIDATION_2026-06-22.md\n?? packages/core/actor_catalog/\n?? scripts/generate_actor_catalog.py\n?? services/control-plane/routers/actors.py\n?? tests/unit/test_actor_catalog.py",
+        "stderr": "",
+        "code": 0
+      },
+      "remote": {
+        "ok": true,
+        "stdout": "origin\thttps://github.com/haqeeqiazadee-ux/Scraper-app.git (fetch)\norigin\thttps://github.com/haqeeqiazadee-ux/Scraper-app.git (push)",
+        "stderr": "",
+        "code": 0
+      },
+      "head": {
+        "ok": true,
+        "stdout": "6802b655194a46abf3f9067f3d8a4b11a110180a",
+        "stderr": "",
+        "code": 0
+      },
+      "branch": {
+        "ok": true,
+        "stdout": "saas-repair",
+        "stderr": "",
+        "code": 0
+      }
+    },
+    "scraper_app_main_folder": {
+      "path": "C:\\Users\\PC\\Scraper-app-main",
+      "exists": true,
+      "file_count": 906,
+      "status": {
+        "ok": false,
+        "stdout": "",
+        "stderr": "fatal: not a git repository (or any of the parent directories): .git",
+        "code": 128
+      },
+      "remote": {
+        "ok": false,
+        "stdout": "",
+        "stderr": "fatal: not a git repository (or any of the parent directories): .git",
+        "code": 128
+      },
+      "head": {
+        "ok": false,
+        "stdout": "",
+        "stderr": "fatal: not a git repository (or any of the parent directories): .git",
+        "code": 128
+      },
+      "branch": {
+        "ok": false,
+        "stdout": "",
+        "stderr": "fatal: not a git repository (or any of the parent directories): .git",
+        "code": 128
+      }
+    }
+  },
+  "remote_refs": {
+    "ok": true,
+    "stdout": "45bdb35dcfd4764500b4b132dde186cedc767455\tHEAD\n45bdb35dcfd4764500b4b132dde186cedc767455\trefs/heads/main\n6802b655194a46abf3f9067f3d8a4b11a110180a\trefs/heads/saas-repair",
+    "stderr": "",
+    "code": 0
+  },
+  "saas_repair_ahead_behind_main": {
+    "ok": true,
+    "stdout": "0\t5",
+    "stderr": "",
+    "code": 0
+  },
+  "saas_repair_tracked_diff_stat": {
+    "ok": true,
+    "stdout": ".gitignore                                        |   7 +-\n apps/web/src/components/Layout.tsx                |  60 ++-\n apps/web/src/components/TopBar.tsx                |  79 +++\n apps/web/src/pages/ApiKeysPage.tsx                |   2 +-\n apps/web/src/pages/Dashboard.tsx                  | 494 +++++++++---------\n apps/web/src/styles/globals.css                   | 599 +++++++++++++++++++++-\n docs/agent-sync/CLAUDE_CONTINUATION_PROMPT.md     | 130 +++++\n docs/agent-sync/CLAUDE_STATUS.md                  |  69 +++\n docs/agent-sync/CODEX_RELEASE_GATE.md             |  42 ++\n docs/agent-sync/CURRENT_PHASE.md                  |  45 ++\n docs/agent-sync/SECRETS_ACCESS.md                 |  21 +\n netlify.toml                                      |  18 +-\n packages/core/storage/repositories_public_api.py  |   9 +-\n services/control-plane/middleware/api_key_auth.py |   7 +-\n services/control-plane/routers/api_keys.py        |   7 +-\n services/control-plane/routers/health.py          | 100 +---\n 16 files changed, 1308 insertions(+), 381 deletions(-)",
+    "stderr": "",
+    "code": 0
+  },
+  "saas_repair_uncommitted_diff_stat": {
+    "ok": true,
+    "stdout": "apps/web/src/App.tsx                   |  4 +++\n apps/web/src/components/SidebarNav.tsx |  1 +\n docs/agent-sync/CLAUDE_STATUS.md       | 47 +++++++++++++++++++++++++++++++++-\n docs/agent-sync/CODEX_RELEASE_GATE.md  | 13 ++++++++++\n services/control-plane/app.py          |  8 ++++++\n 5 files changed, 72 insertions(+), 1 deletion(-)",
+    "stderr": "warning: in the working copy of 'docs/agent-sync/CLAUDE_STATUS.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'docs/agent-sync/CODEX_RELEASE_GATE.md', LF will be replaced by CRLF the next time Git touches it",
+    "code": 0
+  }
+}

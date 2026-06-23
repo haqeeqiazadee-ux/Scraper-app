@@ -1,0 +1,4596 @@
+{
+  "generated_at": "2026-06-23T14:53:22Z",
+  "source_catalog": "C:\\Users\\PC\\Scraper-app-fresh\\packages\\core\\actor_catalog\\generated\\apify_actor_catalog.json",
+  "total_actors": 27753,
+  "family_counts": {
+    "marketplace_product_catalog": 5967,
+    "lead_directory_contacts": 5315,
+    "job_board_ats": 2673,
+    "real_estate_property": 2498,
+    "authenticated_session_scrape": 2194,
+    "social_video_media": 1763,
+    "generic_web_page_extraction": 1528,
+    "browser_render_utility": 1098,
+    "news_content_monitoring": 1076,
+    "social_public_data": 818,
+    "travel_hospitality": 734,
+    "document_file_feed_api": 619,
+    "review_reputation": 359,
+    "no_code_integration_automation": 357,
+    "ads_marketing_seo_intel": 329,
+    "finance_crypto_market_data": 290,
+    "local_maps_serp": 85,
+    "commerce_storefront_generic": 50
+  },
+  "strategy_by_family": {
+    "browser_render_utility": {
+      "native_pipeline": 676,
+      "yt_dlp": 309,
+      "job_board_schema": 94,
+      "real_estate_schema": 19
+    },
+    "marketplace_product_catalog": {
+      "native_pipeline": 5736,
+      "yt_dlp": 229,
+      "job_board_schema": 2
+    },
+    "job_board_ats": {
+      "job_board_schema": 2275,
+      "native_pipeline": 289,
+      "real_estate_schema": 75,
+      "yt_dlp": 34
+    },
+    "lead_directory_contacts": {
+      "native_pipeline": 5131,
+      "yt_dlp": 182,
+      "job_board_schema": 2
+    },
+    "real_estate_property": {
+      "real_estate_schema": 1565,
+      "native_pipeline": 873,
+      "yt_dlp": 60
+    },
+    "news_content_monitoring": {
+      "native_pipeline": 976,
+      "yt_dlp": 100
+    },
+    "social_video_media": {
+      "yt_dlp": 1541,
+      "native_pipeline": 222
+    },
+    "generic_web_page_extraction": {
+      "native_pipeline": 1466,
+      "yt_dlp": 62
+    },
+    "social_public_data": {
+      "native_pipeline": 762,
+      "yt_dlp": 56
+    },
+    "authenticated_session_scrape": {
+      "native_pipeline": 1732,
+      "yt_dlp": 325,
+      "job_board_schema": 109,
+      "real_estate_schema": 28
+    },
+    "local_maps_serp": {
+      "native_pipeline": 85
+    },
+    "travel_hospitality": {
+      "native_pipeline": 715,
+      "yt_dlp": 19
+    },
+    "document_file_feed_api": {
+      "native_pipeline": 576,
+      "yt_dlp": 43
+    },
+    "no_code_integration_automation": {
+      "native_pipeline": 337,
+      "yt_dlp": 18,
+      "job_board_schema": 1,
+      "real_estate_schema": 1
+    },
+    "review_reputation": {
+      "native_pipeline": 350,
+      "yt_dlp": 9
+    },
+    "finance_crypto_market_data": {
+      "native_pipeline": 287,
+      "yt_dlp": 3
+    },
+    "ads_marketing_seo_intel": {
+      "native_pipeline": 270,
+      "yt_dlp": 56,
+      "real_estate_schema": 3
+    },
+    "commerce_storefront_generic": {
+      "native_pipeline": 41,
+      "yt_dlp": 9
+    }
+  },
+  "runnable_by_family": {
+    "browser_render_utility": {
+      "runnable": 676,
+      "runnable_with_schema": 422
+    },
+    "marketplace_product_catalog": {
+      "runnable": 5736,
+      "runnable_with_schema": 231
+    },
+    "job_board_ats": {
+      "runnable_with_schema": 2384,
+      "runnable": 289
+    },
+    "lead_directory_contacts": {
+      "runnable": 5131,
+      "runnable_with_schema": 184
+    },
+    "real_estate_property": {
+      "runnable_with_schema": 1625,
+      "runnable": 873
+    },
+    "news_content_monitoring": {
+      "runnable": 976,
+      "runnable_with_schema": 100
+    },
+    "social_video_media": {
+      "runnable_with_schema": 1541,
+      "runnable": 222
+    },
+    "generic_web_page_extraction": {
+      "runnable": 1466,
+      "runnable_with_schema": 62
+    },
+    "social_public_data": {
+      "runnable": 762,
+      "runnable_with_schema": 56
+    },
+    "authenticated_session_scrape": {
+      "runnable": 1732,
+      "runnable_with_schema": 462
+    },
+    "local_maps_serp": {
+      "runnable": 85
+    },
+    "travel_hospitality": {
+      "runnable": 715,
+      "runnable_with_schema": 19
+    },
+    "document_file_feed_api": {
+      "runnable": 576,
+      "runnable_with_schema": 43
+    },
+    "no_code_integration_automation": {
+      "runnable": 337,
+      "runnable_with_schema": 20
+    },
+    "review_reputation": {
+      "runnable": 350,
+      "runnable_with_schema": 9
+    },
+    "finance_crypto_market_data": {
+      "runnable": 287,
+      "runnable_with_schema": 3
+    },
+    "ads_marketing_seo_intel": {
+      "runnable": 270,
+      "runnable_with_schema": 59
+    },
+    "commerce_storefront_generic": {
+      "runnable": 41,
+      "runnable_with_schema": 9
+    }
+  },
+  "family_definitions": {
+    "social_public_data": {
+      "base_runner": "SocialPublicDataActorBase",
+      "primary_env": [
+        "SCRAPECREATORS_API_KEY"
+      ],
+      "modules": [
+        "social_provider_router",
+        "scrapecreators_connector",
+        "social_schemas"
+      ],
+      "notes": "Profiles, posts, comments, followers, hashtags, channels, and public social metrics."
+    },
+    "social_video_media": {
+      "base_runner": "MediaVideoActorBase",
+      "primary_env": [
+        "SCRAPECREATORS_API_KEY"
+      ],
+      "modules": [
+        "yt_dlp_adapter",
+        "scrapecreators_video_adapter",
+        "transcript_adapter"
+      ],
+      "notes": "Video metadata, transcripts, subtitles, media URLs; yt-dlp only after support probe."
+    },
+    "marketplace_product_catalog": {
+      "base_runner": "MarketplaceProductActorBase",
+      "primary_env": [
+        "KEEPA_API_KEY",
+        "SERPER_API_KEY"
+      ],
+      "modules": [
+        "marketplace_router",
+        "keepa_adapter",
+        "product_schema_normalizer"
+      ],
+      "notes": "Amazon/eBay/Walmart/AliExpress/Temu/DHgate/Etsy marketplaces and product search."
+    },
+    "commerce_storefront_generic": {
+      "base_runner": "StorefrontCommerceActorBase",
+      "primary_env": [],
+      "modules": [
+        "shopify_products_json_adapter",
+        "woocommerce_store_api_adapter",
+        "generic_product_dom_extractor"
+      ],
+      "notes": "Shopify, WooCommerce, and generic product/listing pages with public storefront routes."
+    },
+    "local_maps_serp": {
+      "base_runner": "LocalSearchMapsActorBase",
+      "primary_env": [
+        "SERPER_API_KEY",
+        "DATAFORSEO_LOGIN",
+        "DATAFORSEO_PASSWORD"
+      ],
+      "modules": [
+        "serper_adapter",
+        "dataforseo_adapter",
+        "places_schema_normalizer"
+      ],
+      "notes": "Google Search, Maps, Places, News, Shopping, and local business discovery."
+    },
+    "job_board_ats": {
+      "base_runner": "JobBoardActorBase",
+      "primary_env": [
+        "SERPER_API_KEY"
+      ],
+      "modules": [
+        "ats_detector",
+        "jobposting_schema",
+        "company_enrichment"
+      ],
+      "notes": "Job boards, ATS pages, careers pages, and hiring lead actors."
+    },
+    "real_estate_property": {
+      "base_runner": "RealEstateActorBase",
+      "primary_env": [
+        "SERPER_API_KEY"
+      ],
+      "modules": [
+        "property_schema",
+        "listing_pagination",
+        "geo_normalizer"
+      ],
+      "notes": "Property listings, rentals, auctions, foreclosure, agents, and parcels."
+    },
+    "lead_directory_contacts": {
+      "base_runner": "LeadDirectoryActorBase",
+      "primary_env": [
+        "SERPER_API_KEY"
+      ],
+      "modules": [
+        "directory_crawler",
+        "contact_extractor",
+        "email_phone_normalizer"
+      ],
+      "notes": "Business directories, contact extraction, B2B/company/person lead generation."
+    },
+    "review_reputation": {
+      "base_runner": "ReviewReputationActorBase",
+      "primary_env": [
+        "SERPER_API_KEY",
+        "SCRAPECREATORS_API_KEY"
+      ],
+      "modules": [
+        "review_pagination",
+        "rating_schema",
+        "source_entity_joiner"
+      ],
+      "notes": "Product, business, app, and social reviews/ratings/comments."
+    },
+    "ads_marketing_seo_intel": {
+      "base_runner": "AdsMarketingIntelActorBase",
+      "primary_env": [
+        "SERPER_API_KEY",
+        "DATAFORSEO_LOGIN",
+        "DATAFORSEO_PASSWORD",
+        "META_ACCESS_TOKEN"
+      ],
+      "modules": [
+        "serp_adapter",
+        "ad_library_adapter",
+        "keyword_rank_adapter"
+      ],
+      "notes": "Ad libraries, SEO/SERP, rank tracking, keyword and competitor intelligence."
+    },
+    "travel_hospitality": {
+      "base_runner": "TravelHospitalityActorBase",
+      "primary_env": [
+        "SERPER_API_KEY"
+      ],
+      "modules": [
+        "travel_listing_schema",
+        "availability_price_normalizer",
+        "map_area_iterator"
+      ],
+      "notes": "Hotels, rentals, flights, tours, attractions, and restaurants."
+    },
+    "finance_crypto_market_data": {
+      "base_runner": "FinanceMarketDataActorBase",
+      "primary_env": [],
+      "modules": [
+        "market_data_adapter",
+        "ticker_symbol_normalizer",
+        "time_series_schema"
+      ],
+      "notes": "Stocks, crypto, finance filings/quotes/market data; prefer official/public APIs."
+    },
+    "news_content_monitoring": {
+      "base_runner": "NewsContentMonitorActorBase",
+      "primary_env": [
+        "SERPER_API_KEY"
+      ],
+      "modules": [
+        "rss_sitemap_discovery",
+        "article_extractor",
+        "change_detection"
+      ],
+      "notes": "News, blogs, articles, monitoring, content extraction, RSS/sitemap."
+    },
+    "document_file_feed_api": {
+      "base_runner": "DocumentFeedApiActorBase",
+      "primary_env": [],
+      "modules": [
+        "csv_json_xml_feed_loader",
+        "pdf_doc_parser",
+        "api_paginator"
+      ],
+      "notes": "CSV/XML/JSON feeds, PDFs, public datasets, government/open-data APIs."
+    },
+    "browser_render_utility": {
+      "base_runner": "BrowserRenderUtilityActorBase",
+      "primary_env": [
+        "ZYTE_API_KEY"
+      ],
+      "modules": [
+        "playwright_adapter",
+        "zyte_browser_adapter",
+        "screenshot_pdf_artifacts"
+      ],
+      "notes": "Screenshots, PDFs, rendered-page capture, link/tech/schema checks."
+    },
+    "authenticated_session_scrape": {
+      "base_runner": "AuthenticatedSessionActorBase",
+      "primary_env": [
+        "ZYTE_API_KEY",
+        "CAPSOLVER_API_KEY"
+      ],
+      "modules": [
+        "session_vault",
+        "cookie_validator",
+        "browser_context_pool"
+      ],
+      "notes": "Login/cookie/session workflows; explicit, auditable, user-provided sessions only."
+    },
+    "no_code_integration_automation": {
+      "base_runner": "IntegrationAutomationActorBase",
+      "primary_env": [],
+      "modules": [
+        "webhook_dispatcher",
+        "third_party_action_gate",
+        "oauth_connector_registry"
+      ],
+      "notes": "Automation/integration actors that take actions rather than scrape data; many should be deferred."
+    },
+    "generic_web_page_extraction": {
+      "base_runner": "GenericWebExtractionActorBase",
+      "primary_env": [
+        "ZYTE_API_KEY",
+        "SERPER_API_KEY"
+      ],
+      "modules": [
+        "http_browser_escalation",
+        "deterministic_dom_extractor",
+        "ai_schema_normalizer"
+      ],
+      "notes": "Fallback for static/dynamic web pages when no specialized family applies."
+    }
+  },
+  "examples": {
+    "browser_render_utility": [
+      {
+        "actor_id": "001Q50LgYYIXgA6o1",
+        "title": "Twitter Screenshot Generator",
+        "developer": "crawlerbros",
+        "url": "https://apify.com/crawlerbros/twitter-screenshot-generator",
+        "current_route_strategy": "yt_dlp",
+        "current_runnable_status": "runnable_with_schema"
+      },
+      {
+        "actor_id": "01aLltrhxMdohwTwS",
+        "title": "Website Tech Stack Detector",
+        "developer": "shahidirfan",
+        "url": "https://apify.com/shahidirfan/website-tech-stack-detector",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "08U5FtJflJFVSFivm",
+        "title": "LinkedIn Contacts Dataset for Demand Generation",
+        "developer": "freecamp008",
+        "url": "https://apify.com/freecamp008/linkedin-demand-generation-contacts-dataset",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "08nUNGUAFFrShSskq",
+        "title": "Sitemap Health Validator",
+        "developer": "predictable_function",
+        "url": "https://apify.com/predictable_function/my-actor",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "0EC4liiWbpeRAV7qq",
+        "title": "Company Enrichment API \u2014 Domain to Firmographics & Contacts",
+        "developer": "nexgendata",
+        "url": "https://apify.com/nexgendata/company-enrichment-tool",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "0JQtOaYzS6S7b5QTf",
+        "title": "WhatsApp Number Validator",
+        "developer": "api_factory",
+        "url": "https://apify.com/api_factory/whatsapp-number-validator",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "0XNL6wRbRbt8wmdI1",
+        "title": "Vimeo Email Scraper - Advanced, Fast & Cheapest",
+        "developer": "contacts-api",
+        "url": "https://apify.com/contacts-api/vimeo-email-scraper-fast-advanced-and-cheapest",
+        "current_route_strategy": "yt_dlp",
+        "current_runnable_status": "runnable_with_schema"
+      },
+      {
+        "actor_id": "0XdQGitwIYhD2Fm8N",
+        "title": "Glovo Scraper \u2014 Restaurants, Supermarkets, Shops",
+        "developer": "gooyer.co",
+        "url": "https://apify.com/gooyer.co/glovo-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      }
+    ],
+    "marketplace_product_catalog": [
+      {
+        "actor_id": "0051wgwPRPZKzmuBf",
+        "title": "Avito Cars Details Scraper",
+        "developer": "ecomscrape",
+        "url": "https://apify.com/ecomscrape/avito-cars-details-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "00t9m4iInPU3a652O",
+        "title": "Apex Hali Scraper",
+        "developer": "sovanza.inc",
+        "url": "https://apify.com/sovanza.inc/apex-hali-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "011voSyVed1VGRysI",
+        "title": "\ud83d\udecd\ufe0f eBay Product Details Scraper",
+        "developer": "scraper-engine",
+        "url": "https://apify.com/scraper-engine/ebay-product-details-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "01isBvfbvtagAQw5e",
+        "title": "Athenahealth Product Info Scraper",
+        "developer": "getdataforme",
+        "url": "https://apify.com/getdataforme/athenahealth-productinfo-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "022D4iKllLad7dQpF",
+        "title": "Shopee Mall Search Scraper",
+        "developer": "xtracto",
+        "url": "https://apify.com/xtracto/shopee-mall-search",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "028ccExIzUtE2zxNj",
+        "title": "CraftBeer.com Scraper - Beer Styles, Articles & Recipes",
+        "developer": "lulzasaur",
+        "url": "https://apify.com/lulzasaur/craftbeer-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "03aGmM0iC2eD82bTP",
+        "title": "Yellow Pages Email Scraper",
+        "developer": "scraper-mind",
+        "url": "https://apify.com/scraper-mind/yellow-pages-email-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "05Mjuiqge8v9ULhEF",
+        "title": "CoinGecko Cryptocurrency Scraper",
+        "developer": "parseforge",
+        "url": "https://apify.com/parseforge/coingecko-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      }
+    ],
+    "job_board_ats": [
+      {
+        "actor_id": "00Grbp5rC5pMN2iiv",
+        "title": "LinkedIn Hiring Leads | $2.99 / 1k |",
+        "developer": "glasswing",
+        "url": "https://apify.com/glasswing/linkedin-leads",
+        "current_route_strategy": "job_board_schema",
+        "current_runnable_status": "runnable_with_schema"
+      },
+      {
+        "actor_id": "00RTebnddW1q4vQdH",
+        "title": "Kununu Scraper - Company Ratings & Employer Reviews (DACH)",
+        "developer": "blackfalcondata",
+        "url": "https://apify.com/blackfalcondata/kununu-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "00aahsp5iToeMNwNT",
+        "title": "Intermediair.nl Vacatures Scraper",
+        "developer": "unfenced-group",
+        "url": "https://apify.com/unfenced-group/intermediair-scraper",
+        "current_route_strategy": "job_board_schema",
+        "current_runnable_status": "runnable_with_schema"
+      },
+      {
+        "actor_id": "03vspg6zOCXKXXLgJ",
+        "title": "Twitter B2b Email Scraper",
+        "developer": "scrapio",
+        "url": "https://apify.com/scrapio/twitter-b2b-email-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "04KBeKtaU3iMhfmCf",
+        "title": "Jora Job Scraper \u2014 Search Jobs Across 6 Countries in Seconds",
+        "developer": "trev0n",
+        "url": "https://apify.com/trev0n/jora-scraper",
+        "current_route_strategy": "job_board_schema",
+        "current_runnable_status": "runnable_with_schema"
+      },
+      {
+        "actor_id": "068qvYsw7FqPOhw6w",
+        "title": "StepStone Jobs Scraper",
+        "developer": "powerai",
+        "url": "https://apify.com/powerai/stepstone-jobs-scraper-ppr",
+        "current_route_strategy": "job_board_schema",
+        "current_runnable_status": "runnable_with_schema"
+      },
+      {
+        "actor_id": "084bNkqmglhWur2Ul",
+        "title": "TokyoDev Scraper: Japan Tech Jobs & Companies",
+        "developer": "getascraper",
+        "url": "https://apify.com/getascraper/tokyo-dev-scraper",
+        "current_route_strategy": "job_board_schema",
+        "current_runnable_status": "runnable_with_schema"
+      },
+      {
+        "actor_id": "0C9QiS4IChNUZvWir",
+        "title": "Naukri Jobs Scraper \u2014 India's #1 Job Board | PPE",
+        "developer": "bovi",
+        "url": "https://apify.com/bovi/naukri-jobs-scraper",
+        "current_route_strategy": "job_board_schema",
+        "current_runnable_status": "runnable_with_schema"
+      }
+    ],
+    "lead_directory_contacts": [
+      {
+        "actor_id": "00nVhhw8YMdn14y1a",
+        "title": "Website Email Scraper \u2014 Emails, Phones & Socials",
+        "developer": "jurassic_jove",
+        "url": "https://apify.com/jurassic_jove/website-email-extractor",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "015sVgFuxP6BmGyi5",
+        "title": "Cms Dialysis Facility Leads Scraper",
+        "developer": "gocreative.ai",
+        "url": "https://apify.com/gocreative.ai/cms-dialysis-facility-leads",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "018DkZoRoSYxwU431",
+        "title": "EU Consolidated Sanctions List Scraper",
+        "developer": "parseforge",
+        "url": "https://apify.com/parseforge/ec-eu-sanctions-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "01z1ncQiXbeLTe2jC",
+        "title": "Truth Social Profile Scraper",
+        "developer": "scrapeflow",
+        "url": "https://apify.com/scrapeflow/truth-social-profile-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "023gDGOcdCCeYjkrG",
+        "title": "Thumbtack Category Scraper",
+        "developer": "getdataforme",
+        "url": "https://apify.com/getdataforme/thumbtack-category-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "02HcIWROrpLtcblPn",
+        "title": "Kbb Scraper",
+        "developer": "velvety_bedbug",
+        "url": "https://apify.com/velvety_bedbug/kbb-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "02M0bZU80eOYHyQmK",
+        "title": "LinkedIn Profile Scraper with Email (No Cookies)",
+        "developer": "futurizerush",
+        "url": "https://apify.com/futurizerush/linkedin-profile-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "0361D67UNuUOoFDdu",
+        "title": "Bank Email Scraper",
+        "developer": "contacts-api",
+        "url": "https://apify.com/contacts-api/bank-email-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      }
+    ],
+    "real_estate_property": [
+      {
+        "actor_id": "00qBfovdGVrzQePpI",
+        "title": "Airbnb Phone Number Scraper",
+        "developer": "scrapio",
+        "url": "https://apify.com/scrapio/airbnb-phone-number-scraper",
+        "current_route_strategy": "real_estate_schema",
+        "current_runnable_status": "runnable_with_schema"
+      },
+      {
+        "actor_id": "00wdnosw77zzL24bs",
+        "title": "Auction.com Scraper \u2014 Foreclosures, REO & Auction Listings",
+        "developer": "sian.agency",
+        "url": "https://apify.com/sian.agency/auction-com-property-scraper",
+        "current_route_strategy": "real_estate_schema",
+        "current_runnable_status": "runnable_with_schema"
+      },
+      {
+        "actor_id": "04YGacMFd31HaTigx",
+        "title": "Domain.com.au Real Estate Scraper",
+        "developer": "crawlerbros",
+        "url": "https://apify.com/crawlerbros/domain-au-scraper",
+        "current_route_strategy": "real_estate_schema",
+        "current_runnable_status": "runnable_with_schema"
+      },
+      {
+        "actor_id": "058v8gc2qh6nS5KoI",
+        "title": "Apartments.com Rentals Scraper \u2014 No Login Required",
+        "developer": "crowdpull",
+        "url": "https://apify.com/crowdpull/apartments-com-rentals-scraper",
+        "current_route_strategy": "real_estate_schema",
+        "current_runnable_status": "runnable_with_schema"
+      },
+      {
+        "actor_id": "06AbSbzFW7bOnrOAs",
+        "title": "Domain.com.au Property Scraper \ud83d\udccd\ud83c\udfe0 - Cheap",
+        "developer": "scrapestorm",
+        "url": "https://apify.com/scrapestorm/domain-com-au-property-scraper---cheap",
+        "current_route_strategy": "real_estate_schema",
+        "current_runnable_status": "runnable_with_schema"
+      },
+      {
+        "actor_id": "06P8KyNbquaUTFPVB",
+        "title": "Egyptian Real Estate Scraper",
+        "developer": "constructive_calm",
+        "url": "https://apify.com/constructive_calm/egypt-real-estate-scraper",
+        "current_route_strategy": "real_estate_schema",
+        "current_runnable_status": "runnable_with_schema"
+      },
+      {
+        "actor_id": "06mImcBLl2ibvCmif",
+        "title": "Imovirtual Property Search Scraper",
+        "developer": "stealth_mode",
+        "url": "https://apify.com/stealth_mode/imovirtual-property-search-scraper",
+        "current_route_strategy": "real_estate_schema",
+        "current_runnable_status": "runnable_with_schema"
+      },
+      {
+        "actor_id": "07NhDvqgDZlrrluZp",
+        "title": "Winston Salem Building Permits",
+        "developer": "velvety_bedbug",
+        "url": "https://apify.com/velvety_bedbug/winston-salem-building-permits",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      }
+    ],
+    "news_content_monitoring": [
+      {
+        "actor_id": "01YQZFAJoxRehuh16",
+        "title": "Google News Scraper",
+        "developer": "scrapio",
+        "url": "https://apify.com/scrapio/google-news-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "01sDWdWiQFagvMYtG",
+        "title": "News Media MCP",
+        "developer": "red.cars",
+        "url": "https://apify.com/red.cars/news-media-mcp",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "029mV8b6GZqa6QieB",
+        "title": "Simply Wall Street Narrative Scraper",
+        "developer": "saswave",
+        "url": "https://apify.com/saswave/simply-wall-street-narrative-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "03O0Tov9AGqf84nJv",
+        "title": "Carbon Intensity API \u2014 Global Grid CO2 Data",
+        "developer": "jenko_systems",
+        "url": "https://apify.com/jenko_systems/carbon-intensity-api",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "0K8jycllFgGBYKxPJ",
+        "title": "Sitemap Audit",
+        "developer": "apage",
+        "url": "https://apify.com/apage/sitemap-audit",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "0LSbzoAEFRxfqbmeZ",
+        "title": "Sitemap to URL Crawler \u2014 Extract Sitemap.xml URLs for RAG",
+        "developer": "logiover",
+        "url": "https://apify.com/logiover/sitemap-to-url-crawler",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "0MQHcJwn5GEdGkPAt",
+        "title": "Recipe Food Database Extractor",
+        "developer": "agenscrape",
+        "url": "https://apify.com/agenscrape/recipe-food-database-extractor",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "0QNlkNOysLRHcdtlM",
+        "title": "Flashscore Tennis Matches",
+        "developer": "extractify-labs",
+        "url": "https://apify.com/extractify-labs/flashscore-tennis-matches",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      }
+    ],
+    "social_video_media": [
+      {
+        "actor_id": "01oDMrSAKMpTkwW3y",
+        "title": "Telegram Channels Scraper \u2013 Cheap \ud83d\udcf1",
+        "developer": "contactminerlabs",
+        "url": "https://apify.com/contactminerlabs/telegram-channels-scraper---cheap",
+        "current_route_strategy": "yt_dlp",
+        "current_runnable_status": "runnable_with_schema"
+      },
+      {
+        "actor_id": "05LbaIIUUYnkvLn8f",
+        "title": "Tiktok B2b Lead Scraper",
+        "developer": "simpleapi",
+        "url": "https://apify.com/simpleapi/tiktok-b2b-lead-scraper",
+        "current_route_strategy": "yt_dlp",
+        "current_runnable_status": "runnable_with_schema"
+      },
+      {
+        "actor_id": "09oUwjPYVcDFf0G1i",
+        "title": "Streaming & VOD Catalog Search Scraper",
+        "developer": "parseforge",
+        "url": "https://apify.com/parseforge/streaming-vod-catalog-search-scraper",
+        "current_route_strategy": "yt_dlp",
+        "current_runnable_status": "runnable_with_schema"
+      },
+      {
+        "actor_id": "09xObdTUSZVYoV9nw",
+        "title": "YouTube Music Downloader(MP3)",
+        "developer": "thenetaji",
+        "url": "https://apify.com/thenetaji/youtube-music-downloader",
+        "current_route_strategy": "yt_dlp",
+        "current_runnable_status": "runnable_with_schema"
+      },
+      {
+        "actor_id": "0FXVyOXXEmdGcV88a",
+        "title": "TikTok Profile Scraper",
+        "developer": "clockworks",
+        "url": "https://apify.com/clockworks/tiktok-profile-scraper",
+        "current_route_strategy": "yt_dlp",
+        "current_runnable_status": "runnable_with_schema"
+      },
+      {
+        "actor_id": "0IRrlpSgdeiLzg5ot",
+        "title": "YouTube Playlist Scraper",
+        "developer": "automation-lab",
+        "url": "https://apify.com/automation-lab/youtube-playlist-scraper",
+        "current_route_strategy": "yt_dlp",
+        "current_runnable_status": "runnable_with_schema"
+      },
+      {
+        "actor_id": "0IXNsCXPu0RsqV9rR",
+        "title": "YouTube Transcript Scraper",
+        "developer": "futurizerush",
+        "url": "https://apify.com/futurizerush/youtube-transcript-scraper",
+        "current_route_strategy": "yt_dlp",
+        "current_runnable_status": "runnable_with_schema"
+      },
+      {
+        "actor_id": "0JfWnza5AgQpEWUVN",
+        "title": "Facebook Event Search Scraper",
+        "developer": "scrapio",
+        "url": "https://apify.com/scrapio/facebook-event-search-scraper",
+        "current_route_strategy": "yt_dlp",
+        "current_runnable_status": "runnable_with_schema"
+      }
+    ],
+    "generic_web_page_extraction": [
+      {
+        "actor_id": "02Xnadt1jOiogxYmu",
+        "title": "Research Grant Aggregator",
+        "developer": "constant_quadruped",
+        "url": "https://apify.com/constant_quadruped/research-grant-aggregator",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "067MoyDFJvjRTQHVA",
+        "title": "Patent Search MCP \u2014 AI Agent Patent Intelligence",
+        "developer": "red.cars",
+        "url": "https://apify.com/red.cars/patent-search-mcp",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "07FyFuCbYiesUCRZC",
+        "title": "Action Network Sports Odds Scraper",
+        "developer": "jungle_synthesizer",
+        "url": "https://apify.com/jungle_synthesizer/actionnetwork-sports-odds-line-movement-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "07hd4NohAfUd3uWdD",
+        "title": "Wiki Grabber",
+        "developer": "shahabuddin38",
+        "url": "https://apify.com/shahabuddin38/wiki-grabber",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "08JYjaaZ0x3Cjl4xV",
+        "title": "USPTO Patent & Trademark Scraper",
+        "developer": "solidcode",
+        "url": "https://apify.com/solidcode/uspto-patent-trademark-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "08ewLCfjsE0DH0bjM",
+        "title": "Discourse Forum Scraper",
+        "developer": "automation-lab",
+        "url": "https://apify.com/automation-lab/discourse-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "0BGfEB12rypEip6XA",
+        "title": "RubyGems Scraper",
+        "developer": "gio21",
+        "url": "https://apify.com/gio21/rubygems-scraper",
+        "current_route_strategy": "yt_dlp",
+        "current_runnable_status": "runnable_with_schema"
+      },
+      {
+        "actor_id": "0BsYBrYDr08sLNwYx",
+        "title": "NFL Data Scraper",
+        "developer": "crawlerbros",
+        "url": "https://apify.com/crawlerbros/nfl-data-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      }
+    ],
+    "social_public_data": [
+      {
+        "actor_id": "03SKqcgAZ2jGX5Adj",
+        "title": "\ud83d\udd0d Facebook Hashtag Search Scraper",
+        "developer": "scrapebase",
+        "url": "https://apify.com/scrapebase/facebook-hashtag-search-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "04yYRfyUxXn8vpLkc",
+        "title": "Naver Webtoon Scraper",
+        "developer": "oxygenated_quagmire",
+        "url": "https://apify.com/oxygenated_quagmire/naver-webtoon-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "0J7JfA55zXp9bfUtm",
+        "title": "LinkedIn MCP Server - AI Assistant",
+        "developer": "alizarin_refrigerator-owner",
+        "url": "https://apify.com/alizarin_refrigerator-owner/linkedin-mcp-server",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "0NdjYKu8dfDfLfiRX",
+        "title": "Soundcloud People Search Scraper \ud83c\udfb5",
+        "developer": "easyapi",
+        "url": "https://apify.com/easyapi/soundcloud-people-search-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "0f1AnV2edAbzlr7oU",
+        "title": "Reddit Scraper - Cost Effective",
+        "developer": "igolaizola",
+        "url": "https://apify.com/igolaizola/reddit-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "0gJx4RUXktCW8HpDm",
+        "title": "\ud83c\udfaf Pinterest Keywords Discovery Tool",
+        "developer": "easyapi",
+        "url": "https://apify.com/easyapi/pinterest-keywords-discovery-tool",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "0kAnAWXx1MnhkuqTs",
+        "title": "INSTAGRAM SUPER FAST SCRAPER",
+        "developer": "macheta",
+        "url": "https://apify.com/macheta/instagram-super-fast-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "0lW4G5pPEhwkZTPHO",
+        "title": "Instagram Highlights Scraper",
+        "developer": "scrapebase",
+        "url": "https://apify.com/scrapebase/instagram-highlights-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      }
+    ],
+    "authenticated_session_scrape": [
+      {
+        "actor_id": "0412x8rtPDXHqVptx",
+        "title": "Linkedin B2b Lead Scraper",
+        "developer": "scrapier",
+        "url": "https://apify.com/scrapier/linkedin-b2b-lead-scraper",
+        "current_route_strategy": "job_board_schema",
+        "current_runnable_status": "runnable_with_schema"
+      },
+      {
+        "actor_id": "043Hpy7gVQvWCOivr",
+        "title": "Douyin \u6296\u97f3 Profile Scraper - \u535a\u4e3b Followers, Posts & Hashtags",
+        "developer": "zen-studio",
+        "url": "https://apify.com/zen-studio/douyin-profile-scraper",
+        "current_route_strategy": "yt_dlp",
+        "current_runnable_status": "runnable_with_schema"
+      },
+      {
+        "actor_id": "051dcWvdF9hiHmzxI",
+        "title": "Instagram Related Person Scraper",
+        "developer": "scrapio",
+        "url": "https://apify.com/scrapio/instagram-related-person-scraper",
+        "current_route_strategy": "yt_dlp",
+        "current_runnable_status": "runnable_with_schema"
+      },
+      {
+        "actor_id": "05KHbOUbvLcQhSDJ2",
+        "title": "OpenStates Legislation Crawler - 50-State Bill Tracker",
+        "developer": "jungle_synthesizer",
+        "url": "https://apify.com/jungle_synthesizer/openstates-legislation-crawler",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "05SDCsJvEWHJfCDbA",
+        "title": "LinkedIn Sales Navigator Scraper - Pay Per Result",
+        "developer": "silentflow",
+        "url": "https://apify.com/silentflow/linkedin-sales-navigator-scraper-ppr",
+        "current_route_strategy": "job_board_schema",
+        "current_runnable_status": "runnable_with_schema"
+      },
+      {
+        "actor_id": "05ZVEPDNtQrqX4dlc",
+        "title": "CNN Article Scraper",
+        "developer": "filip_cicvarek",
+        "url": "https://apify.com/filip_cicvarek/cnn-article-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "069AXmfMMR2r0X1Ml",
+        "title": "X User Profile Scraper",
+        "developer": "moving_beacon-owner1",
+        "url": "https://apify.com/moving_beacon-owner1/my-actor-53",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "06A8hHs1bc44FGVjm",
+        "title": "Open Library Scraper",
+        "developer": "fortuitous_pirate",
+        "url": "https://apify.com/fortuitous_pirate/open-library-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      }
+    ],
+    "local_maps_serp": [
+      {
+        "actor_id": "04JaB1rtCNabRa2tf",
+        "title": "IP Geolocation Lookup \u2014 Country, City, ISP & VPN Detection",
+        "developer": "ryanclinton",
+        "url": "https://apify.com/ryanclinton/ip-geolocation-lookup",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "0douHCjcVXE8w359E",
+        "title": "IP Geolocation Scraper",
+        "developer": "parseforge",
+        "url": "https://apify.com/parseforge/ipapi-geolocation-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "1wfFAq1NAntFPwvFG",
+        "title": "Raydium Solana Liquidity Pools Scraper",
+        "developer": "parseforge",
+        "url": "https://apify.com/parseforge/raydium-pools-solana-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "2d8MRKIiyxq2VUebW",
+        "title": "Crypto AML & Wallet Screener MCP \u2014 OFAC, EU, UN & AMLBot",
+        "developer": "olican",
+        "url": "https://apify.com/olican/crypto-aml-wallet-screener",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "2jY2b2r4VG46zxsC6",
+        "title": "Censys Internet Host Search",
+        "developer": "ryanclinton",
+        "url": "https://apify.com/ryanclinton/censys-search",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "34ymhaRQlzoLavWla",
+        "title": "\u2708\ufe0f FAA Aircraft Registry Scraper \u2014 N-Number Lookup",
+        "developer": "nexgendata",
+        "url": "https://apify.com/nexgendata/faa-aircraft-registry-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "3WDM2QYge1jVRQgEF",
+        "title": "GMGN Token Top Traders Scraper",
+        "developer": "muhammetakkurtt",
+        "url": "https://apify.com/muhammetakkurtt/gmgn-token-traders-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "3raZtUnzdZMncdqox",
+        "title": "Fetch Market & Liquidity Pool Details API",
+        "developer": "vybe",
+        "url": "https://apify.com/vybe/solana-market-details-api",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      }
+    ],
+    "travel_hospitality": [
+      {
+        "actor_id": "050wNUHg5rcWwc4hh",
+        "title": "Agoda Phone Number Scraper",
+        "developer": "scrapier",
+        "url": "https://apify.com/scrapier/agoda-phone-number-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "0G3dx54R8HAzLirrc",
+        "title": "Speaker Bureau Directory Scraper - Keynote Speakers & Fees",
+        "developer": "jungle_synthesizer",
+        "url": "https://apify.com/jungle_synthesizer/speaker-bureau-directory-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "0JiIIEHhPa9BHOagV",
+        "title": "Subway Restaurant Scraper",
+        "developer": "fortuitous_pirate",
+        "url": "https://apify.com/fortuitous_pirate/subway-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "0KIe2iak6JvSB9RPN",
+        "title": "Headout Reviews Scraper",
+        "developer": "knagymate",
+        "url": "https://apify.com/knagymate/headout-reviews-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "0NUw1EjX6ioyng2ee",
+        "title": "Tripadvisor Reviews Scraper",
+        "developer": "api-ninja",
+        "url": "https://apify.com/api-ninja/tripadvisor-reviews-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "0OV7Ql048yxtoZMYf",
+        "title": "Flightradar24 Scraper",
+        "developer": "flamboyant_liner",
+        "url": "https://apify.com/flamboyant_liner/flightradar24-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "0SHtjFyh3L6V8fLDT",
+        "title": "Google Maps Business Listing",
+        "developer": "truefetch",
+        "url": "https://apify.com/truefetch/google-maps-business-listing",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "0VtUeREYeuCMZwZYI",
+        "title": "Trivago Email Scraper",
+        "developer": "scrapio",
+        "url": "https://apify.com/scrapio/trivago-email-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      }
+    ],
+    "document_file_feed_api": [
+      {
+        "actor_id": "08vGHGsxQdcjXyKiK",
+        "title": "NIH Reporter Intelligence MCP \u2014 $45B Federal Research",
+        "developer": "andrew_avina",
+        "url": "https://apify.com/andrew_avina/nih-reporter-mcp",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "09TtSjF9Uzs5qfvLc",
+        "title": "Underdog Fantasy Player Props API - Lines & Odds",
+        "developer": "zen-studio",
+        "url": "https://apify.com/zen-studio/underdog-player-props",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "09oNSfQSYynqBM35A",
+        "title": "Cleveland Museum of Art Scraper",
+        "developer": "parseforge",
+        "url": "https://apify.com/parseforge/cleveland-museum-of-art-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "09yP9WHlJGfas4Vu9",
+        "title": "Funding Intel",
+        "developer": "fiery_dream",
+        "url": "https://apify.com/fiery_dream/funding-intel",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "0G52yWhElfcDcA9wh",
+        "title": "Agent Output Cleaner",
+        "developer": "yauponlabs",
+        "url": "https://apify.com/yauponlabs/structured-output-cleaner",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "0XCw2PVArBICrSdeG",
+        "title": "Beautiful Soup Cloud Runner",
+        "developer": "sovanza.inc",
+        "url": "https://apify.com/sovanza.inc/beautiful-soup-cloud-runner",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "0jaFW8cSD0omsasNc",
+        "title": "Code Converter Toolkit",
+        "developer": "moving_beacon-owner1",
+        "url": "https://apify.com/moving_beacon-owner1/my-actor-64",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "0k6f3d2WEwnH4fjns",
+        "title": "Auto Dataset Analysis & HTML Reports",
+        "developer": "moving_beacon-owner1",
+        "url": "https://apify.com/moving_beacon-owner1/my-actor-74",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      }
+    ],
+    "no_code_integration_automation": [
+      {
+        "actor_id": "095rfgHtUpM4pT5mu",
+        "title": "Cars Data API",
+        "developer": "easyapi",
+        "url": "https://apify.com/easyapi/cars-data-api",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "0T2mtKq8eeea4lkGs",
+        "title": "iTunes / Mac App Store Search Scraper",
+        "developer": "easyapi",
+        "url": "https://apify.com/easyapi/itunes-mac-app-store-search-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "1WqoUHAWjaJxAJOsX",
+        "title": "ECDC COVID Distribution Scraper",
+        "developer": "parseforge",
+        "url": "https://apify.com/parseforge/ecdc-covid-distribution-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "1eNyxspAiUD0KsReW",
+        "title": "pub.dev Package Scoring Scraper",
+        "developer": "parseforge",
+        "url": "https://apify.com/parseforge/pkg-pub-scoring-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "1hB2z5wV6zOK3NVjj",
+        "title": "HiAnime Search Scraper",
+        "developer": "powerai",
+        "url": "https://apify.com/powerai/hianime-search-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "1jgkNu5cjWbr7CmF2",
+        "title": "Event Profiles \u00b7 Export Attendees & Speakers",
+        "developer": "corent1robert",
+        "url": "https://apify.com/corent1robert/brella-event-profiles",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "1pG9auGCSSD2MNdbS",
+        "title": "Cat Facts Scraper",
+        "developer": "crawlerbros",
+        "url": "https://apify.com/crawlerbros/cat-facts-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "2LdaLZwSZvzV3Iqds",
+        "title": "Text Sentiment Analysis",
+        "developer": "easyapi",
+        "url": "https://apify.com/easyapi/text-sentiment-analysis",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      }
+    ],
+    "review_reputation": [
+      {
+        "actor_id": "0Ga6IO6PeUwhCBq5G",
+        "title": "EMMA Municipal Bonds Scraper",
+        "developer": "jungle_synthesizer",
+        "url": "https://apify.com/jungle_synthesizer/emma-municipal-bonds-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "0WwON5Yrre9tmaOkk",
+        "title": "Coursera Scraper",
+        "developer": "solidcode",
+        "url": "https://apify.com/solidcode/coursera-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "0axoEa901Rf9uGDpn",
+        "title": "monday + Zapier + Make App Marketplace Scraper",
+        "developer": "jungle_synthesizer",
+        "url": "https://apify.com/jungle_synthesizer/monday-zapier-make-app-marketplace-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "0ppnvDxEdkJJLGNMS",
+        "title": "\ud83d\udcca Sentiment Analyzer \u2014 Fast VADER Scoring for Reviews & Social",
+        "developer": "nexgendata",
+        "url": "https://apify.com/nexgendata/ai-sentiment-analyzer",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "17UUcccLISfS8sMDV",
+        "title": "Chrome Web Store Extension Intelligence",
+        "developer": "taroyamada",
+        "url": "https://apify.com/taroyamada/chrome-web-store-extension-intelligence",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "1YKY9x71kjs0SO68o",
+        "title": "TVmaze TV Show & Episode Scraper",
+        "developer": "crawlerbros",
+        "url": "https://apify.com/crawlerbros/tvmaze-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "1gDWZt2SvLazdkF7v",
+        "title": "\ud83d\uddc2\ufe0f G2 Software Categories Scraper",
+        "developer": "parseforge",
+        "url": "https://apify.com/parseforge/g2-software-categories-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "1lgvNyViUVp85HuRm",
+        "title": "IMDb Scraper",
+        "developer": "solidcode",
+        "url": "https://apify.com/solidcode/imdb-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      }
+    ],
+    "finance_crypto_market_data": [
+      {
+        "actor_id": "0ISvHhA07gF9K7kaz",
+        "title": "Regulatory Change Tracker \u2014 13 Federal Sources",
+        "developer": "ryanclinton",
+        "url": "https://apify.com/ryanclinton/regulatory-change-tracker",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "0tzgJSF5pNcl5RmWv",
+        "title": "Token Unlocks & Vesting Calendar (Crypto)",
+        "developer": "foxlabs",
+        "url": "https://apify.com/foxlabs/token-unlocks-calendar",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "1A1UrqSrvJT5hMiOf",
+        "title": "CoinMarketCap Crypto Scraper",
+        "developer": "crawlerbros",
+        "url": "https://apify.com/crawlerbros/coinmarketcap-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "1HoDigN8tGuEYg1hl",
+        "title": "Yahoo Finance Historical Data Scraper",
+        "developer": "axesso_data",
+        "url": "https://apify.com/axesso_data/yahoo-finance-historical-data-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "1IQ6u9fU2Ch71hpgf",
+        "title": "MEXC Crypto Tickers Scraper",
+        "developer": "parseforge",
+        "url": "https://apify.com/parseforge/mexc-tickers-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "1UKFRgUm9chJnAVb5",
+        "title": "\ud83c\uddf9\ud83c\udded SET Thailand Stock Screener \u2014 SET50 Quotes",
+        "developer": "nexgendata",
+        "url": "https://apify.com/nexgendata/set-thailand-stock-screener",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "1dTRE1qbOkQBMQvD8",
+        "title": "Finance MCP Server",
+        "developer": "constant_quadruped",
+        "url": "https://apify.com/constant_quadruped/finance-mcp-server",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "2654SJZL3jlKZL00w",
+        "title": "Edgar Financial Extractor",
+        "developer": "ryanclinton",
+        "url": "https://apify.com/ryanclinton/edgar-financial-extractor",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      }
+    ],
+    "ads_marketing_seo_intel": [
+      {
+        "actor_id": "0MBsDDJJvFHWZ5d8P",
+        "title": "Facebook Ads Scraper Pro",
+        "developer": "crawlerbros",
+        "url": "https://apify.com/crawlerbros/facebook-ads-scraper-pro",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "0lSkwff1AkW8emNkz",
+        "title": "Google Search Scraper \u2014 Organic Results & SERP Data Extractor",
+        "developer": "maged120",
+        "url": "https://apify.com/maged120/google-search",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "0ok0gJg2Fy34CogLb",
+        "title": "TikTok Ad Library & Creative Scraper - Spy on Competitor Ads",
+        "developer": "whoareyouanas",
+        "url": "https://apify.com/whoareyouanas/tiktok-ad-scraper",
+        "current_route_strategy": "yt_dlp",
+        "current_runnable_status": "runnable_with_schema"
+      },
+      {
+        "actor_id": "0rw1LU10TmQUMtbiS",
+        "title": "Google Trends Scraper",
+        "developer": "oneary",
+        "url": "https://apify.com/oneary/google-trends-scraper",
+        "current_route_strategy": "yt_dlp",
+        "current_runnable_status": "runnable_with_schema"
+      },
+      {
+        "actor_id": "1SOrTCb3mzaT2TXHK",
+        "title": "Google Ads Transparency API | Ad Library for Marketing Agents",
+        "developer": "johnvc",
+        "url": "https://apify.com/johnvc/google-ads-transparency-api",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "1aH4J5p4f6WB1ogqD",
+        "title": "Ahrefs Top Websites",
+        "developer": "codebyte",
+        "url": "https://apify.com/codebyte/ahrefs-top-websites",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "1cabRg4HPWqKK38xa",
+        "title": "Facebook Ad Leads (email, phone & more)",
+        "developer": "igolaizola",
+        "url": "https://apify.com/igolaizola/facebook-ad-leads",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "1hOOW2SvNeygPfSTy",
+        "title": "Free Google Trends API \u2014 Interest Over Time + Related",
+        "developer": "s-r",
+        "url": "https://apify.com/s-r/free-google-trends-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      }
+    ],
+    "commerce_storefront_generic": [
+      {
+        "actor_id": "2WczhGdAp7P2ZHfhs",
+        "title": "Metropolitan Museum of Art Scraper",
+        "developer": "crawlerbros",
+        "url": "https://apify.com/crawlerbros/met-museum-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "3LvxTEU3QpVv6S9iP",
+        "title": "Conda-Forge Scraper",
+        "developer": "crawlergang",
+        "url": "https://apify.com/crawlergang/conda-forge-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "4ldBW1D0QqIn3k5Nq",
+        "title": "Coursera Course Scraper",
+        "developer": "automation-lab",
+        "url": "https://apify.com/automation-lab/coursera-course-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "4n5AxhttFmtjjnwX7",
+        "title": "Civitai Scraper - AI Model Catalog, LORAs, Checkpoints & Stats",
+        "developer": "jungle_synthesizer",
+        "url": "https://apify.com/jungle_synthesizer/civitai-models-scraper",
+        "current_route_strategy": "yt_dlp",
+        "current_runnable_status": "runnable_with_schema"
+      },
+      {
+        "actor_id": "5v6dTBDPf0qpdWAc3",
+        "title": "Bandcamp Audio Downloader",
+        "developer": "scrapers-hub",
+        "url": "https://apify.com/scrapers-hub/bandcamp-audio-downloader",
+        "current_route_strategy": "yt_dlp",
+        "current_runnable_status": "runnable_with_schema"
+      },
+      {
+        "actor_id": "7yaNlypIjeUAPhBbC",
+        "title": "NCBI dbSNP Variants Scraper",
+        "developer": "parseforge",
+        "url": "https://apify.com/parseforge/ncbi-dbsnp-variants-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "BI4qt8tLo9AIm9CIX",
+        "title": "Art Museum Collection Intelligence",
+        "developer": "benthepythondev",
+        "url": "https://apify.com/benthepythondev/art-museum-intelligence",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      },
+      {
+        "actor_id": "BaEjfJMwnQPhYqKiX",
+        "title": "IBGE Brazil Official Statistics Scraper",
+        "developer": "parseforge",
+        "url": "https://apify.com/parseforge/ibge-brazil-scraper",
+        "current_route_strategy": "native_pipeline",
+        "current_runnable_status": "runnable"
+      }
+    ]
+  },
+  "semantic_risk_sample": [
+    {
+      "actor_id": "001Q50LgYYIXgA6o1",
+      "title": "Twitter Screenshot Generator",
+      "family": "browser_render_utility",
+      "current_route_strategy": "yt_dlp",
+      "risk": [
+        "current yt_dlp label appears semantically unsafe for non-media actor"
+      ],
+      "url": "https://apify.com/crawlerbros/twitter-screenshot-generator"
+    },
+    {
+      "actor_id": "0051wgwPRPZKzmuBf",
+      "title": "Avito Cars Details Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/ecomscrape/avito-cars-details-scraper"
+    },
+    {
+      "actor_id": "00Grbp5rC5pMN2iiv",
+      "title": "LinkedIn Hiring Leads | $2.99 / 1k |",
+      "family": "job_board_ats",
+      "current_route_strategy": "job_board_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/glasswing/linkedin-leads"
+    },
+    {
+      "actor_id": "00RTebnddW1q4vQdH",
+      "title": "Kununu Scraper - Company Ratings & Employer Reviews (DACH)",
+      "family": "job_board_ats",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/blackfalcondata/kununu-scraper"
+    },
+    {
+      "actor_id": "00aahsp5iToeMNwNT",
+      "title": "Intermediair.nl Vacatures Scraper",
+      "family": "job_board_ats",
+      "current_route_strategy": "job_board_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/unfenced-group/intermediair-scraper"
+    },
+    {
+      "actor_id": "00qBfovdGVrzQePpI",
+      "title": "Airbnb Phone Number Scraper",
+      "family": "real_estate_property",
+      "current_route_strategy": "real_estate_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/scrapio/airbnb-phone-number-scraper"
+    },
+    {
+      "actor_id": "00t9m4iInPU3a652O",
+      "title": "Apex Hali Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/sovanza.inc/apex-hali-scraper"
+    },
+    {
+      "actor_id": "00wdnosw77zzL24bs",
+      "title": "Auction.com Scraper \u2014 Foreclosures, REO & Auction Listings",
+      "family": "real_estate_property",
+      "current_route_strategy": "real_estate_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/sian.agency/auction-com-property-scraper"
+    },
+    {
+      "actor_id": "011voSyVed1VGRysI",
+      "title": "\ud83d\udecd\ufe0f eBay Product Details Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/scraper-engine/ebay-product-details-scraper"
+    },
+    {
+      "actor_id": "01aLltrhxMdohwTwS",
+      "title": "Website Tech Stack Detector",
+      "family": "browser_render_utility",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/shahidirfan/website-tech-stack-detector"
+    },
+    {
+      "actor_id": "01isBvfbvtagAQw5e",
+      "title": "Athenahealth Product Info Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/getdataforme/athenahealth-productinfo-scraper"
+    },
+    {
+      "actor_id": "022D4iKllLad7dQpF",
+      "title": "Shopee Mall Search Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/xtracto/shopee-mall-search"
+    },
+    {
+      "actor_id": "028ccExIzUtE2zxNj",
+      "title": "CraftBeer.com Scraper - Beer Styles, Articles & Recipes",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/lulzasaur/craftbeer-scraper"
+    },
+    {
+      "actor_id": "03SKqcgAZ2jGX5Adj",
+      "title": "\ud83d\udd0d Facebook Hashtag Search Scraper",
+      "family": "social_public_data",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/scrapebase/facebook-hashtag-search-scraper"
+    },
+    {
+      "actor_id": "03aGmM0iC2eD82bTP",
+      "title": "Yellow Pages Email Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/scraper-mind/yellow-pages-email-scraper"
+    },
+    {
+      "actor_id": "03vspg6zOCXKXXLgJ",
+      "title": "Twitter B2b Email Scraper",
+      "family": "job_board_ats",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/scrapio/twitter-b2b-email-scraper"
+    },
+    {
+      "actor_id": "0412x8rtPDXHqVptx",
+      "title": "Linkedin B2b Lead Scraper",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "job_board_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/scrapier/linkedin-b2b-lead-scraper"
+    },
+    {
+      "actor_id": "043Hpy7gVQvWCOivr",
+      "title": "Douyin \u6296\u97f3 Profile Scraper - \u535a\u4e3b Followers, Posts & Hashtags",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "yt_dlp",
+      "risk": [
+        "current yt_dlp label appears semantically unsafe for non-media actor"
+      ],
+      "url": "https://apify.com/zen-studio/douyin-profile-scraper"
+    },
+    {
+      "actor_id": "04JaB1rtCNabRa2tf",
+      "title": "IP Geolocation Lookup \u2014 Country, City, ISP & VPN Detection",
+      "family": "local_maps_serp",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/ryanclinton/ip-geolocation-lookup"
+    },
+    {
+      "actor_id": "04KBeKtaU3iMhfmCf",
+      "title": "Jora Job Scraper \u2014 Search Jobs Across 6 Countries in Seconds",
+      "family": "job_board_ats",
+      "current_route_strategy": "job_board_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/trev0n/jora-scraper"
+    },
+    {
+      "actor_id": "04YGacMFd31HaTigx",
+      "title": "Domain.com.au Real Estate Scraper",
+      "family": "real_estate_property",
+      "current_route_strategy": "real_estate_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/crawlerbros/domain-au-scraper"
+    },
+    {
+      "actor_id": "04yYRfyUxXn8vpLkc",
+      "title": "Naver Webtoon Scraper",
+      "family": "social_public_data",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/oxygenated_quagmire/naver-webtoon-scraper"
+    },
+    {
+      "actor_id": "050wNUHg5rcWwc4hh",
+      "title": "Agoda Phone Number Scraper",
+      "family": "travel_hospitality",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/scrapier/agoda-phone-number-scraper"
+    },
+    {
+      "actor_id": "051dcWvdF9hiHmzxI",
+      "title": "Instagram Related Person Scraper",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "yt_dlp",
+      "risk": [
+        "current yt_dlp label appears semantically unsafe for non-media actor"
+      ],
+      "url": "https://apify.com/scrapio/instagram-related-person-scraper"
+    },
+    {
+      "actor_id": "058v8gc2qh6nS5KoI",
+      "title": "Apartments.com Rentals Scraper \u2014 No Login Required",
+      "family": "real_estate_property",
+      "current_route_strategy": "real_estate_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/crowdpull/apartments-com-rentals-scraper"
+    },
+    {
+      "actor_id": "05KHbOUbvLcQhSDJ2",
+      "title": "OpenStates Legislation Crawler - 50-State Bill Tracker",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/jungle_synthesizer/openstates-legislation-crawler"
+    },
+    {
+      "actor_id": "05Mjuiqge8v9ULhEF",
+      "title": "CoinGecko Cryptocurrency Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/parseforge/coingecko-scraper"
+    },
+    {
+      "actor_id": "05OppyhlKDLMdKQon",
+      "title": "Benisouk Profile Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/getdataforme/benisouk-profile-scraper"
+    },
+    {
+      "actor_id": "05SDCsJvEWHJfCDbA",
+      "title": "LinkedIn Sales Navigator Scraper - Pay Per Result",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "job_board_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/silentflow/linkedin-sales-navigator-scraper-ppr"
+    },
+    {
+      "actor_id": "05ZVEPDNtQrqX4dlc",
+      "title": "CNN Article Scraper",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/filip_cicvarek/cnn-article-scraper"
+    },
+    {
+      "actor_id": "05dWoLR32gY8YKlAF",
+      "title": "Redbubble Email Scraper",
+      "family": "lead_directory_contacts",
+      "current_route_strategy": "yt_dlp",
+      "risk": [
+        "current yt_dlp label appears semantically unsafe for non-media actor"
+      ],
+      "url": "https://apify.com/scraper-mind/redbubble-email-scraper"
+    },
+    {
+      "actor_id": "05waQDrQHvhT72YUJ",
+      "title": "BOVAG Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/lokki/bovag-scraper"
+    },
+    {
+      "actor_id": "068qvYsw7FqPOhw6w",
+      "title": "StepStone Jobs Scraper",
+      "family": "job_board_ats",
+      "current_route_strategy": "job_board_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/powerai/stepstone-jobs-scraper-ppr"
+    },
+    {
+      "actor_id": "069AXmfMMR2r0X1Ml",
+      "title": "X User Profile Scraper",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/moving_beacon-owner1/my-actor-53"
+    },
+    {
+      "actor_id": "06A8hHs1bc44FGVjm",
+      "title": "Open Library Scraper",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/fortuitous_pirate/open-library-scraper"
+    },
+    {
+      "actor_id": "06AbSbzFW7bOnrOAs",
+      "title": "Domain.com.au Property Scraper \ud83d\udccd\ud83c\udfe0 - Cheap",
+      "family": "real_estate_property",
+      "current_route_strategy": "real_estate_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/scrapestorm/domain-com-au-property-scraper---cheap"
+    },
+    {
+      "actor_id": "06D8bBRSQua903aKh",
+      "title": "Stubhub Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/chimerical_quicklime/stubhub-scraper"
+    },
+    {
+      "actor_id": "06JUCNZUuDNcp4c4r",
+      "title": "AbeBooks Scraper \u2014 Rare, Used & Antiquarian Books",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/crawlerbros/abebooks-scraper"
+    },
+    {
+      "actor_id": "06P8KyNbquaUTFPVB",
+      "title": "Egyptian Real Estate Scraper",
+      "family": "real_estate_property",
+      "current_route_strategy": "real_estate_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/constructive_calm/egypt-real-estate-scraper"
+    },
+    {
+      "actor_id": "06mImcBLl2ibvCmif",
+      "title": "Imovirtual Property Search Scraper",
+      "family": "real_estate_property",
+      "current_route_strategy": "real_estate_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/stealth_mode/imovirtual-property-search-scraper"
+    },
+    {
+      "actor_id": "07NhDvqgDZlrrluZp",
+      "title": "Winston Salem Building Permits",
+      "family": "real_estate_property",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/velvety_bedbug/winston-salem-building-permits"
+    },
+    {
+      "actor_id": "07Z9UFMzgtHoTkiMo",
+      "title": "Mudah Search Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/stealth_mode/mudah-search-scraper"
+    },
+    {
+      "actor_id": "07epSQnJDVB4c6c2N",
+      "title": "Zomato Reviews Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/stealth_mode/zomato-reviews-scraper"
+    },
+    {
+      "actor_id": "07ewsqV72WaTEMeYN",
+      "title": "Mercedes-Benz Parts Catalog",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/making-data-meaningful/mercedes-benz-parts-catalog"
+    },
+    {
+      "actor_id": "084bNkqmglhWur2Ul",
+      "title": "TokyoDev Scraper: Japan Tech Jobs & Companies",
+      "family": "job_board_ats",
+      "current_route_strategy": "job_board_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/getascraper/tokyo-dev-scraper"
+    },
+    {
+      "actor_id": "08U5FtJflJFVSFivm",
+      "title": "LinkedIn Contacts Dataset for Demand Generation",
+      "family": "browser_render_utility",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/freecamp008/linkedin-demand-generation-contacts-dataset"
+    },
+    {
+      "actor_id": "08nUNGUAFFrShSskq",
+      "title": "Sitemap Health Validator",
+      "family": "browser_render_utility",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/predictable_function/my-actor"
+    },
+    {
+      "actor_id": "095rfgHtUpM4pT5mu",
+      "title": "Cars Data API",
+      "family": "no_code_integration_automation",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists",
+        "may require write/action permissions; defer or require explicit user-approved connector"
+      ],
+      "url": "https://apify.com/easyapi/cars-data-api"
+    },
+    {
+      "actor_id": "09ozsIWhybyznpxyf",
+      "title": "YouTube Lead Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "yt_dlp",
+      "risk": [
+        "current yt_dlp label appears semantically unsafe for non-media actor"
+      ],
+      "url": "https://apify.com/simpleapi/youtube-lead-scraper"
+    },
+    {
+      "actor_id": "0A1YUCNzBEkAgyjyz",
+      "title": "World Bank Data Scraper",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/lulzasaur/worldbank-scraper"
+    },
+    {
+      "actor_id": "0APUCS0IKs4WGvRRD",
+      "title": "Aifa Drug Prices Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/ayrtondavoli97/italyrxprices-official-aifa-drug-price-database"
+    },
+    {
+      "actor_id": "0B6nOVUlmd7tbrvEd",
+      "title": "Youtube Email Scraper",
+      "family": "lead_directory_contacts",
+      "current_route_strategy": "yt_dlp",
+      "risk": [
+        "current yt_dlp label appears semantically unsafe for non-media actor"
+      ],
+      "url": "https://apify.com/scrapio/youtube-email-scraper"
+    },
+    {
+      "actor_id": "0BGfEB12rypEip6XA",
+      "title": "RubyGems Scraper",
+      "family": "generic_web_page_extraction",
+      "current_route_strategy": "yt_dlp",
+      "risk": [
+        "current yt_dlp label appears semantically unsafe for non-media actor"
+      ],
+      "url": "https://apify.com/gio21/rubygems-scraper"
+    },
+    {
+      "actor_id": "0BXmOaIWdo6pUKUdY",
+      "title": "Ali Express Tracking",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/sovanza.inc/ali-express-tracking"
+    },
+    {
+      "actor_id": "0Be708JC6XF2jbcBX",
+      "title": "Farmaciamato Product Search Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/stealth_mode/farmaciamato-product-search-scraper"
+    },
+    {
+      "actor_id": "0BkNtxdbRuQwOXkGV",
+      "title": "Meesho Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/gio21/meesho-scraper"
+    },
+    {
+      "actor_id": "0BxMbiELvOjlaidC8",
+      "title": "PartsTown Restaurant Equipment Parts Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/parseforge/partstown-scraper"
+    },
+    {
+      "actor_id": "0C7GpWlg8nEgBc8Kb",
+      "title": "Maven Central Scraper",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/fortuitous_pirate/maven-central-scraper"
+    },
+    {
+      "actor_id": "0C9QiS4IChNUZvWir",
+      "title": "Naukri Jobs Scraper \u2014 India's #1 Job Board | PPE",
+      "family": "job_board_ats",
+      "current_route_strategy": "job_board_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/bovi/naukri-jobs-scraper"
+    },
+    {
+      "actor_id": "0CG8fAK0YJbZctPRY",
+      "title": "Google Maps Reviews",
+      "family": "job_board_ats",
+      "current_route_strategy": "job_board_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/technicaldost/google-maps-reviews"
+    },
+    {
+      "actor_id": "0CJzUxJ2Jvqd7NVBH",
+      "title": "Zillow API + Market KPIs (Bridge Interactive Alternative)",
+      "family": "real_estate_property",
+      "current_route_strategy": "real_estate_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/sian.agency/zillow-property-scraper"
+    },
+    {
+      "actor_id": "0CUfsatHtZBfUO99R",
+      "title": "Mercari Listings Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/piotrv1001/mercari-listings-scraper"
+    },
+    {
+      "actor_id": "0CWo0rTyw8fmTg6B9",
+      "title": "\ud83e\udd16 Job Description Writing",
+      "family": "job_board_ats",
+      "current_route_strategy": "job_board_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/easyapi/job-description-writing"
+    },
+    {
+      "actor_id": "0CwKY3ohfHitRsZaC",
+      "title": "Taobao Phone Number Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/scrapier/taobao-phone-number-scraper"
+    },
+    {
+      "actor_id": "0DDkln5qgqdNaelxk",
+      "title": "Pinterest Data Extractor",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/jungle_synthesizer/pinterest-data-extractor"
+    },
+    {
+      "actor_id": "0E2MslbGEymwAUNbz",
+      "title": "Glassdoor Job Search",
+      "family": "job_board_ats",
+      "current_route_strategy": "job_board_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/burbn/glassdoor-job-search"
+    },
+    {
+      "actor_id": "0EC4liiWbpeRAV7qq",
+      "title": "Company Enrichment API \u2014 Domain to Firmographics & Contacts",
+      "family": "browser_render_utility",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/nexgendata/company-enrichment-tool"
+    },
+    {
+      "actor_id": "0ELzu36JmdFVhKw4l",
+      "title": "ComparebestaiDetailsSpider",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/getdataforme/comparebestai-details-spider"
+    },
+    {
+      "actor_id": "0EMD2AVegd3cWZtFz",
+      "title": "OpenStreetMap POI Intelligence",
+      "family": "real_estate_property",
+      "current_route_strategy": "real_estate_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/benthepythondev/osm-poi-intelligence"
+    },
+    {
+      "actor_id": "0EXe0hsmDKWLI3JF9",
+      "title": "Domain.com.au Scraper With Agents | $1 / 1k",
+      "family": "real_estate_property",
+      "current_route_strategy": "real_estate_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/fatihtahta/domain-com-au-scraper"
+    },
+    {
+      "actor_id": "0Edlnw3rFzLk4xXIQ",
+      "title": "Jobly.fi Scraper",
+      "family": "job_board_ats",
+      "current_route_strategy": "job_board_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/unfenced-group/jobly-fi-scraper"
+    },
+    {
+      "actor_id": "0Etptt2TZBlHgUsDV",
+      "title": "MangaDex Titles Scraper",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/parseforge/mangadex-titles-scraper"
+    },
+    {
+      "actor_id": "0F4Qa5l2DxW8iOHBj",
+      "title": "RedNote(Xiaohongshu) Search Scraper",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/datapilot/rednote-xiaohongshu-search-scraper"
+    },
+    {
+      "actor_id": "0FETT7RzAqSdSrcw7",
+      "title": "Ace Hardware Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/parseforge/ace-hardware-scraper"
+    },
+    {
+      "actor_id": "0Flxd56D1xqnbleIj",
+      "title": "Hacker News Jobs Scraper",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "job_board_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/crawlerbros/hackernews-jobs-scraper"
+    },
+    {
+      "actor_id": "0FmJuUwavrFjJ89U1",
+      "title": "PetSmart Product Scraper \ud83d\udc3e",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/easyapi/petsmart-product-scraper"
+    },
+    {
+      "actor_id": "0G3dx54R8HAzLirrc",
+      "title": "Speaker Bureau Directory Scraper - Keynote Speakers & Fees",
+      "family": "travel_hospitality",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/jungle_synthesizer/speaker-bureau-directory-scraper"
+    },
+    {
+      "actor_id": "0GJ4aaXAs9d4jznNZ",
+      "title": "Idealista Property Search & Discovery",
+      "family": "real_estate_property",
+      "current_route_strategy": "real_estate_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/axlymxp/idealista-property-search"
+    },
+    {
+      "actor_id": "0GV8IWh0qZPYqRzI5",
+      "title": "Faire Product Scraper - Cheap \ud83d\udd0d\u2728\ud83d\udecd\ufe0f",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/scrapestorm/faire-product-scraper---cheap"
+    },
+    {
+      "actor_id": "0GrKCUYNymZjhjcTX",
+      "title": "Glassdoor Scraper - Jobs, Salaries & Company Reviews",
+      "family": "job_board_ats",
+      "current_route_strategy": "job_board_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/thirdwatch/glassdoor-scraper"
+    },
+    {
+      "actor_id": "0I2Vvw2T5f6MiVFMv",
+      "title": "Goodreads Review Scraper",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/scraper-engine/goodreads-review-scraper"
+    },
+    {
+      "actor_id": "0I8n1WPtSoHbgSqtr",
+      "title": "Twitter B2b Email Scraper",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/scraper-engine/twitter-b2b-email-scraper"
+    },
+    {
+      "actor_id": "0IGpniJ1VBQ6vRTIQ",
+      "title": "Pinterest Phone Number Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/scraper-engine/pinterest-phone-number-scraper"
+    },
+    {
+      "actor_id": "0ISvHhA07gF9K7kaz",
+      "title": "Regulatory Change Tracker \u2014 13 Federal Sources",
+      "family": "finance_crypto_market_data",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/ryanclinton/regulatory-change-tracker"
+    },
+    {
+      "actor_id": "0Ij7H2jDTv7WsjDQn",
+      "title": "Djinni.co Tech Jobs Scraper \ud83d\udcb0 $0.95/1K \u2014 Salary, English Level",
+      "family": "job_board_ats",
+      "current_route_strategy": "job_board_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/blackfalcondata/djinni-scraper"
+    },
+    {
+      "actor_id": "0J7JfA55zXp9bfUtm",
+      "title": "LinkedIn MCP Server - AI Assistant",
+      "family": "social_public_data",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/alizarin_refrigerator-owner/linkedin-mcp-server"
+    },
+    {
+      "actor_id": "0JQtOaYzS6S7b5QTf",
+      "title": "WhatsApp Number Validator",
+      "family": "browser_render_utility",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/api_factory/whatsapp-number-validator"
+    },
+    {
+      "actor_id": "0JiIIEHhPa9BHOagV",
+      "title": "Subway Restaurant Scraper",
+      "family": "travel_hospitality",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/fortuitous_pirate/subway-scraper"
+    },
+    {
+      "actor_id": "0Jy4udejlKepxFEvU",
+      "title": "Luminess Reviews + Stats Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/wibuild/luminess-reviews-stats-scraper"
+    },
+    {
+      "actor_id": "0K9vzpA3pFjiaQNX8",
+      "title": "Technology Profiling Engine",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/justa/technology-profiling-engine"
+    },
+    {
+      "actor_id": "0KEGSzCB5rl7ywYq5",
+      "title": "Bundesagentur f\u00fcr Arbeit (Arbeitsagentur) Scraper \ud83c\udde9\ud83c\uddea \ud83d\udcbc Cheap",
+      "family": "job_board_ats",
+      "current_route_strategy": "job_board_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/scrapestorm/bundesagentur-fur-arbeit-arbeitsagentur-scraper-cheap"
+    },
+    {
+      "actor_id": "0KIe2iak6JvSB9RPN",
+      "title": "Headout Reviews Scraper",
+      "family": "travel_hospitality",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/knagymate/headout-reviews-scraper"
+    },
+    {
+      "actor_id": "0KJATJvdsTPn5olTR",
+      "title": "Facebook Photos Scraper",
+      "family": "social_video_media",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/scrapebase/facebook-photos-scraper"
+    },
+    {
+      "actor_id": "0KRD8FLGbh3D9sWxm",
+      "title": "Shein Search Products Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/scrapapi/shein-search-products-scraper"
+    },
+    {
+      "actor_id": "0Kf8pk7hKZjrCuaSU",
+      "title": "Pinterest Ads Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/scraper-engine/pinterest-ads-scraper"
+    },
+    {
+      "actor_id": "0KfVeZ9d2zfcLHVgM",
+      "title": "Amazon Scraper (Pay-Per-Event)",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/prodiger/amazon-scraper"
+    },
+    {
+      "actor_id": "0L4k8cFBp1jMBXysP",
+      "title": "Uline Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/maximedupre/uline-scraper"
+    },
+    {
+      "actor_id": "0LUgTXjAbfhIExKDn",
+      "title": "Aliexpress Email Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/scraper-engine/aliexpress-email-scraper"
+    },
+    {
+      "actor_id": "0LmOdwJLZieAzhO9F",
+      "title": "Pisos.com Real Estate Scraper",
+      "family": "real_estate_property",
+      "current_route_strategy": "real_estate_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/lexis-solutions/pisos-com-scraper"
+    },
+    {
+      "actor_id": "0LtxTnowJWrxGKnxs",
+      "title": "Wmca Details Spider",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/getdataforme/wmca-details-spider"
+    },
+    {
+      "actor_id": "0MBsDDJJvFHWZ5d8P",
+      "title": "Facebook Ads Scraper Pro",
+      "family": "ads_marketing_seo_intel",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/crawlerbros/facebook-ads-scraper-pro"
+    },
+    {
+      "actor_id": "0MDwK7d9w6vQfKmSW",
+      "title": "Aiseomate Blogdetails Spider",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/getdataforme/aiseomate-blogdetails-spider"
+    },
+    {
+      "actor_id": "0MNJxl7frUi46qGMr",
+      "title": "USASpending Scraper \u2014 Government Contracts, Grants & Awards",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/copious_atoll/usaspending-contracts"
+    },
+    {
+      "actor_id": "0MWDTb4rHcMY5RIw8",
+      "title": "Facebook Post Comments Scraper",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/easyapi/facebook-post-comments-scraper"
+    },
+    {
+      "actor_id": "0N6Ao9PCmbzeYCqBp",
+      "title": "Upwork Job Monitor",
+      "family": "job_board_ats",
+      "current_route_strategy": "job_board_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/sentry/upwork-job-monitor"
+    },
+    {
+      "actor_id": "0NUw1EjX6ioyng2ee",
+      "title": "Tripadvisor Reviews Scraper",
+      "family": "travel_hospitality",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/api-ninja/tripadvisor-reviews-scraper"
+    },
+    {
+      "actor_id": "0NdjYKu8dfDfLfiRX",
+      "title": "Soundcloud People Search Scraper \ud83c\udfb5",
+      "family": "social_public_data",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/easyapi/soundcloud-people-search-scraper"
+    },
+    {
+      "actor_id": "0O3fsYqsgUZfVlbs8",
+      "title": "PubMed Biomedical Paper Scraper",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/brilliant_gum/pubmed-scraper"
+    },
+    {
+      "actor_id": "0OAcaRhsH8dKf6qJU",
+      "title": "Amazon Product Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/scrapebase/amazon-product-scraper"
+    },
+    {
+      "actor_id": "0OH2rGiy59gJFqyMI",
+      "title": "Facebook Page Videos Scraper",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "yt_dlp",
+      "risk": [
+        "current yt_dlp label appears semantically unsafe for non-media actor"
+      ],
+      "url": "https://apify.com/powerai/facebook-page-videos-scraper"
+    },
+    {
+      "actor_id": "0OV7Ql048yxtoZMYf",
+      "title": "Flightradar24 Scraper",
+      "family": "travel_hospitality",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/flamboyant_liner/flightradar24-scraper"
+    },
+    {
+      "actor_id": "0OdYb7GPP3hcrRJ1T",
+      "title": "Reviewbot Google Play Review Scraper",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/reviewbot/google-review-scraper"
+    },
+    {
+      "actor_id": "0Ok4ENc1OvEYe61FL",
+      "title": "Instagram Creator Scraper",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/agentx/instagram-creator-scraper"
+    },
+    {
+      "actor_id": "0P8JDGPcebqEASwcX",
+      "title": "Instagram Likes Scraper",
+      "family": "social_video_media",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/scraperforge/instagram-likes-scraper"
+    },
+    {
+      "actor_id": "0PFewmVCG49Vuvg1k",
+      "title": "Shopify App Reviews Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/powerai/shopify-app-reviews-scraper"
+    },
+    {
+      "actor_id": "0PWwqTETzll3cKTBA",
+      "title": "Booking.com Hotel Review Scraper",
+      "family": "real_estate_property",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/ahmed_jasarevic/booking-com-hotel-review-scraper"
+    },
+    {
+      "actor_id": "0PmD8aguIwvqPIIT1",
+      "title": "99property Spider",
+      "family": "real_estate_property",
+      "current_route_strategy": "real_estate_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/getdataforme/99property-spider"
+    },
+    {
+      "actor_id": "0Qc9NbIKArTNHIZOY",
+      "title": "Free Dictionary Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/gio21/free-dictionary-scraper"
+    },
+    {
+      "actor_id": "0QdHo7HqKqgeuyUKy",
+      "title": "Supernet Domain Health - Email Reputation Audit",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/superlativetech/supernet-domain-health"
+    },
+    {
+      "actor_id": "0QlaCm1ISElFTC7Md",
+      "title": "Craigslist Scraper Premium",
+      "family": "job_board_ats",
+      "current_route_strategy": "job_board_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/newbs/craiglist-scraper-premium"
+    },
+    {
+      "actor_id": "0QsGk6eme3NoiKrAR",
+      "title": "Alibaba Email Scraper - Advanced, Fast & Cheapest",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/contacts-api/alibaba-email-scraper-fast-advanced-and-cheapest"
+    },
+    {
+      "actor_id": "0QxuH67hmg6ZfdHY0",
+      "title": "Ariel Reviews Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/getdataforme/ariel-reviews-scraper"
+    },
+    {
+      "actor_id": "0RAKHX5QreqnomnSW",
+      "title": "Globalsources Product Search Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/stealth_mode/globalsources-product-search-scraper"
+    },
+    {
+      "actor_id": "0RXDy82tINa0A6tcj",
+      "title": "Streamable Uploader",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "yt_dlp",
+      "risk": [
+        "current yt_dlp label appears semantically unsafe for non-media actor"
+      ],
+      "url": "https://apify.com/macheta/streamable-uploader"
+    },
+    {
+      "actor_id": "0RyQzDWbu1qlmNCFQ",
+      "title": "Appranker Category Parser Spider",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/getdataforme/appranker-category-parser-spider"
+    },
+    {
+      "actor_id": "0SFU4KXgLhGw5wtjg",
+      "title": "leboncoin Listings Scraper",
+      "family": "real_estate_property",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/xtracto/leboncoin-listings"
+    },
+    {
+      "actor_id": "0SHtjFyh3L6V8fLDT",
+      "title": "Google Maps Business Listing",
+      "family": "travel_hospitality",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/truefetch/google-maps-business-listing"
+    },
+    {
+      "actor_id": "0SRmtSxywwkHV2Cyd",
+      "title": "TotalJobs Scraper",
+      "family": "job_board_ats",
+      "current_route_strategy": "job_board_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/moving_beacon-owner1/totaljobs-scraper"
+    },
+    {
+      "actor_id": "0SohMtDBRf2SPMiVg",
+      "title": "Meesho Full Catalog / Bulk Exporter",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/axlymxp/meesho-full-catalog-exporter"
+    },
+    {
+      "actor_id": "0T2mtKq8eeea4lkGs",
+      "title": "iTunes / Mac App Store Search Scraper",
+      "family": "no_code_integration_automation",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists",
+        "may require write/action permissions; defer or require explicit user-approved connector"
+      ],
+      "url": "https://apify.com/easyapi/itunes-mac-app-store-search-scraper"
+    },
+    {
+      "actor_id": "0TFW9GjOwbnlBU1xV",
+      "title": "PubMed Scraper \u2014 Bulk Abstracts API for Pharma R&D",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/azureblue/pubmed-abstract-scraper"
+    },
+    {
+      "actor_id": "0TUDPAaF4MmpeKzdo",
+      "title": "Dubizzle Property Scraper UAE",
+      "family": "real_estate_property",
+      "current_route_strategy": "real_estate_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/devil_port369-owner/dubizzle-property"
+    },
+    {
+      "actor_id": "0ToOohMBuB9yW80A7",
+      "title": "Bizquest [Only $1\ud83d\udcb0] Scraper",
+      "family": "real_estate_property",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/memo23/bizquest-scraper"
+    },
+    {
+      "actor_id": "0TodR7k95xkdihjMQ",
+      "title": "Amazon Bestsellers Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/automation-lab/amazon-bestsellers-scraper"
+    },
+    {
+      "actor_id": "0TyyflTseRIMkqqDD",
+      "title": "Commercialrealestate.com.au \u00b7 AU Commercial \u00b7 $1.50/1k",
+      "family": "real_estate_property",
+      "current_route_strategy": "real_estate_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/memo23/commercialrealestate-au-scraper"
+    },
+    {
+      "actor_id": "0UDODOnpTkxY3Oc90",
+      "title": "Hacker News Scraper \u2014 Stories, Comments & Jobs",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "job_board_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/cryptosignals/hackernews-scraper"
+    },
+    {
+      "actor_id": "0UUNhdMl04xj2MjLx",
+      "title": "Business Intelligence Data Converter",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/m3web/business-intelligence-data-converter"
+    },
+    {
+      "actor_id": "0UZWwNxlHH7wVdd3Y",
+      "title": "JobBasel.ch Scraper - Basel Region Job Board",
+      "family": "job_board_ats",
+      "current_route_strategy": "job_board_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/santamaria-automations/jobbasel-ch-scraper"
+    },
+    {
+      "actor_id": "0Uzi1HdeEFAOg0Uy8",
+      "title": "Twitter Profile Email Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/scraper-engine/twitter-profile-email-scraper"
+    },
+    {
+      "actor_id": "0V4pT7WFt0HtopmSp",
+      "title": "YouTube Email Extractor \ud83d\udce9\ud83d\udccd - Fast & cheap \ud83d\udcac\u2b50",
+      "family": "job_board_ats",
+      "current_route_strategy": "yt_dlp",
+      "risk": [
+        "current yt_dlp label appears semantically unsafe for non-media actor"
+      ],
+      "url": "https://apify.com/scrapestorm/youtube-email-extractor---fast-cheap"
+    },
+    {
+      "actor_id": "0VNfRkDgtJtQBMgpH",
+      "title": "\ud83c\udfe1 Trulia B2B Email Scraper",
+      "family": "real_estate_property",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/scrapier/trulia-b2b-emails-scraper"
+    },
+    {
+      "actor_id": "0VW0iwzLecgwrq2DO",
+      "title": "Seloger France $1\ud83d\udcb0 Powerful Filters + Deep Search",
+      "family": "real_estate_property",
+      "current_route_strategy": "real_estate_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/abotapi/seloger-france-scraper"
+    },
+    {
+      "actor_id": "0VbXWsuz1NXcRm3Ic",
+      "title": "\ud83e\uddf5 Threads User Following Scraper",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/scrapier/threads-user-following-scraper"
+    },
+    {
+      "actor_id": "0Vl25Dw2aI7eyGycd",
+      "title": "VRBO Scraper - Vacation Rentals & Expedia Hotels API",
+      "family": "real_estate_property",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/makework36/vrbo-scraper"
+    },
+    {
+      "actor_id": "0VtUeREYeuCMZwZYI",
+      "title": "Trivago Email Scraper",
+      "family": "travel_hospitality",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/scrapio/trivago-email-scraper"
+    },
+    {
+      "actor_id": "0W4hjkGOgG0a7jLNA",
+      "title": "Viewstats.com Search Results and Channel Details Scraper",
+      "family": "job_board_ats",
+      "current_route_strategy": "yt_dlp",
+      "risk": [
+        "current yt_dlp label appears semantically unsafe for non-media actor"
+      ],
+      "url": "https://apify.com/memo23/viewstats-scraper"
+    },
+    {
+      "actor_id": "0WhHRbjH9QcM1h8Yc",
+      "title": "Teachable Course Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/silentflow/teachable-scraper"
+    },
+    {
+      "actor_id": "0Ww8zOYKaaS3nxcY0",
+      "title": "ZipRecruiter Jobs Scraper",
+      "family": "job_board_ats",
+      "current_route_strategy": "job_board_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/kawsar/ziprecruiter-jobs-scraper"
+    },
+    {
+      "actor_id": "0XNL6wRbRbt8wmdI1",
+      "title": "Vimeo Email Scraper - Advanced, Fast & Cheapest",
+      "family": "browser_render_utility",
+      "current_route_strategy": "yt_dlp",
+      "risk": [
+        "current yt_dlp label appears semantically unsafe for non-media actor"
+      ],
+      "url": "https://apify.com/contacts-api/vimeo-email-scraper-fast-advanced-and-cheapest"
+    },
+    {
+      "actor_id": "0XdQGitwIYhD2Fm8N",
+      "title": "Glovo Scraper \u2014 Restaurants, Supermarkets, Shops",
+      "family": "browser_render_utility",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/gooyer.co/glovo-scraper"
+    },
+    {
+      "actor_id": "0XpOETGcJKIRkYE6p",
+      "title": "Indiamart Product Info Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/getdataforme/indiamart-productinfo-scraper"
+    },
+    {
+      "actor_id": "0YE1njjnATCN19Cjk",
+      "title": "YouTube Shorts Scraper",
+      "family": "browser_render_utility",
+      "current_route_strategy": "yt_dlp",
+      "risk": [
+        "current yt_dlp label appears semantically unsafe for non-media actor"
+      ],
+      "url": "https://apify.com/makework36/youtube-shorts-scraper"
+    },
+    {
+      "actor_id": "0YEecnqoLmPXIvgPv",
+      "title": "Reddit Users V2 \u2014 Profiles + My Account & Followers (19)",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/red_crawler/reddit-users-v2"
+    },
+    {
+      "actor_id": "0YZwgaC4eOy26baWP",
+      "title": "LinkedIn Ad Library Scraper",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/igolaizola/linkedin-ad-library-scraper"
+    },
+    {
+      "actor_id": "0ZCQONxB3BdyOzrbD",
+      "title": "LoopNet US + UK + Realla [$1.5\ud83d\udcb0] Commercial Property Scraper",
+      "family": "real_estate_property",
+      "current_route_strategy": "real_estate_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/memo23/loopnet-scraper-ppe"
+    },
+    {
+      "actor_id": "0ZlOHBvaglZci4LNq",
+      "title": "Phantombuster result downloader",
+      "family": "lead_directory_contacts",
+      "current_route_strategy": "yt_dlp",
+      "risk": [
+        "current yt_dlp label appears semantically unsafe for non-media actor"
+      ],
+      "url": "https://apify.com/advantageous_subcontra/phantombuster-result-downloader"
+    },
+    {
+      "actor_id": "0aC3z4dWuVdbAshJM",
+      "title": "Mobile.de Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/shahidirfan/mobile-de-scraper"
+    },
+    {
+      "actor_id": "0agGNDsYzPJbAje8T",
+      "title": "Website Speed Checker",
+      "family": "browser_render_utility",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/onescales/website-speed-checker"
+    },
+    {
+      "actor_id": "0bayeE4qPEtMhGgxC",
+      "title": "Linkedin Job Scraper",
+      "family": "job_board_ats",
+      "current_route_strategy": "job_board_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/freshdata/linkedin-job-scraper"
+    },
+    {
+      "actor_id": "0bfGIp8gPCHs0AyhV",
+      "title": "Formula 1 Data Scraper",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/crawlerbros/openf1-scraper"
+    },
+    {
+      "actor_id": "0cHXsaJb1yDxpVYyR",
+      "title": "Ulta Products Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/powerai/ulta-products-scraper"
+    },
+    {
+      "actor_id": "0cVdSNkIXxFeUBcD6",
+      "title": "Immoscout24 Scraper (Real Estate)",
+      "family": "real_estate_property",
+      "current_route_strategy": "real_estate_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/ninhothedev/immoscout24-scraper"
+    },
+    {
+      "actor_id": "0cW8FCh1H9j34VDjg",
+      "title": "Fetch Labeled Solana Programs API",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/vybe/solana-labeled-program-accounts-api"
+    },
+    {
+      "actor_id": "0caMKRyxBT7O9bP1g",
+      "title": "Mercari Product Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/nifty.codes/mercari-listings-scraper"
+    },
+    {
+      "actor_id": "0d3G1FDeQLIP8NbkI",
+      "title": "Github Scraper | $2 / 1k | All In One",
+      "family": "browser_render_utility",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/fatihtahta/github-scraper"
+    },
+    {
+      "actor_id": "0dJWaIw0DZVzAmGvM",
+      "title": "Google Play Store Reviews Scraper",
+      "family": "browser_render_utility",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/codingfrontend/playstore-reviews-scraper"
+    },
+    {
+      "actor_id": "0dZbM5DZQ4dLlv5bw",
+      "title": "Amazon Phone Number Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/scraper-mind/amazon-phone-number-scraper"
+    },
+    {
+      "actor_id": "0douHCjcVXE8w359E",
+      "title": "IP Geolocation Scraper",
+      "family": "local_maps_serp",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/parseforge/ipapi-geolocation-scraper"
+    },
+    {
+      "actor_id": "0dsmjr9YkDaYR9SUi",
+      "title": "AllRecipes Search Scraper \ud83c\udf73",
+      "family": "travel_hospitality",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/easyapi/allrecipes-search-scraper"
+    },
+    {
+      "actor_id": "0eA4sXizWzZaEKSSR",
+      "title": "Instagram Tagged Posts Scraper",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/crawlerbros/instagram-tagged-posts-scraper"
+    },
+    {
+      "actor_id": "0eFw7Qqe4dwwoIHpS",
+      "title": "Twitter (X.com) Image Downloader",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "yt_dlp",
+      "risk": [
+        "current yt_dlp label appears semantically unsafe for non-media actor"
+      ],
+      "url": "https://apify.com/codenest/twitter-x-com-image-downloader"
+    },
+    {
+      "actor_id": "0eOAWsOczPzsyx31G",
+      "title": "Sotheby's Watch Buy Now Listings Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/jungle_synthesizer/sothebys-watch-buy-now-listings-scraper"
+    },
+    {
+      "actor_id": "0eONPbX8avCqMDZsz",
+      "title": "Canva Email Scraper \u2013 Advanced, Cheapest & Reliable \ud83d\udce7\u26a1\ud83d\udcf7",
+      "family": "browser_render_utility",
+      "current_route_strategy": "yt_dlp",
+      "risk": [
+        "current yt_dlp label appears semantically unsafe for non-media actor"
+      ],
+      "url": "https://apify.com/contactminerlabs/canva-email-scraper---advanced-cheapest-reliable"
+    },
+    {
+      "actor_id": "0eQO6nzbdmBf4K9oF",
+      "title": "Dr Simi",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/scraperschile/dr-simi"
+    },
+    {
+      "actor_id": "0eX0vZnQBOpnDU2i7",
+      "title": "Canadiantire.ca Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/azzouzana/canadiantire-ca-scraper"
+    },
+    {
+      "actor_id": "0eYsD9jdq3gdGMSWe",
+      "title": "Facebook Page Scraper \u00b7 Extract Email, Phone & Website",
+      "family": "browser_render_utility",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/corent1robert/facebook-page-contact-scraper"
+    },
+    {
+      "actor_id": "0ejInqQjNXjevIGfe",
+      "title": "RE/MAX Portugal Scraper",
+      "family": "real_estate_property",
+      "current_route_strategy": "real_estate_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/solidcode/remax-scraper"
+    },
+    {
+      "actor_id": "0etrfcOspy4OVvYQD",
+      "title": "CPSC Product Recalls - Safety Alerts",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/pink_comic/cpsc-product-recalls"
+    },
+    {
+      "actor_id": "0eu7sSoNsnMGhXAmM",
+      "title": "Rightmove Scraper - UK Property, Rent, Sold & Agents",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "real_estate_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/khadinakbar/rightmove-all-in-one-scraper"
+    },
+    {
+      "actor_id": "0f1AnV2edAbzlr7oU",
+      "title": "Reddit Scraper - Cost Effective",
+      "family": "social_public_data",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/igolaizola/reddit-scraper"
+    },
+    {
+      "actor_id": "0fcXrlLAqK6KvmshV",
+      "title": "Skyscanner Flight Scraper API",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/makework36/flight-price-scraper"
+    },
+    {
+      "actor_id": "0fgwbcZ7QYiShAMtc",
+      "title": "Podcast Opportunity Engine",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/ryanclinton/podcast-opportunity-engine"
+    },
+    {
+      "actor_id": "0gGcEKTMdqYOqVQVc",
+      "title": "PakWheels Cars Search Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/ecomscrape/pakwheels-cars-search-scraper"
+    },
+    {
+      "actor_id": "0gHYjpGMUO3VmnYmH",
+      "title": "Linkedin Company Employees",
+      "family": "job_board_ats",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/api-empire/linkedin-company-employees"
+    },
+    {
+      "actor_id": "0gJx4RUXktCW8HpDm",
+      "title": "\ud83c\udfaf Pinterest Keywords Discovery Tool",
+      "family": "social_public_data",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/easyapi/pinterest-keywords-discovery-tool"
+    },
+    {
+      "actor_id": "0gKB3ofSMzUph8ho3",
+      "title": "Grailed Product Scraper \ud83d\udc55",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/shahidirfan/grailed-product-scraper"
+    },
+    {
+      "actor_id": "0gQgfCsclUFmiuP3C",
+      "title": "Google Play Store Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "yt_dlp",
+      "risk": [
+        "current yt_dlp label appears semantically unsafe for non-media actor"
+      ],
+      "url": "https://apify.com/zerobreak/google-play-store-scraper"
+    },
+    {
+      "actor_id": "0gagZ7Rxl0BYfUNod",
+      "title": "1688 Wholesale Analyzer - AI Insights & Smart Labels",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/loongge/1688-wholesale-analyzer"
+    },
+    {
+      "actor_id": "0gdJLMHgJfQZLpTzf",
+      "title": "Cloud Details Spider",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/getdataforme/cloud-details-spider"
+    },
+    {
+      "actor_id": "0gdZ45Pg5xTbR1pod",
+      "title": "Thai Real Estate Scraper",
+      "family": "real_estate_property",
+      "current_route_strategy": "real_estate_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/mai_amm/thai-real-estate-scraper"
+    },
+    {
+      "actor_id": "0grS2OAGUALxE7iTa",
+      "title": "Reddit Subreddit Scraper - Scrape Posts, No API Key",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/logiover/reddit-subreddit-scraper"
+    },
+    {
+      "actor_id": "0hlDTxSsVkaAUCyeJ",
+      "title": "Cruisemapper Ships Scraper",
+      "family": "travel_hospitality",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/vulnv/cruisemapper-ships-scraper"
+    },
+    {
+      "actor_id": "0hsSSj674lugLUbB3",
+      "title": "Indeed Jobs Scraper",
+      "family": "job_board_ats",
+      "current_route_strategy": "job_board_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/moving_beacon-owner1/indeed-jobs-scraper"
+    },
+    {
+      "actor_id": "0iEJ4fwCeCUUIOvEh",
+      "title": "\u26a1LinkedIn All-in-One Scraper (People, Company, Jobs)",
+      "family": "job_board_ats",
+      "current_route_strategy": "job_board_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/enrich-stream/linkedin-all-in-one-scraper-people-company-jobs"
+    },
+    {
+      "actor_id": "0icQ8w6k50WgJsrci",
+      "title": "Booking.com Hotel Scraper",
+      "family": "real_estate_property",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/santamaria-automations/booking-com-scraper"
+    },
+    {
+      "actor_id": "0ifaN8vgrbLwlyCxO",
+      "title": "ArXiv Paper Search",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/gentle_cloud/arxiv-paper-search"
+    },
+    {
+      "actor_id": "0iirBI5CdI1HnBqVt",
+      "title": "Linkedin Search Jobs Scraper [Without Cookies]",
+      "family": "job_board_ats",
+      "current_route_strategy": "job_board_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/memo23/apify-linkedin-search-results-scraper"
+    },
+    {
+      "actor_id": "0ilFren1qnyEOaqxH",
+      "title": "Bradesco Im\u00f3veis API",
+      "family": "real_estate_property",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/brasil-scrapers/bradesco-imoveis-api"
+    },
+    {
+      "actor_id": "0iryMiVgReJKKdQjp",
+      "title": "Medscape eMedicine Articles Scraper",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/parseforge/emedicine-articles-scraper"
+    },
+    {
+      "actor_id": "0jKAAgqptJjPSDksd",
+      "title": "Naver Place Reviews \u2014 Korean Business Review Data",
+      "family": "travel_hospitality",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/huggable_quote/naver-place-reviews-scraper"
+    },
+    {
+      "actor_id": "0jMEQbV3sHnzufKTI",
+      "title": "Mudah.my Scraper | Fast & Reliable | $2 / 1k",
+      "family": "real_estate_property",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/fatihtahta/mudah-malaysia-scraper"
+    },
+    {
+      "actor_id": "0kAnAWXx1MnhkuqTs",
+      "title": "INSTAGRAM SUPER FAST SCRAPER",
+      "family": "social_public_data",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/macheta/instagram-super-fast-scraper"
+    },
+    {
+      "actor_id": "0kEjbUghLgHxzxxaI",
+      "title": "EU VAT Validator (VIES) Scraper",
+      "family": "browser_render_utility",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/parseforge/vies-eu-vat-scraper"
+    },
+    {
+      "actor_id": "0kTXFRIk1toPhifET",
+      "title": "CapCut Video Downloader",
+      "family": "browser_render_utility",
+      "current_route_strategy": "yt_dlp",
+      "risk": [
+        "current yt_dlp label appears semantically unsafe for non-media actor"
+      ],
+      "url": "https://apify.com/scrapers-hub/capcut-video-downloader"
+    },
+    {
+      "actor_id": "0kXhslmBT9SbaRlDT",
+      "title": "LinkedIn Jobs Scraper \u2014 Filter-Based, No Login",
+      "family": "job_board_ats",
+      "current_route_strategy": "job_board_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/scrapesage/linkedin-jobs-scraper"
+    },
+    {
+      "actor_id": "0kmnkQv23Ys7a4F9J",
+      "title": "Google Shopping Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/solidcode/google-shopping-scraper"
+    },
+    {
+      "actor_id": "0knKqT111RyvV9lcJ",
+      "title": "BLS CPI MCP \u2014 Consumer Price Index by Category",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/andrew_avina/bls-cpi-mcp"
+    },
+    {
+      "actor_id": "0l2X7JqOjJUfdUMfv",
+      "title": "Amazon Deals Scraper with Telegram Auto Posting",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/ittechinnovators/amazon-deals-to-telegram-auto-poster"
+    },
+    {
+      "actor_id": "0l9lmxNp3FJTFZ0rg",
+      "title": "Open-Meteo Weather Forecast Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/lulzasaur/openmeteo-scraper"
+    },
+    {
+      "actor_id": "0lLu3ht7kPSG6K7qi",
+      "title": "\ud83d\udcbc LinkedIn Jobs Scraper \ud83d\udd13 No Cookie/Login Needed \ud83d\udcc4 +Raw HTML",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "job_board_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/parseforge/linkedin-jobs-scraper"
+    },
+    {
+      "actor_id": "0lSkwff1AkW8emNkz",
+      "title": "Google Search Scraper \u2014 Organic Results & SERP Data Extractor",
+      "family": "ads_marketing_seo_intel",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/maged120/google-search"
+    },
+    {
+      "actor_id": "0lW4G5pPEhwkZTPHO",
+      "title": "Instagram Highlights Scraper",
+      "family": "social_public_data",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/scrapebase/instagram-highlights-scraper"
+    },
+    {
+      "actor_id": "0m0s4knQYGTFvIhWy",
+      "title": "Lazada Phone Number Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/api-empire/lazada-phone-number-scraper"
+    },
+    {
+      "actor_id": "0m5eePWygpK4CSKXJ",
+      "title": "Reddit Scraper Fast \u2014 Latest Posts & Search (No API Key)",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/cryptosignals/reddit-scraper-fast"
+    },
+    {
+      "actor_id": "0mFoOGFw7K4hp1v0f",
+      "title": "Apartments.com Scraper \ud83c\udfe1",
+      "family": "real_estate_property",
+      "current_route_strategy": "real_estate_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/epctex/apartments-scraper"
+    },
+    {
+      "actor_id": "0mgS0xpt6lb3GcAWg",
+      "title": "Instagram B2B Email Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/scraper-mind/instagram-b2b-email-scraper"
+    },
+    {
+      "actor_id": "0n1cNYZdMvTEoy2us",
+      "title": "WLW Scraper - B2B Supplier Leads from Wer liefert was",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/plowdata/wlw-company-scraper"
+    },
+    {
+      "actor_id": "0n8u4hOC5wGqjnpLa",
+      "title": "Wellfound Scraper",
+      "family": "job_board_ats",
+      "current_route_strategy": "job_board_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/radeance/wellfound-job-listings-scraper"
+    },
+    {
+      "actor_id": "0nUDIA97Z1zdWTDE0",
+      "title": "DexScreener Crypto Token & Pair Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/fortuitous_pirate/dexscreener-scraper"
+    },
+    {
+      "actor_id": "0nXooVy0yY8JpIArL",
+      "title": "Airbnb Scraper & Market Monitor",
+      "family": "real_estate_property",
+      "current_route_strategy": "real_estate_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/scrapesage/airbnb-scraper"
+    },
+    {
+      "actor_id": "0njEXdGY9WDHon5PI",
+      "title": "Probablemarket Category Spider",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/getdataforme/probablemarket-category-spider"
+    },
+    {
+      "actor_id": "0nutJzcYtTDmosmda",
+      "title": "Asc Global Mro Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/parseforge/asc-global-mro-scraper"
+    },
+    {
+      "actor_id": "0nvZruvIdV5SNp2ll",
+      "title": "Reddit Trends Posts Scraper \ud83d\udcc8\ud83d\udd25- Cheap",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "yt_dlp",
+      "risk": [
+        "current yt_dlp label appears semantically unsafe for non-media actor"
+      ],
+      "url": "https://apify.com/scrapestorm/reddit-trends-posts-scraper---cheap"
+    },
+    {
+      "actor_id": "0o5JDx7QAbh4UbcXK",
+      "title": "Dafiti BR Fashion Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/gio21/dafiti-br-scraper"
+    },
+    {
+      "actor_id": "0oLG4ymge70q454Za",
+      "title": "REMAX Real Estate Scraper - Cheap \ud83c\udfe1\ud83d\udd0e",
+      "family": "real_estate_property",
+      "current_route_strategy": "real_estate_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/scrapestorm/remax-real-estate-scraper---cheap"
+    },
+    {
+      "actor_id": "0oNK2haBWCHHm8Rbo",
+      "title": "Uber Eats Menu Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/sian.agency/uber-eats-menu-scraper"
+    },
+    {
+      "actor_id": "0oVSlMlAX47R2EyoP",
+      "title": "X (Twitter) Advanced Search Scraper \ud835\udd4f",
+      "family": "social_public_data",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/api-ninja/x-twitter-advanced-search"
+    },
+    {
+      "actor_id": "0oWsOf2CqfD5eTRIz",
+      "title": "Instagram Tagged Posts Scraper",
+      "family": "social_video_media",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/api-empire/instagram-tagged-posts-scraper"
+    },
+    {
+      "actor_id": "0ohlIKwlpoVPyVZE3",
+      "title": "TikTok Keywords Discovery Tool \ud83c\udfaf",
+      "family": "social_public_data",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/easyapi/tiktok-keywords-discovery-tool"
+    },
+    {
+      "actor_id": "0ok0gJg2Fy34CogLb",
+      "title": "TikTok Ad Library & Creative Scraper - Spy on Competitor Ads",
+      "family": "ads_marketing_seo_intel",
+      "current_route_strategy": "yt_dlp",
+      "risk": [
+        "current yt_dlp label appears semantically unsafe for non-media actor"
+      ],
+      "url": "https://apify.com/whoareyouanas/tiktok-ad-scraper"
+    },
+    {
+      "actor_id": "0oqlZ2RkBBVzYrY1i",
+      "title": "Facebook Marketplace Scraper",
+      "family": "real_estate_property",
+      "current_route_strategy": "real_estate_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/worshipful_knife/facebook-marketplace-scraper"
+    },
+    {
+      "actor_id": "0ow2LOZx2OUdo3SBn",
+      "title": "Google Play Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/jdtpnjtp/google-play-scraper"
+    },
+    {
+      "actor_id": "0p1QoePBKVgzrRyIR",
+      "title": "ExportersIndia Product Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/scrapeai/exportersindia-product-scraper"
+    },
+    {
+      "actor_id": "0pDBJfcO5Iw09T12z",
+      "title": "Youtube Transcription Scraper",
+      "family": "browser_render_utility",
+      "current_route_strategy": "yt_dlp",
+      "risk": [
+        "current yt_dlp label appears semantically unsafe for non-media actor"
+      ],
+      "url": "https://apify.com/hgservices/youtube-transcript-scraper"
+    },
+    {
+      "actor_id": "0pDpUgfFsdCpwZLFT",
+      "title": "eBay AI Deal Finder",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/webdatalabs/ebay-deal-finder"
+    },
+    {
+      "actor_id": "0pIBgTVijPJdcw9G9",
+      "title": "Goodreads Book Scraper - Ratings & Reviews",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/lulzasaur/goodreads-books-scraper"
+    },
+    {
+      "actor_id": "0pcfEHOjOgw7MQhgR",
+      "title": "TripAdvisor Scraper \u2013 Hotels, Restaurants & Reviews",
+      "family": "travel_hospitality",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/khadinakbar/tripadvisor-scraper"
+    },
+    {
+      "actor_id": "0q0tN0xGWjxKH0Zxu",
+      "title": "Pinterest Poster",
+      "family": "social_public_data",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/alizarin_refrigerator-owner/pinterest-poster"
+    },
+    {
+      "actor_id": "0qQXLUFePff2BoQyU",
+      "title": "Audible Book Search Scraper \ud83d\udcda",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/easyapi/audible-book-search-scraper"
+    },
+    {
+      "actor_id": "0qg9okjpYbMPdAWds",
+      "title": "Google Ads Transparency Competitor Ad Intelligence at Scale",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/alizarin_refrigerator-owner/google-ads-transparency-competitor-ad-intelligence-at-scale"
+    },
+    {
+      "actor_id": "0qnMmz76dLymEDVGf",
+      "title": "Smart Idealista Scraper",
+      "family": "real_estate_property",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/sian.agency/smart-idealista-scraper"
+    },
+    {
+      "actor_id": "0qtntHCmAJ1Fbw8AK",
+      "title": "Udemy Courses Scraper",
+      "family": "news_content_monitoring",
+      "current_route_strategy": "yt_dlp",
+      "risk": [
+        "current yt_dlp label appears semantically unsafe for non-media actor"
+      ],
+      "url": "https://apify.com/natanielsantos/udemy-courses-scraper"
+    },
+    {
+      "actor_id": "0qxecDrnvphYuWtVe",
+      "title": "\ud83d\udd0d Baidu Search Scraper",
+      "family": "generic_web_page_extraction",
+      "current_route_strategy": "yt_dlp",
+      "risk": [
+        "current yt_dlp label appears semantically unsafe for non-media actor"
+      ],
+      "url": "https://apify.com/api-empire/baidu-search-scraper"
+    },
+    {
+      "actor_id": "0r2J7yiK1CdDzpCV9",
+      "title": "InHerSight.com Company Insights/Reviews and Stats Scraper",
+      "family": "job_board_ats",
+      "current_route_strategy": "job_board_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/memo23/inhersight-cheerio-scraper"
+    },
+    {
+      "actor_id": "0rmg3HfLhVH9N5d8J",
+      "title": "ATS Hiring Intent - Buying Signals (Greenhouse + 4 ATSes)",
+      "family": "job_board_ats",
+      "current_route_strategy": "job_board_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/constructive_calm/ats-hiring-intent-scraper"
+    },
+    {
+      "actor_id": "0rqTRcMUsIa6CUnSy",
+      "title": "Pinterest Ads Scraper [PPR]",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/zadexinho/pinterest-ads-scraper"
+    },
+    {
+      "actor_id": "0rtWuuEKisDaQsdUk",
+      "title": "Zolo Property Scraper",
+      "family": "real_estate_property",
+      "current_route_strategy": "real_estate_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/ocrad/zolo-property-scraper"
+    },
+    {
+      "actor_id": "0rw1LU10TmQUMtbiS",
+      "title": "Google Trends Scraper",
+      "family": "ads_marketing_seo_intel",
+      "current_route_strategy": "yt_dlp",
+      "risk": [
+        "current yt_dlp label appears semantically unsafe for non-media actor"
+      ],
+      "url": "https://apify.com/oneary/google-trends-scraper"
+    },
+    {
+      "actor_id": "0s5eYGxZfVi1EYUY9",
+      "title": "Wayfair Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/gio21/wayfair-scraper"
+    },
+    {
+      "actor_id": "0sV77MMb1mz3PVNVm",
+      "title": "Kufar.by Belarus Classifieds Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/unfenced-group/kufar-by-scraper"
+    },
+    {
+      "actor_id": "0sVqcqOf7L0xH1bFP",
+      "title": "Zevoinect Review Scraper",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/getdataforme/zevoinect-review-scraper"
+    },
+    {
+      "actor_id": "0sZ6AKVpLaB0q8JZ9",
+      "title": "Youtube B2B Phone Number Scraper",
+      "family": "lead_directory_contacts",
+      "current_route_strategy": "yt_dlp",
+      "risk": [
+        "current yt_dlp label appears semantically unsafe for non-media actor"
+      ],
+      "url": "https://apify.com/scraperforge/youtube-b2b-phone-number-scraper"
+    },
+    {
+      "actor_id": "0sb1CeHuoE6NM3WWX",
+      "title": "Naukri Job Scraper",
+      "family": "job_board_ats",
+      "current_route_strategy": "job_board_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/scrapio/naukri-job-scraper"
+    },
+    {
+      "actor_id": "0tCE3UPvehJc5m1ZP",
+      "title": "Decathlon Brasil Corrida Catalog Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/jungle_synthesizer/decathlon-brasil-corrida-catalog-scraper"
+    },
+    {
+      "actor_id": "0tRG4qEZibYeu0eYJ",
+      "title": "App Store Phone Number Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/scraper-engine/app-store-phone-number-scraper"
+    },
+    {
+      "actor_id": "0tcbv4SIYhcPCFteQ",
+      "title": "LinkedIn Post Comments & Engagements Scraper",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/khadinakbar/linkedin-post-comments-engagements-scraper"
+    },
+    {
+      "actor_id": "0tm824Uqw5v1ij3PR",
+      "title": "Zameen Property Agents Scraper - Cheap \u0633\u0633\u062a\u0627\ud83d\udc68\u200d\ud83d\udcbc\ud83d\udcca\ud83c\udfe0",
+      "family": "real_estate_property",
+      "current_route_strategy": "real_estate_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/scrapestorm/zameen-property-agents-scraper---cheap-sst"
+    },
+    {
+      "actor_id": "0tzgJSF5pNcl5RmWv",
+      "title": "Token Unlocks & Vesting Calendar (Crypto)",
+      "family": "finance_crypto_market_data",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/foxlabs/token-unlocks-calendar"
+    },
+    {
+      "actor_id": "0uAqxoScwr5CvsDiS",
+      "title": "Instagram Comments Scraper",
+      "family": "social_public_data",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/automation-lab/instagram-comments-scraper"
+    },
+    {
+      "actor_id": "0uEtTYUGV69f0PaMl",
+      "title": "Tiktok Post Detail Scraper",
+      "family": "browser_render_utility",
+      "current_route_strategy": "yt_dlp",
+      "risk": [
+        "current yt_dlp label appears semantically unsafe for non-media actor"
+      ],
+      "url": "https://apify.com/xtracto/tiktok-post-detail-scraper"
+    },
+    {
+      "actor_id": "0uFUeoEpudPCwV3hm",
+      "title": "MaxSold Scraper \u2014 Estate Auction Lots, Bids & Alerts",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/scrapersdelight/maxsold-scraper"
+    },
+    {
+      "actor_id": "0uHyWF6Bfgofo3cWJ",
+      "title": "Quora Email Scraper - Advanced, Fast & Cheapest",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/contacts-api/quora-email-scraper-fast-advanced-and-cheapest"
+    },
+    {
+      "actor_id": "0uImNvtdMRU822awa",
+      "title": "Youtube Leads Generator",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "yt_dlp",
+      "risk": [
+        "current yt_dlp label appears semantically unsafe for non-media actor"
+      ],
+      "url": "https://apify.com/contacts-api/youtube-leads-generator"
+    },
+    {
+      "actor_id": "0ua9pn6oRZpF3tip7",
+      "title": "Amazon Product Scraper (Pay-Per-Event)",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/prodiger/amazon-product-scraper"
+    },
+    {
+      "actor_id": "0ucRLgVF0aSqUNIox",
+      "title": "Bonanza Listings Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/piotrv1001/bonanza-listings-scraper"
+    },
+    {
+      "actor_id": "0ugLhRNElunKGCHwu",
+      "title": "Willhaben Carinfo Parser Spider",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/getdataforme/willhaben-carinfo-parser-spider"
+    },
+    {
+      "actor_id": "0uwLUyigivfxRdf1A",
+      "title": "Wounded Warrior Resources API - Support for Injured Veterans",
+      "family": "real_estate_property",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/alizarin_refrigerator-owner/wounded-warrior-resources-api---support-for-injured-veterans"
+    },
+    {
+      "actor_id": "0vbUssu1mDU2bQiUG",
+      "title": "Pok\u00e9mon Catalog Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/parseforge/pokemon-catalog-scraper"
+    },
+    {
+      "actor_id": "0vx7xII91InB51XXy",
+      "title": "Website Contact & Social Media Extractor",
+      "family": "lead_directory_contacts",
+      "current_route_strategy": "yt_dlp",
+      "risk": [
+        "current yt_dlp label appears semantically unsafe for non-media actor"
+      ],
+      "url": "https://apify.com/onescales/website-contact-social-media-extractor"
+    },
+    {
+      "actor_id": "0w1MQyh426rHStV82",
+      "title": "Github Repo Insight",
+      "family": "browser_render_utility",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/welcoming_fireplace/github-repo-insight"
+    },
+    {
+      "actor_id": "0w9z3EoakU3nBbKiC",
+      "title": "Sahibinden Real Estate Scraper",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "real_estate_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/lightkong/sahibinden-real-estate-scraper"
+    },
+    {
+      "actor_id": "0wB2pcHcT6aFx6I8B",
+      "title": "Keyword Suggest Multi",
+      "family": "job_board_ats",
+      "current_route_strategy": "yt_dlp",
+      "risk": [
+        "current yt_dlp label appears semantically unsafe for non-media actor"
+      ],
+      "url": "https://apify.com/habit.zhou/keyword-suggest-multi"
+    },
+    {
+      "actor_id": "0wS4XxOAZWdudGHVq",
+      "title": "Realtor Agent Extractor (Phone)",
+      "family": "real_estate_property",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/coder_zoro/realtor-agent-extractor-phone"
+    },
+    {
+      "actor_id": "0wVin75XChhJ8D5zX",
+      "title": "Douyin Comments Scraper",
+      "family": "social_public_data",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/natanielsantos/douyin-comments-scraper"
+    },
+    {
+      "actor_id": "0whjpxnBxv9VZt6J0",
+      "title": "Takealot Products Scraper \ud83d\udecd\ufe0f",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/shahidirfan/takealot-products-scraper"
+    },
+    {
+      "actor_id": "0whqEgreLxRlTcXhj",
+      "title": "TripAdvisor Hotels Scraper",
+      "family": "travel_hospitality",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/rupom888/tripadvisor-hotels-scraper"
+    },
+    {
+      "actor_id": "0wi38CtP5zEKifljx",
+      "title": "FuelPrices | Pay Per Result, Easy to Use, No Cookies",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/johnvc/fuelprices"
+    },
+    {
+      "actor_id": "0x2ZWPg7cOopZ9MqI",
+      "title": "Baixar CTEs em Lote: XML + DACTE em ZIP",
+      "family": "real_estate_property",
+      "current_route_strategy": "yt_dlp",
+      "risk": [
+        "current yt_dlp label appears semantically unsafe for non-media actor"
+      ],
+      "url": "https://apify.com/brasildados/baixar-ctes-lote-api"
+    },
+    {
+      "actor_id": "0x6ou1rSWRFSeWM1I",
+      "title": "Realtor Scraper",
+      "family": "real_estate_property",
+      "current_route_strategy": "real_estate_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/crawlerbros/realtor-scraper"
+    },
+    {
+      "actor_id": "0xDH4Uq9LZd6rSuMb",
+      "title": "Verkkokauppa Product Search Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/stealth_mode/verkkokauppa-product-search-scraper"
+    },
+    {
+      "actor_id": "0xs7sR29vdVceftKr",
+      "title": "Houzz Email Scraper - Advanced, Fast & Cheapest",
+      "family": "real_estate_property",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/contacts-api/houzz-email-scraper-fast-advanced-and-cheapest"
+    },
+    {
+      "actor_id": "0y2BeM9YQDNrlT5VY",
+      "title": "Dubai Property Investment Analyzer \u2014 Yield & Deal Score",
+      "family": "real_estate_property",
+      "current_route_strategy": "real_estate_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/malikgen/dubai-property-analyzer"
+    },
+    {
+      "actor_id": "0yUYkckBqC0qVCdj1",
+      "title": "Propertyfinder Listings Scraper",
+      "family": "real_estate_property",
+      "current_route_strategy": "real_estate_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/solidcode/propertyfinder-listings-scraper"
+    },
+    {
+      "actor_id": "0yYFWIMKyTPXt6ZkM",
+      "title": "Sletat Review Scraper",
+      "family": "travel_hospitality",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/tufantoksoz/sletat-review-scraper"
+    },
+    {
+      "actor_id": "0yagXi8o9QY9JmiTd",
+      "title": "PricePulse AI \u2014 Cross-Marketplace Product Intelligence",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/entranced_gelato/price-pulse-ai"
+    },
+    {
+      "actor_id": "0ynUW7XbKdxqMBW4Z",
+      "title": "Twitch Email Scraper",
+      "family": "social_video_media",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/scrapier/twitch-email-scraper"
+    },
+    {
+      "actor_id": "0z1FbmRXFHUNG0Q96",
+      "title": "AI Product Opportunity Finder",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/piotrv1001/ai-product-opportunity-finder"
+    },
+    {
+      "actor_id": "0z5FsZLhvKkhrVKPJ",
+      "title": "Youtube Full Channel Videos Scraper - Pay per Results",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "yt_dlp",
+      "risk": [
+        "current yt_dlp label appears semantically unsafe for non-media actor"
+      ],
+      "url": "https://apify.com/scrapestorm/youtube-full-channel-videos-scraper---pay-per-results"
+    },
+    {
+      "actor_id": "0zdphOgtmj2zWXP23",
+      "title": "Infobip Jobs Parser Spider",
+      "family": "job_board_ats",
+      "current_route_strategy": "job_board_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/getdataforme/infobip-jobs-parser-spider"
+    },
+    {
+      "actor_id": "0zoLkO4iMIZgrE3VW",
+      "title": "ICTjobs.ch Scraper - Swiss IT & Tech Jobs",
+      "family": "job_board_ats",
+      "current_route_strategy": "job_board_schema",
+      "risk": [
+        "schema alone is not runtime support; needs base runner, pagination, extraction, tests"
+      ],
+      "url": "https://apify.com/santamaria-automations/ictjobs-ch-scraper"
+    },
+    {
+      "actor_id": "0zwX0d7ZIxem8f8G5",
+      "title": "Iso Energy Prices Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/fortuitous_pirate/iso-energy-prices-scraper"
+    },
+    {
+      "actor_id": "108gTRdIl3MbtCb4l",
+      "title": "Amincousa Details Script",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/hello.datawizards/amincousa-details-script"
+    },
+    {
+      "actor_id": "10FcTW1pem0vM5wQT",
+      "title": "Tottus",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/scraperschile/tottus"
+    },
+    {
+      "actor_id": "10GMgdAxFIKOH85bW",
+      "title": "REST Countries Scraper",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/compute-edge/countries-scraper"
+    },
+    {
+      "actor_id": "10I9YMbxHo8Et4kk0",
+      "title": "Google Scholar Scraper",
+      "family": "browser_render_utility",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/codingfrontend/google-scholar-scraper"
+    },
+    {
+      "actor_id": "10OSHG9C9mP30WFrN",
+      "title": "LinkedIn Company Employee Scraper",
+      "family": "authenticated_session_scrape",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/khadinakbar/linkedin-company-employee-scraper"
+    },
+    {
+      "actor_id": "10UyRZUJ8bAdjJdkQ",
+      "title": "Reddit Profiles Scraper",
+      "family": "job_board_ats",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/parseforge/reddit-profiles-scraper"
+    },
+    {
+      "actor_id": "10dots5tREVVhsTop",
+      "title": "\ud83d\uded2 Taobao B2B Email Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/simpleapi/taobao-b2b-emails-scraper"
+    },
+    {
+      "actor_id": "11QOIZhi8zjHsRBh1",
+      "title": "VK Video Downloader & Metadata Extractor",
+      "family": "real_estate_property",
+      "current_route_strategy": "yt_dlp",
+      "risk": [
+        "current yt_dlp label appears semantically unsafe for non-media actor"
+      ],
+      "url": "https://apify.com/alpha-scraper/vk-video-downloader-metadata-extractor"
+    },
+    {
+      "actor_id": "11hO4xoGk7T3hiFCP",
+      "title": "ASOS Products Scraper",
+      "family": "marketplace_product_catalog",
+      "current_route_strategy": "native_pipeline",
+      "risk": [
+        "current native_pipeline label is too broad unless a dedicated base adapter exists"
+      ],
+      "url": "https://apify.com/parseforge/asos-products-scraper"
+    }
+  ]
+}
