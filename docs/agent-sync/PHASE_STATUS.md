@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-Phase 0 - Repo lock and agent coordination.
+Phase 1 - Catalog foundation.
 
 ## Phase 0 Targets
 
@@ -12,7 +12,7 @@ Phase 0 - Repo lock and agent coordination.
 - [x] Record Claude + Codex coordination model.
 - [x] Run Claude Phase 1 reuse audit.
 - [x] Secret scan passed for Phase 0 docs and `CLAUDE.md`.
-- [ ] Commit Phase 0 docs and boundary correction.
+- [x] Commit Phase 0 docs and boundary correction: `fdca008`.
 
 ## Latest Verified Git State
 
@@ -24,8 +24,20 @@ Phase 0 - Repo lock and agent coordination.
 
 ## Next Gate
 
-Phase 0 can be committed only after:
+Phase 1 can be committed only after:
 
-1. Claude reuse audit output is recorded and Codex-verified.
-2. `IMPLEMENTATION_LEDGER.md` has the Phase 0 reuse/provenance entry.
-3. Git diff confirms no `yousell-admin` paths and no secret values.
+1. `IMPLEMENTATION_LEDGER.md` has the Phase 1 reuse/provenance entry.
+2. Catalog unit tests pass.
+3. Frontend build passes.
+4. Backend OpenAPI/API smoke confirms actor endpoints.
+5. Git diff confirms no `yousell-admin` paths and no secret values.
+
+## Phase 1 Results
+
+- [x] Red catalog test observed before implementation.
+- [x] Reused `saas-repair` catalog registry/router/generator/tests/pages instead of recoding.
+- [x] 27,753 actors available in backend/frontend generated catalog artifacts.
+- [x] Actor backend routes mounted under `/api/v1/actors`.
+- [x] Actor catalog/detail routes wired into the React app.
+- [x] Frontend build passed.
+- [x] Secret scan passed.

@@ -45,6 +45,7 @@ from services.control_plane.routers import health, tasks, policies, results, exe
 # --- Defensive imports: any of these failing must NOT crash the app ---
 _crawl_router = _search_router = _extract_router = _facebook_router = None
 _smart_scrape_router = _batch_router = _keepa_router = _maps_router = None
+_actors_router = None
 _CostAuditMiddleware = None
 
 # Phase 0A — 8 upstream signal routers (YOUSELL composite-ai data sources)
@@ -86,6 +87,10 @@ try:
     _maps_router = _maps_module.router
 except Exception as _e:
     logging.getLogger(__name__).warning("maps router not loaded: %s", _e)
+try:
+    from services.control_plane.routers.actors import actors_router as _actors_router
+except Exception as _e:
+    logging.getLogger(__name__).warning("actors router not loaded: %s", _e)
 
 # --- Phase 0A — 8 upstream signal routes for YOUSELL composite-ai ---
 try:
@@ -351,6 +356,8 @@ def create_app() -> FastAPI:
         logger.warning("FMS router not loaded: %s", e)
     if _maps_router:
         app.include_router(_maps_router, prefix="/api/v1", tags=["Google Maps"])
+    if _actors_router is not None:
+        app.include_router(_actors_router, prefix="/api/v1")
 
     # --- Phase 0A — 8 upstream signal routers (YOUSELL composite-ai) ---
     if _meta_ad_library_router:

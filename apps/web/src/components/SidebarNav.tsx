@@ -145,6 +145,7 @@ const NAV_GROUPS: NavGroupStyled[] = [
       { to: "/amazon",           label: "Amazon",          Icon: IconAmazon },
       { to: "/google-maps",      label: "Google Maps",     Icon: IconMap },
       { to: "/facebook-groups",  label: "Facebook Groups",  Icon: IconFacebook },
+      { to: "/actors",           label: "Actors",          Icon: IconTemplate },
       { to: "/templates",        label: "Templates",       Icon: IconTemplate },
       { to: "/fms",              label: "Feed Management", Icon: IconDatabase },
     ],

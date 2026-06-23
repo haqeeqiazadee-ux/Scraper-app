@@ -23,6 +23,8 @@ import { ChangesPage } from "./pages/ChangesPage";
 import { McpPage } from "./pages/McpPage";
 import { ApiKeysPage } from "./pages/ApiKeysPage";
 import { FmsPage } from "./pages/FmsPage";
+import { ActorsPage } from "./pages/ActorsPage";
+import { ActorDetailPage } from "./pages/ActorDetailPage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
@@ -57,6 +59,8 @@ export function App() {
         <Route path="/crawl" element={<Navigate to="/scraper" replace />} />
         <Route path="/search" element={<Navigate to="/scraper" replace />} />
         <Route path="/extract" element={<Navigate to="/scraper" replace />} />
+        <Route path="/actors" element={<ActorsPage />} />
+        <Route path="/actors/:actorId" element={<ActorDetailPage />} />
         <Route path="/templates" element={<TemplatesPage />} />
         <Route path="/amazon" element={<AmazonPage />} />
         <Route path="/google-maps" element={<GoogleMapsPage />} />
