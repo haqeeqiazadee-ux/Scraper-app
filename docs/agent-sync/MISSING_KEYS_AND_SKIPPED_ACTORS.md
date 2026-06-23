@@ -13,3 +13,12 @@ If an actor/workflow requires an external API key that is not configured:
 ## Entries
 
 No skipped actors recorded yet.
+
+## Phase 4 Family Key Rules
+
+- `marketplace_product_catalog` for Amazon actors requires `KEEPA_API_KEY`.
+  If the key is absent, the affected actor run is persisted as `skipped_missing_key` with `missing_env_names=["KEEPA_API_KEY"]`.
+- `local_maps_serp` does not hard-require `SERPER_API_KEY` or `GOOGLE_MAPS_API_KEY`.
+  Missing maps provider keys degrade to `maps_browser_fallback` and do not skip the actor.
+- `commerce_storefront_generic` does not hard-require external keys for Shopify `/products.json`.
+- `generic_web_page_extraction` does not hard-require external keys.

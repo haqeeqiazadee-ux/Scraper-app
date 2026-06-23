@@ -13,7 +13,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from packages.core.actor_catalog.registry import actor_catalog
-from packages.core.actor_runtime import ActorRunState, ActorRuntimeResult, ActorSpec, BaseActorRunner
+from packages.core.actor_runtime import ActorRunState, ActorRuntimeResult, build_actor_spec, create_actor_runner
 from packages.core.storage.models import ResultModel, RunModel, TaskModel
 from packages.core.storage.repositories import ResultRepository, RunRepository, TaskRepository
 from services.control_plane.dependencies import get_session, get_tenant_id
@@ -32,80 +32,6 @@ def _utcnow() -> datetime:
 class ActorRunRequest(BaseModel):
     input: dict[str, Any] = Field(default_factory=dict)
     options: dict[str, Any] = Field(default_factory=dict)
-
-
-class NativePipelineActorRunner(BaseActorRunner):
-    def __init__(
-        self,
-        spec: ActorSpec,
-        *,
-        task_id: str,
-        tenant_id: str,
-    ) -> None:
-        super().__init__(spec)
-        self.task_id = task_id
-        self.tenant_id = tenant_id
-
-    async def execute(self, payload: dict[str, Any]) -> dict[str, Any]:
-        target = str(payload.get("target") or payload.get("url") or "").strip()
-        if not target:
-            raise ValueError("Actor input requires a target URL or url field")
-
-        from services.worker_http.worker import HttpWorker
-
-        worker = HttpWorker()
-        try:
-            worker_result = await worker.process_task(
-                {
-                    "task_id": self.task_id,
-                    "tenant_id": self.tenant_id,
-                    "url": target,
-                    "timeout_ms": int(payload.get("timeout_ms") or 30000),
-                    "paginate": bool(payload.get("paginate") or (int(payload.get("max_pages") or 1) > 1)),
-                    "max_pages": int(payload.get("max_pages") or 1),
-                    "css_selectors": payload.get("css_selectors"),
-                }
-            )
-        finally:
-            await worker.close()
-
-        if worker_result.get("status") != "success":
-            raise RuntimeError(worker_result.get("error") or "Native pipeline execution failed")
-
-        return {
-            "extracted_data": worker_result.get("extracted_data", []),
-            "item_count": worker_result.get("item_count", 0),
-            "confidence": worker_result.get("confidence", 0.0),
-            "status_code": worker_result.get("status_code"),
-            "extraction_method": worker_result.get("extraction_method", "deterministic"),
-            "bytes_downloaded": worker_result.get("bytes_downloaded", 0),
-            "duration_ms": worker_result.get("duration_ms", 0),
-            "artifacts": worker_result.get("artifacts", []),
-        }
-
-
-def _build_actor_spec(entry) -> ActorSpec:
-    return ActorSpec(
-        actor_id=entry.actor_id,
-        slug=entry.name,
-        title=entry.title,
-        base_family=entry.route_strategy,
-        compliance_notes=(
-            "Apify catalog URL is source metadata only; execution must use native Scraper-app stack.",
-        ),
-    )
-
-
-def _create_actor_runner(
-    spec: ActorSpec,
-    entry,
-    *,
-    task_id: str,
-    tenant_id: str,
-) -> BaseActorRunner:
-    if entry.route_strategy == "native_pipeline":
-        return NativePipelineActorRunner(spec, task_id=task_id, tenant_id=tenant_id)
-    return BaseActorRunner(spec)
 
 
 def _terminal_status_for_state(state: ActorRunState) -> tuple[str, str]:
@@ -308,8 +234,8 @@ async def create_actor_run(
             metadata={"base_family": entry.route_strategy},
         )
     else:
-        spec = _build_actor_spec(entry)
-        runner = _create_actor_runner(spec, entry, task_id=task_id, tenant_id=tenant_id)
+        spec = build_actor_spec(entry)
+        runner = create_actor_runner(spec, entry, task_id=task_id, tenant_id=tenant_id)
         runtime_result = await runner.run(body.input)
 
     task_status, run_status = _terminal_status_for_state(runtime_result.state)

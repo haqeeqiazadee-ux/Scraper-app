@@ -65,3 +65,19 @@ Codex owns final verification before every commit.
 - [x] Claude MCP review attempted but unavailable; not counted as validation.
 - [x] Secret scan passed.
 - [x] Commit completed by the Phase 3 gate commit.
+
+## Phase 4 Gate
+
+- [x] Existing family/provider code inspected before implementation.
+- [x] Codex explorer subagent reviews completed for generic/commerce/marketplace and local maps.
+- [x] Base-family tests written before implementation.
+- [x] Red missing-module baseline observed.
+- [x] Shared family registry and runners added.
+- [x] Actor-run API rewired to shared family registry.
+- [x] Local maps optional-key/browser-fallback behavior covered.
+- [x] Amazon marketplace missing `KEEPA_API_KEY` skip behavior covered.
+- [x] Family unit tests passed.
+- [x] Actor-run API tests passed.
+- [x] Phase 1-4 regression passed.
+- [x] Secret scan passed.
+- [x] Commit completed by the Phase 4 gate commit.

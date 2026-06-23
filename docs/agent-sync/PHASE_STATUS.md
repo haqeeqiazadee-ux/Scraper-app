@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-Phase 3 - Native actor run API.
+Phase 4 - Base families A.
 
 ## Phase 0 Targets
 
@@ -24,12 +24,12 @@ Phase 3 - Native actor run API.
 
 ## Next Gate
 
-Phase 3 can be committed only after:
+Phase 4 can be committed only after:
 
-1. `IMPLEMENTATION_LEDGER.md` has the Phase 3 reuse/provenance entry.
-2. Actor-run API tests pass.
-3. Phase 1-3 regression passes.
-4. OpenAPI smoke confirms actor-run create/list/detail routes.
+1. `IMPLEMENTATION_LEDGER.md` has the Phase 4 reuse/provenance entry.
+2. Base-family unit tests pass.
+3. Actor-run API tests pass with the shared family registry.
+4. Phase 1-4 regression passes.
 5. Git diff confirms no `yousell-admin` paths and no secret values.
 
 ## Phase 1 Results
@@ -76,3 +76,21 @@ Phase 3 can be committed only after:
 - [x] Secret scan passed.
 - [x] Codex explorer subagent completed read-only review.
 - [x] Claude MCP reviewer lane attempted but unavailable.
+- [x] Commit completed: `941bc96`.
+
+## Phase 4 Results
+
+- [x] Existing HTTP worker, smart scrape, execution, maps/search routers, connectors, secrets, and tests inspected before implementation.
+- [x] Codex explorer subagents completed read-only family reuse scans.
+- [x] Base-family tests written before `families.py` implementation.
+- [x] Red missing-module baseline observed.
+- [x] Added shared base-family registry and runners.
+- [x] `generic_web_page_extraction` uses the existing HTTP worker path.
+- [x] `commerce_storefront_generic` uses existing Shopify connector before HTTP fallback.
+- [x] `marketplace_product_catalog` uses Keepa for Amazon and skips missing `KEEPA_API_KEY`.
+- [x] `local_maps_serp` uses existing Google Maps connector and treats Serper/Google keys as optional provider accelerators.
+- [x] Actor-run API now uses shared family `build_actor_spec()` and `create_actor_runner()`.
+- [x] Family unit tests passed.
+- [x] Actor-run API tests passed with the shared family registry.
+- [x] Phase 1-4 regression passed.
+- [x] Secret scan passed.

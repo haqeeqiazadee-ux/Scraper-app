@@ -177,3 +177,57 @@ This file is the mandatory proof trail for the pre-code reuse gate.
   - Claude MCP review attempt failed with `Agent type 'general-purpose' not found`; not counted as validation.
   - Secret scan passed across Phase 3 router/test/sync artifacts.
 - Status: Phase 3 gate passed; ready to commit.
+
+## Phase 4 - Base Families A
+
+- Task: Add the first native base-family layer shared by actor implementations.
+- Phase: 4
+- Existing files inspected:
+  - `packages/core/actor_runtime/*`
+  - `packages/core/actor_catalog/registry.py`
+  - `services/control-plane/routers/actors.py`
+  - `services/control-plane/routers/smart_scrape.py`
+  - `services/control-plane/routers/execution.py`
+  - `services/control-plane/routers/maps.py`
+  - `services/control-plane/routers/search.py`
+  - `services/worker-http/worker.py`
+  - `packages/connectors/shopify_connector.py`
+  - `packages/connectors/keepa_connector.py`
+  - `packages/connectors/google_maps_connector.py`
+  - `packages/connectors/ebay_connector.py`
+  - `packages/connectors/walmart_connector.py`
+  - `packages/connectors/api_adapter.py`
+  - `packages/core/secrets.py`
+  - `tests/unit/test_actor_runs_api.py`
+  - `tests/unit/test_smart_scrape_provider_wiring.py`
+  - `tests/unit/test_google_maps.py`
+  - `tests/unit/test_ecommerce_scenarios.py`
+- Reuse decision: `extend_existing`
+- Reason: The repo already has HTTP extraction, Shopify `/products.json`, Keepa Amazon, Google Maps, eBay, Walmart, and API adapter primitives. Phase 4 adds only a thin family-runner layer and rewires actor runs to it instead of recoding scrapers or creating Apify delegation.
+- Files to modify:
+  - `packages/core/actor_runtime/families.py`
+  - `packages/core/actor_runtime/__init__.py`
+  - `services/control-plane/routers/actors.py`
+  - `tests/unit/test_actor_families.py`
+  - `tests/unit/test_actor_runs_api.py`
+  - `docs/agent-sync/CODEX_SUBAGENT_PHASE4_FAMILY_REVIEW.md`
+  - `docs/agent-sync/MISSING_KEYS_AND_SKIPPED_ACTORS.md`
+  - `docs/agent-sync/IMPLEMENTATION_LEDGER.md`
+  - `docs/agent-sync/PHASE_STATUS.md`
+  - `docs/agent-sync/CODEX_RELEASE_GATE.md`
+- Tests/gates:
+  - Red test: family tests failed with `ModuleNotFoundError: No module named 'packages.core.actor_runtime.families'`.
+  - `C:\Python314\python.exe -m pytest tests/unit/test_actor_families.py -q`
+  - `C:\Python314\python.exe -m pytest tests/unit/test_actor_runs_api.py -q`
+  - `C:\Python314\python.exe -m pytest tests/unit/test_actor_catalog.py tests/unit/test_actor_runtime.py tests/unit/test_actor_families.py tests/unit/test_actor_runs_api.py -q`
+  - Secret scan on Phase 4 runtime/test/sync docs.
+- Evidence:
+  - Red baseline: Phase 4 family tests failed before `families.py` existed.
+  - Green family suite: 7 tests passed.
+  - Green actor API suite with family integration: 7 tests passed.
+  - Green Phase 1-4 regression: 39 tests passed with only pre-existing warnings.
+  - Codex explorer subagents completed read-only reviews for generic/commerce/marketplace and local maps.
+  - Local maps provider chain records Serper/Google as optional and falls back to `maps_browser_fallback` without skipping.
+  - Amazon marketplace family records `KEEPA_API_KEY` as a required env name and returns `skipped_missing_key` before executing when absent.
+  - Secret scan passed across Phase 4 runtime/test/sync artifacts.
+- Status: Phase 4 gate passed; ready to commit.

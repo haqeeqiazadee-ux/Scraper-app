@@ -52,6 +52,17 @@ def _first_actor_with_strategy(strategy: str) -> str:
     return actors[0].actor_id
 
 
+def _first_native_local_maps_actor() -> str:
+    from packages.core.actor_runtime.families import ActorBaseFamily, build_actor_spec
+
+    actors, total = actor_catalog.search(query="google maps", strategy="native_pipeline", limit=100)
+    assert total > 0
+    for actor in actors:
+        if build_actor_spec(actor).base_family == ActorBaseFamily.LOCAL_MAPS_SERP:
+            return actor.actor_id
+    raise AssertionError("No native local maps actor found in catalog sample")
+
+
 def test_actor_run_blocks_non_native_strategy_without_redirecting() -> None:
     actor_id = _first_actor_with_strategy("yt_dlp")
 
@@ -95,7 +106,7 @@ def test_actor_run_skips_missing_required_key_and_lists_persisted_run(monkeypatc
             required_env_names=["ACTOR_RUN_TEST_MISSING_KEY"],
         )
 
-    monkeypatch.setattr(actors_router_module, "_build_actor_spec", fake_build_actor_spec, raising=False)
+    monkeypatch.setattr(actors_router_module, "build_actor_spec", fake_build_actor_spec)
 
     async def scenario(client: AsyncClient) -> None:
         response = await client.post(
@@ -190,7 +201,7 @@ def test_actor_run_success_persists_result(monkeypatch: pytest.MonkeyPatch) -> N
     def fake_create_runner(spec: ActorSpec, entry: Any, *, task_id: str, tenant_id: str) -> SuccessfulRunner:
         return SuccessfulRunner(spec)
 
-    monkeypatch.setattr(actors_router_module, "_create_actor_runner", fake_create_runner)
+    monkeypatch.setattr(actors_router_module, "create_actor_runner", fake_create_runner)
 
     async def scenario(client: AsyncClient) -> None:
         response = await client.post(
@@ -247,5 +258,51 @@ def test_actor_run_list_is_newest_first_and_paginated() -> None:
         )
         assert second_page.status_code == 200
         assert [item["run"]["id"] for item in second_page.json()["data"]["items"]] == [run_ids[0]]
+
+    asyncio.run(_with_client(scenario))
+
+
+def test_actor_run_local_maps_persists_browser_fallback_provider(monkeypatch: pytest.MonkeyPatch) -> None:
+    actor_id = _first_native_local_maps_actor()
+
+    from packages.core.actor_runtime.families import LocalMapsSerpRunner
+    from services.control_plane.routers import actors as actors_router_module
+
+    class FakeMapsConnector:
+        async def search_businesses(
+            self,
+            query: str,
+            max_results: int = 20,
+            location: str | None = None,
+            language: str = "en",
+        ) -> list[dict]:
+            assert query == "coffee shops in Austin"
+            return [{"name": "Coffee A", "source": "maps_browser_fallback"}]
+
+        async def close(self) -> None:
+            pass
+
+    def fake_create_runner(spec: ActorSpec, entry: Any, *, task_id: str, tenant_id: str) -> LocalMapsSerpRunner:
+        return LocalMapsSerpRunner(
+            spec,
+            task_id=task_id,
+            tenant_id=tenant_id,
+            maps_factory=FakeMapsConnector,
+        )
+
+    monkeypatch.setattr(actors_router_module, "create_actor_runner", fake_create_runner)
+
+    async def scenario(client: AsyncClient) -> None:
+        response = await client.post(
+            f"/api/v1/actors/{actor_id}/runs",
+            json={"input": {"query": "coffee shops in Austin", "max_results": 1}},
+            headers=TENANT_HEADER,
+        )
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert data["state"] == "succeeded"
+        assert data["provider"] == "maps_browser_fallback"
+        assert data["result"]["item_count"] == 1
+        assert data["output"]["extracted_data"][0]["source"] == "maps_browser_fallback"
 
     asyncio.run(_with_client(scenario))
