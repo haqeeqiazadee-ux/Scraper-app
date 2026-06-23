@@ -94,3 +94,41 @@ This file is the mandatory proof trail for the pre-code reuse gate.
   - Backend TestClient smoke returned 27,753 total actors and 27,753 stats total.
   - Secret scan passed across 34 catalog/source artifacts.
 - Status: Phase 1 gate passed; ready to commit.
+
+## Phase 2 - Actor Runtime Core
+
+- Task: Add the native actor runtime contract that lets workflow implementations run on our own stack and skip only workflows with unavailable required keys.
+- Phase: 2
+- Existing files inspected:
+  - `packages/contracts/task.py`
+  - `packages/contracts/run.py`
+  - `packages/core/router.py`
+  - `packages/core/secrets.py`
+  - `packages/core/storage/models.py`
+  - `packages/core/storage/repositories.py`
+  - `packages/core/actor_catalog/registry.py`
+  - `services/control-plane/routers/actors.py`
+- Reuse decision: `extend_existing`
+- Reason: Existing task/run contracts, execution routing, secret-provider abstraction, and storage repositories should remain the system backbone. A small actor-runtime package is needed because no existing module expresses per-actor provider chains, missing-key skip semantics, or reusable base runner results.
+- Files to modify:
+  - `tests/unit/test_actor_runtime.py`
+  - `packages/core/actor_runtime/__init__.py`
+  - `packages/core/actor_runtime/models.py`
+  - `packages/core/actor_runtime/provider_chain.py`
+  - `packages/core/actor_runtime/runner.py`
+  - `docs/agent-sync/CLAUDE_RUNTIME_AUDIT_PROMPT_PHASE2.md`
+  - `docs/agent-sync/CLAUDE_RUNTIME_AUDIT_PHASE2.md`
+  - `docs/agent-sync/CLAUDE_RUNTIME_AUDIT_PHASE2.err`
+- Tests/gates:
+  - Red test: runtime tests fail before `packages.core.actor_runtime` exists.
+  - `C:\Python314\python.exe -m pytest tests/unit/test_actor_runtime.py -q`
+  - `C:\Python314\python.exe -m pytest tests/unit/test_actor_catalog.py tests/unit/test_actor_runtime.py -q`
+  - Secret scan on new runtime/test/sync docs.
+- Evidence:
+  - Red baseline: `C:\Python314\python.exe -m pytest tests/unit/test_actor_runtime.py -q` failed with `ModuleNotFoundError: No module named 'packages.core.actor_runtime'`.
+  - Fallback-provider red baseline: added a test proving a runnable first provider must not be blocked by missing fallback-provider keys; it failed as `skipped_missing_key` before the runner fix.
+  - Green runtime suite: `C:\Python314\python.exe -m pytest tests/unit/test_actor_runtime.py -q` passed 5 tests with 1 pre-existing pytest config warning.
+  - Green catalog+runtime regression: `C:\Python314\python.exe -m pytest tests/unit/test_actor_catalog.py tests/unit/test_actor_runtime.py -q` passed 25 tests with 1 pre-existing pytest config warning.
+  - Claude Phase 2 reviewer lane was attempted, but the CLI returned a stale Phase 1 handoff and a hook warning; Codex treated that lane as degraded and did not count it as validation.
+  - Secret scan passed across Phase 2 runtime/test/sync artifacts.
+- Status: Phase 2 gate passed; ready to commit.

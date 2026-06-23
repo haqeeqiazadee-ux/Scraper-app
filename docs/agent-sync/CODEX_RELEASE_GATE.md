@@ -32,4 +32,18 @@ Codex owns final verification before every commit.
 - [x] Frontend build passed.
 - [x] Backend OpenAPI/API smoke passed.
 - [x] Secret scan passed.
-- [ ] Commit completed.
+- [x] Commit completed: `e835a76`.
+
+## Phase 2 Gate
+
+- [x] Existing contracts/router/secrets/storage inspected before implementation.
+- [x] Runtime tests written before implementation.
+- [x] Red missing-module baseline observed.
+- [x] Provider fallback semantic red baseline observed.
+- [x] Missing-key skip behavior implemented without executing skipped workflows.
+- [x] First available provider does not get blocked by missing fallback-provider keys.
+- [x] Runtime unit tests passed.
+- [x] Catalog+runtime regression passed.
+- [x] Claude reviewer lane attempted but degraded with stale output; not counted as validation.
+- [x] Secret scan passed.
+- [x] Commit completed by the Phase 2 gate commit.

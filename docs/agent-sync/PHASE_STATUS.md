@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-Phase 1 - Catalog foundation.
+Phase 2 - Actor runtime core.
 
 ## Phase 0 Targets
 
@@ -24,12 +24,12 @@ Phase 1 - Catalog foundation.
 
 ## Next Gate
 
-Phase 1 can be committed only after:
+Phase 2 can be committed only after:
 
-1. `IMPLEMENTATION_LEDGER.md` has the Phase 1 reuse/provenance entry.
-2. Catalog unit tests pass.
-3. Frontend build passes.
-4. Backend OpenAPI/API smoke confirms actor endpoints.
+1. `IMPLEMENTATION_LEDGER.md` has the Phase 2 reuse/provenance entry.
+2. Runtime tests pass.
+3. Catalog+runtime regression passes.
+4. Missing-key skip behavior handles provider fallback correctly.
 5. Git diff confirms no `yousell-admin` paths and no secret values.
 
 ## Phase 1 Results
@@ -41,3 +41,18 @@ Phase 1 can be committed only after:
 - [x] Actor catalog/detail routes wired into the React app.
 - [x] Frontend build passed.
 - [x] Secret scan passed.
+- [x] Commit completed: `e835a76`.
+
+## Phase 2 Results
+
+- [x] Existing contracts/router/secrets/storage inspected before implementation.
+- [x] Runtime tests written before actor-runtime implementation.
+- [x] Red missing-module baseline observed.
+- [x] Provider fallback red baseline observed before runner semantics fix.
+- [x] Actor runtime models, provider chain, and base runner added.
+- [x] Missing required keys return `skipped_missing_key` without executing the workflow.
+- [x] First available provider can run without being blocked by missing fallback-provider keys.
+- [x] Runtime test suite passed.
+- [x] Catalog+runtime regression passed.
+- [x] Secret scan passed.
+- [x] Claude reviewer lane attempted but degraded; Codex gate used as final validation.
