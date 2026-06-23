@@ -47,3 +47,21 @@ Codex owns final verification before every commit.
 - [x] Claude reviewer lane attempted but degraded with stale output; not counted as validation.
 - [x] Secret scan passed.
 - [x] Commit completed by the Phase 2 gate commit.
+
+## Phase 3 Gate
+
+- [x] Existing actor/task/run/result code inspected before implementation.
+- [x] Actor-run API tests written before implementation.
+- [x] Red HTTP 405 baseline observed.
+- [x] Native actor-run create/list/detail endpoints added.
+- [x] Non-native strategies blocked instead of redirected.
+- [x] Missing required keys persisted as `skipped_missing_key`.
+- [x] Successful native runner path persists result rows.
+- [x] Tenant isolation and pagination covered by tests.
+- [x] Actor-run API suite passed.
+- [x] Phase 1-3 regression passed.
+- [x] OpenAPI smoke passed.
+- [x] Codex explorer subagent review completed.
+- [x] Claude MCP review attempted but unavailable; not counted as validation.
+- [x] Secret scan passed.
+- [x] Commit completed by the Phase 3 gate commit.

@@ -132,3 +132,48 @@ This file is the mandatory proof trail for the pre-code reuse gate.
   - Claude Phase 2 reviewer lane was attempted, but the CLI returned a stale Phase 1 handoff and a hook warning; Codex treated that lane as degraded and did not count it as validation.
   - Secret scan passed across Phase 2 runtime/test/sync artifacts.
 - Status: Phase 2 gate passed; ready to commit.
+
+## Phase 3 - Native Actor Run API
+
+- Task: Add native actor run endpoints and persistence using the existing backend state model.
+- Phase: 3
+- Existing files inspected:
+  - `services/control-plane/routers/actors.py`
+  - `services/control-plane/routers/tasks.py`
+  - `services/control-plane/routers/execution.py`
+  - `services/control-plane/routers/smart_scrape.py`
+  - `services/control-plane/dependencies.py`
+  - `packages/core/storage/models.py`
+  - `packages/core/storage/repositories.py`
+  - `packages/core/actor_catalog/registry.py`
+  - `packages/core/actor_runtime/*`
+  - `services/worker-http/worker.py`
+  - `tests/unit/test_api_execution.py`
+  - `tests/integration/test_api/test_tasks_api.py`
+  - `apps/web/src/pages/ActorDetailPage.tsx`
+  - `docs/agent-sync/AUTO_MODE_ROADMAP.md`
+- Reuse decision: `extend_existing`
+- Reason: The repo already has catalog routing, tenant/session DI, task/run/result tables, repository classes, and HTTP worker execution. Phase 3 extends these instead of adding a duplicate actor-run persistence model or any Apify execution path.
+- Files to modify:
+  - `services/control-plane/routers/actors.py`
+  - `tests/unit/test_actor_runs_api.py`
+  - `docs/agent-sync/CODEX_SUBAGENT_PHASE3_REVIEW.md`
+  - `docs/agent-sync/CLAUDE_PHASE3_REVIEW_ATTEMPT.md`
+  - `docs/agent-sync/IMPLEMENTATION_LEDGER.md`
+  - `docs/agent-sync/PHASE_STATUS.md`
+  - `docs/agent-sync/CODEX_RELEASE_GATE.md`
+- Tests/gates:
+  - Red test: actor run API returned `405 Method Not Allowed` before endpoints existed.
+  - `C:\Python314\python.exe -m pytest tests/unit/test_actor_runs_api.py -q`
+  - `C:\Python314\python.exe -m pytest tests/unit/test_actor_catalog.py tests/unit/test_actor_runtime.py tests/unit/test_actor_runs_api.py -q`
+  - OpenAPI smoke for `/api/v1/actors/{actor_id}/runs` and `/api/v1/actors/{actor_id}/runs/{run_id}`.
+  - Secret scan on Phase 3 router/test/sync docs.
+- Evidence:
+  - Red baseline: Phase 3 tests failed with HTTP 405 before endpoints were implemented.
+  - Green actor-run API suite: 6 tests passed.
+  - Green Phase 1-3 regression: 31 tests passed with only pre-existing warnings.
+  - OpenAPI smoke confirmed actor run create/list/detail paths.
+  - Codex explorer subagent completed read-only review and its recommendations were incorporated.
+  - Claude MCP review attempt failed with `Agent type 'general-purpose' not found`; not counted as validation.
+  - Secret scan passed across Phase 3 router/test/sync artifacts.
+- Status: Phase 3 gate passed; ready to commit.

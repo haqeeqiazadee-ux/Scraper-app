@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-Phase 2 - Actor runtime core.
+Phase 3 - Native actor run API.
 
 ## Phase 0 Targets
 
@@ -24,12 +24,12 @@ Phase 2 - Actor runtime core.
 
 ## Next Gate
 
-Phase 2 can be committed only after:
+Phase 3 can be committed only after:
 
-1. `IMPLEMENTATION_LEDGER.md` has the Phase 2 reuse/provenance entry.
-2. Runtime tests pass.
-3. Catalog+runtime regression passes.
-4. Missing-key skip behavior handles provider fallback correctly.
+1. `IMPLEMENTATION_LEDGER.md` has the Phase 3 reuse/provenance entry.
+2. Actor-run API tests pass.
+3. Phase 1-3 regression passes.
+4. OpenAPI smoke confirms actor-run create/list/detail routes.
 5. Git diff confirms no `yousell-admin` paths and no secret values.
 
 ## Phase 1 Results
@@ -56,3 +56,23 @@ Phase 2 can be committed only after:
 - [x] Catalog+runtime regression passed.
 - [x] Secret scan passed.
 - [x] Claude reviewer lane attempted but degraded; Codex gate used as final validation.
+- [x] Commit completed: `b2396ad`.
+
+## Phase 3 Results
+
+- [x] Existing actor catalog, task/run/result repositories, DI, smart scrape, execution, HTTP worker, and tests inspected before implementation.
+- [x] Actor-run tests written before endpoint implementation.
+- [x] Red HTTP 405 baseline observed before endpoints existed.
+- [x] Added `POST /api/v1/actors/{actor_id}/runs`.
+- [x] Added `GET /api/v1/actors/{actor_id}/runs`.
+- [x] Added `GET /api/v1/actors/{actor_id}/runs/{run_id}`.
+- [x] Non-native strategies are blocked as `blocked_policy`, not redirected to Apify.
+- [x] Missing keys are persisted as `skipped_missing_key`, not fatal errors.
+- [x] Successful monkeypatched native runs persist `ResultModel` rows.
+- [x] Actor run list/detail are tenant-isolated and actor-scoped.
+- [x] Actor-run API suite passed.
+- [x] Phase 1-3 regression passed.
+- [x] OpenAPI smoke passed.
+- [x] Secret scan passed.
+- [x] Codex explorer subagent completed read-only review.
+- [x] Claude MCP reviewer lane attempted but unavailable.
