@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-Phase 4 - Base families A.
+Phase 5 - Base families B.
 
 ## Phase 0 Targets
 
@@ -24,12 +24,12 @@ Phase 4 - Base families A.
 
 ## Next Gate
 
-Phase 4 can be committed only after:
+Phase 5 can be committed only after:
 
-1. `IMPLEMENTATION_LEDGER.md` has the Phase 4 reuse/provenance entry.
-2. Base-family unit tests pass.
-3. Actor-run API tests pass with the shared family registry.
-4. Phase 1-4 regression passes.
+1. `IMPLEMENTATION_LEDGER.md` has the Phase 5 reuse/provenance entry.
+2. Job, real estate, lead, review, and news/content family unit tests pass.
+3. Actor-run API tests prove `job_board_schema` and `real_estate_schema` execute natively.
+4. Phase 1-5 regression passes.
 5. Git diff confirms no `yousell-admin` paths and no secret values.
 
 ## Phase 1 Results
@@ -93,4 +93,23 @@ Phase 4 can be committed only after:
 - [x] Family unit tests passed.
 - [x] Actor-run API tests passed with the shared family registry.
 - [x] Phase 1-4 regression passed.
+- [x] Secret scan passed.
+
+## Phase 5 Results
+
+- [x] Existing job board schemas, real estate schemas, HTTP worker, smart scrape intent/schema matching, template registry, crawl manager, change detector, and actor-run API inspected before implementation.
+- [x] Codex explorer subagents completed read-only reuse audits for jobs/real estate and leads/reviews/news/content.
+- [x] Catalog strategy inventory confirmed 2,483 `job_board_schema` actors and 1,691 `real_estate_schema` actors.
+- [x] Phase 5 tests written before runtime/API implementation.
+- [x] Red baseline observed for missing family enum values, missing runners, and blocked schema strategies.
+- [x] Added `job_board_schema` family using existing HTTP worker output normalized through `JobListing`.
+- [x] Added `real_estate_schema` family using existing HTTP worker output normalized through `RealEstateListing`.
+- [x] Added `lead_generation_generic`, `review_monitoring_generic`, and `news_content_monitoring` families using existing HTTP worker output plus family-specific filters.
+- [x] Actor-run API now treats `job_board_schema` and `real_estate_schema` as native runnable strategies.
+- [x] Actor-run API also accepts direct Phase 5 family strategy names if future catalog rows use them directly.
+- [x] Service import aliases work outside the pytest-only shim for `services.control_plane` and sibling service packages.
+- [x] Review-found generic `name` overmatch in schema normalization fixed and covered by a red/green test.
+- [x] Direct URL runs for lead, review, and news/content families have no hard external API-key requirement.
+- [x] Focused Phase 5 suite passed: 22 tests.
+- [x] Phase 1-5 regression passed: 53 tests.
 - [x] Secret scan passed.

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+from types import SimpleNamespace
 from typing import Any, Callable
 
 import pytest
@@ -61,6 +62,12 @@ def _first_native_local_maps_actor() -> str:
         if build_actor_spec(actor).base_family == ActorBaseFamily.LOCAL_MAPS_SERP:
             return actor.actor_id
     raise AssertionError("No native local maps actor found in catalog sample")
+
+
+def _first_actor_matching_strategy(strategy: str) -> str:
+    actors, total = actor_catalog.search(strategy=strategy, limit=1)
+    assert total > 0
+    return actors[0].actor_id
 
 
 def test_actor_run_blocks_non_native_strategy_without_redirecting() -> None:
@@ -304,5 +311,168 @@ def test_actor_run_local_maps_persists_browser_fallback_provider(monkeypatch: py
         assert data["provider"] == "maps_browser_fallback"
         assert data["result"]["item_count"] == 1
         assert data["output"]["extracted_data"][0]["source"] == "maps_browser_fallback"
+
+    asyncio.run(_with_client(scenario))
+
+
+def test_actor_run_job_board_schema_strategy_is_native_runnable(monkeypatch: pytest.MonkeyPatch) -> None:
+    actor_id = _first_actor_matching_strategy("job_board_schema")
+
+    from packages.core.actor_runtime import ActorRuntimeResult, ActorRunState, BaseActorRunner
+    from services.control_plane.routers import actors as actors_router_module
+
+    class SuccessfulRunner(BaseActorRunner):
+        async def run(self, payload: dict) -> Any:
+            return ActorRuntimeResult(
+                actor_id=self.spec.actor_id,
+                state=ActorRunState.SUCCEEDED,
+                provider="http_worker_schema_match",
+                output={
+                    "extracted_data": [
+                        {
+                            "url": "https://jobs.example.com/1",
+                            "title": "Data Engineer",
+                            "company_name": "Acme Inc",
+                            "description": "Build data pipelines.",
+                            "source": "Example Jobs",
+                        }
+                    ],
+                    "item_count": 1,
+                    "confidence": 0.9,
+                    "status_code": 200,
+                    "extraction_method": "job_board_schema",
+                    "duration_ms": 5,
+                    "bytes_downloaded": 100,
+                },
+            )
+
+    def fake_create_runner(spec: ActorSpec, entry: Any, *, task_id: str, tenant_id: str) -> SuccessfulRunner:
+        return SuccessfulRunner(spec)
+
+    monkeypatch.setattr(actors_router_module, "create_actor_runner", fake_create_runner)
+
+    async def scenario(client: AsyncClient) -> None:
+        response = await client.post(
+            f"/api/v1/actors/{actor_id}/runs",
+            json={"input": {"target": "https://jobs.example.com"}},
+            headers=TENANT_HEADER,
+        )
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert data["state"] == "succeeded"
+        assert data["provider"] == "http_worker_schema_match"
+        assert data["task"]["status"] == "completed"
+        assert data["run"]["status"] == "completed"
+        assert data["result"]["item_count"] == 1
+
+    asyncio.run(_with_client(scenario))
+
+
+def test_actor_run_real_estate_schema_strategy_is_native_runnable(monkeypatch: pytest.MonkeyPatch) -> None:
+    actor_id = _first_actor_matching_strategy("real_estate_schema")
+
+    from packages.core.actor_runtime import ActorRuntimeResult, ActorRunState, BaseActorRunner
+    from services.control_plane.routers import actors as actors_router_module
+
+    class SuccessfulRunner(BaseActorRunner):
+        async def run(self, payload: dict) -> Any:
+            return ActorRuntimeResult(
+                actor_id=self.spec.actor_id,
+                state=ActorRunState.SUCCEEDED,
+                provider="http_worker_schema_match",
+                output={
+                    "extracted_data": [
+                        {
+                            "url": "https://homes.example.com/1",
+                            "title": "Beautiful Family Home",
+                            "description": "A wonderful home.",
+                            "source": "Example Homes",
+                            "price": 450000,
+                        }
+                    ],
+                    "item_count": 1,
+                    "confidence": 0.9,
+                    "status_code": 200,
+                    "extraction_method": "real_estate_schema",
+                    "duration_ms": 5,
+                    "bytes_downloaded": 100,
+                },
+            )
+
+    def fake_create_runner(spec: ActorSpec, entry: Any, *, task_id: str, tenant_id: str) -> SuccessfulRunner:
+        return SuccessfulRunner(spec)
+
+    monkeypatch.setattr(actors_router_module, "create_actor_runner", fake_create_runner)
+
+    async def scenario(client: AsyncClient) -> None:
+        response = await client.post(
+            f"/api/v1/actors/{actor_id}/runs",
+            json={"input": {"target": "https://homes.example.com/1"}},
+            headers=TENANT_HEADER,
+        )
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert data["state"] == "succeeded"
+        assert data["provider"] == "http_worker_schema_match"
+        assert data["task"]["status"] == "completed"
+        assert data["run"]["status"] == "completed"
+        assert data["result"]["item_count"] == 1
+
+    asyncio.run(_with_client(scenario))
+
+
+def test_actor_run_direct_phase5_family_strategy_is_native_runnable(monkeypatch: pytest.MonkeyPatch) -> None:
+    actor_id = "direct-lead-family-actor"
+
+    from packages.core.actor_runtime import ActorRuntimeResult, ActorRunState, BaseActorRunner
+    from services.control_plane.routers import actors as actors_router_module
+
+    entry = SimpleNamespace(
+        actor_id=actor_id,
+        name="direct-lead-family-actor",
+        title="Direct Lead Family Actor",
+        description="Extract business contact emails and phones.",
+        categories=("LEAD_GENERATION",),
+        route_strategy="lead_generation_generic",
+        runnable_status="runnable",
+    )
+
+    class SuccessfulRunner(BaseActorRunner):
+        async def run(self, payload: dict) -> Any:
+            return ActorRuntimeResult(
+                actor_id=self.spec.actor_id,
+                state=ActorRunState.SUCCEEDED,
+                provider="http_worker_contacts",
+                output={
+                    "extracted_data": [{"name": "Acme", "email": "sales@example.com"}],
+                    "item_count": 1,
+                    "confidence": 0.9,
+                    "status_code": 200,
+                    "extraction_method": "lead_generation_generic",
+                    "duration_ms": 5,
+                    "bytes_downloaded": 100,
+                },
+            )
+
+    def fake_get(requested_actor_id: str) -> Any:
+        return entry if requested_actor_id == actor_id else None
+
+    def fake_create_runner(spec: ActorSpec, catalog_entry: Any, *, task_id: str, tenant_id: str) -> SuccessfulRunner:
+        return SuccessfulRunner(spec)
+
+    monkeypatch.setattr(actors_router_module.actor_catalog, "get", fake_get)
+    monkeypatch.setattr(actors_router_module, "create_actor_runner", fake_create_runner)
+
+    async def scenario(client: AsyncClient) -> None:
+        response = await client.post(
+            f"/api/v1/actors/{actor_id}/runs",
+            json={"input": {"target": "https://example.com/contact"}},
+            headers=TENANT_HEADER,
+        )
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert data["state"] == "succeeded"
+        assert data["provider"] == "http_worker_contacts"
+        assert data["task"]["status"] == "completed"
 
     asyncio.run(_with_client(scenario))

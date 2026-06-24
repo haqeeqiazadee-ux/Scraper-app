@@ -22,3 +22,16 @@ No skipped actors recorded yet.
   Missing maps provider keys degrade to `maps_browser_fallback` and do not skip the actor.
 - `commerce_storefront_generic` does not hard-require external keys for Shopify `/products.json`.
 - `generic_web_page_extraction` does not hard-require external keys.
+
+## Phase 5 Family Key Rules
+
+- `job_board_schema` does not hard-require external keys for direct URL runs.
+  Optional discovery/enrichment providers can use search or AI keys in later phases, but missing optional keys must not block direct HTTP/schema extraction.
+- `real_estate_schema` does not hard-require external keys for direct URL runs.
+  Optional discovery/enrichment providers can use search, maps, proxy, captcha, or AI keys in later phases, but missing optional keys must not block direct HTTP/schema extraction.
+- `lead_generation_generic` does not hard-require external keys for direct URL runs.
+  Optional `SERPER_API_KEY`, maps, and AI providers may improve discovery/enrichment later; absence should degrade provider choice, not globally skip the family.
+- `review_monitoring_generic` does not hard-require external keys for direct URL runs.
+  Optional search/maps/AI keys may improve monitoring later; absence should degrade provider choice, not globally skip the family.
+- `news_content_monitoring` does not hard-require external keys for direct URL runs.
+  Optional search/news discovery keys may improve query-based discovery later; absence should degrade provider choice, not globally skip the family.

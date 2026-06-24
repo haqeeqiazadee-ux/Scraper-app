@@ -207,9 +207,11 @@ This file is the mandatory proof trail for the pre-code reuse gate.
 - Files to modify:
   - `packages/core/actor_runtime/families.py`
   - `packages/core/actor_runtime/__init__.py`
+  - `services/__init__.py`
   - `services/control-plane/routers/actors.py`
   - `tests/unit/test_actor_families.py`
   - `tests/unit/test_actor_runs_api.py`
+  - `tests/unit/test_service_import_aliases.py`
   - `docs/agent-sync/CODEX_SUBAGENT_PHASE4_FAMILY_REVIEW.md`
   - `docs/agent-sync/MISSING_KEYS_AND_SKIPPED_ACTORS.md`
   - `docs/agent-sync/IMPLEMENTATION_LEDGER.md`
@@ -231,3 +233,61 @@ This file is the mandatory proof trail for the pre-code reuse gate.
   - Amazon marketplace family records `KEEPA_API_KEY` as a required env name and returns `skipped_missing_key` before executing when absent.
   - Secret scan passed across Phase 4 runtime/test/sync artifacts.
 - Status: Phase 4 gate passed; ready to commit.
+
+## Phase 5 - Base Families B
+
+- Task: Add native own-stack base families for jobs, real estate, leads, reviews, and news/content monitoring.
+- Phase: 5
+- Existing files inspected:
+  - `packages/core/actor_runtime/families.py`
+  - `packages/core/actor_runtime/models.py`
+  - `packages/core/actor_runtime/provider_chain.py`
+  - `packages/core/actor_runtime/runner.py`
+  - `packages/core/actor_runtime/__init__.py`
+  - `services/control-plane/routers/actors.py`
+  - `services/control-plane/routers/extract.py`
+  - `services/control-plane/routers/smart_scrape.py`
+  - `services/worker-http/worker.py`
+  - `packages/contracts/schemas/job_board.py`
+  - `packages/contracts/schemas/real_estate.py`
+  - `packages/core/template_registry.py`
+  - `packages/core/ai_providers/deterministic.py`
+  - `packages/core/dom_discovery.py`
+  - `packages/core/normalizer.py`
+  - `packages/core/crawl_manager.py`
+  - `packages/core/change_detector.py`
+  - `tests/unit/test_job_board_schema.py`
+  - `tests/unit/test_real_estate_schema.py`
+  - `tests/unit/test_actor_families.py`
+  - `tests/unit/test_actor_runs_api.py`
+- Reuse decision: `extend_existing`
+- Reason: Existing job/real-estate Pydantic contracts, HTTP worker extraction, schema matching, normalization, content/contact intent filtering patterns, crawl/change primitives, and actor-run persistence are the right platform base. Phase 5 adds thin actor-family runners and strategy allow-listing instead of recoding site-specific scrapers or redirecting to Apify.
+- Files to modify:
+  - `packages/core/actor_runtime/families.py`
+  - `packages/core/actor_runtime/__init__.py`
+  - `services/__init__.py`
+  - `services/control-plane/routers/actors.py`
+  - `tests/unit/test_actor_families.py`
+  - `tests/unit/test_actor_runs_api.py`
+  - `tests/unit/test_service_import_aliases.py`
+  - `docs/agent-sync/IMPLEMENTATION_LEDGER.md`
+  - `docs/agent-sync/PHASE_STATUS.md`
+  - `docs/agent-sync/CODEX_RELEASE_GATE.md`
+  - `docs/agent-sync/MISSING_KEYS_AND_SKIPPED_ACTORS.md`
+- Tests/gates:
+  - Red baseline: Phase 5 tests failed before enum values, runners, and route-strategy allow-listing existed.
+  - `C:\Python314\python.exe -m pytest tests/unit/test_actor_families.py tests/unit/test_actor_runs_api.py -q`
+  - `C:\Python314\python.exe -m pytest tests/unit/test_actor_catalog.py tests/unit/test_actor_runtime.py tests/unit/test_actor_families.py tests/unit/test_actor_runs_api.py tests/unit/test_job_board_schema.py tests/unit/test_real_estate_schema.py -q`
+  - Secret scan on Phase 5 runtime/router/tests/sync docs.
+- Evidence:
+  - Catalog strategy inventory found `job_board_schema` has 2,483 actors and `real_estate_schema` has 1,691 actors.
+  - Codex explorer subagents completed read-only reuse audits for jobs/real-estate and leads/reviews/news/content.
+  - Red baseline: focused Phase 5 tests failed with missing `ActorBaseFamily` values, missing runner imports, and `blocked_policy` for schema strategies.
+  - Green focused suite: `tests/unit/test_actor_families.py tests/unit/test_actor_runs_api.py` passed 22 tests with only pre-existing warnings.
+  - Green Phase 1-5 regression: catalog/runtime/family/API/job-schema/real-estate-schema/service-alias suite passed 53 tests with only pre-existing warnings.
+  - Review red/green fixes added for generic `name` overmatching `company_name` and direct service import aliases outside pytest.
+  - Direct Phase 5 strategy names are allowed if future catalog rows use `lead_generation_generic`, `review_monitoring_generic`, or `news_content_monitoring` directly.
+  - `job_board_schema` and `real_estate_schema` are now native runnable strategies.
+  - Lead, review, and news/content monitoring families do not hard-require external API keys for direct URL runs.
+  - Amazon marketplace classification still wins before generic review classification, preserving `KEEPA_API_KEY` skip semantics.
+- Status: Phase 5 gate passed; ready to commit.

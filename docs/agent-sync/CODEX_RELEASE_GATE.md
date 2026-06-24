@@ -81,3 +81,20 @@ Codex owns final verification before every commit.
 - [x] Phase 1-4 regression passed.
 - [x] Secret scan passed.
 - [x] Commit completed by the Phase 4 gate commit.
+
+## Phase 5 Gate
+
+- [x] Existing schemas/templates/workers/actor API inspected before implementation.
+- [x] Codex explorer subagent reuse audits completed for jobs/real estate and leads/reviews/news/content.
+- [x] Phase 5 tests written before implementation.
+- [x] Red baseline observed for missing family values/runners and blocked schema strategies.
+- [x] `job_board_schema` and `real_estate_schema` graduated to native runnable strategies.
+- [x] Job and real estate runners normalize existing HTTP worker output through contract schemas.
+- [x] Lead, review, and news/content runners reuse HTTP worker output with family-specific filters.
+- [x] No Apify execution redirects added.
+- [x] No new hard env keys added for direct URL lead/review/news/content runs.
+- [x] Focused Phase 5 suite passed.
+- [x] Phase 1-5 regression passed.
+- [x] Service import aliases work outside the pytest-only shim.
+- [x] Secret scan passed.
+- [x] Commit completed by the Phase 5 gate commit.

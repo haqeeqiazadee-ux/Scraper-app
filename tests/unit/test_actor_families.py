@@ -7,6 +7,11 @@ from typing import Any
 from packages.core.secrets import SecretsManager
 
 
+class EmptySecrets:
+    def get(self, key: str, default: str | None = None) -> str | None:
+        return default
+
+
 def _entry(**overrides: Any) -> SimpleNamespace:
     base = {
         "actor_id": "actor-1",
@@ -75,6 +80,82 @@ def test_build_actor_spec_maps_local_maps_family_with_optional_provider_keys() -
     ]
 
 
+def test_build_actor_spec_maps_job_board_strategy_to_schema_family() -> None:
+    from packages.core.actor_runtime.families import ActorBaseFamily, build_actor_spec
+
+    spec = build_actor_spec(
+        _entry(
+            route_strategy="job_board_schema",
+            name="linkedin-jobs-scraper",
+            title="LinkedIn Jobs Scraper",
+            description="Extract job postings with titles, companies, salaries, and apply URLs.",
+            categories=("JOBS", "LEAD_GENERATION"),
+        )
+    )
+
+    assert spec.base_family == ActorBaseFamily.JOB_BOARD_SCHEMA
+    assert spec.required_env_names == ()
+    assert [step.name for step in spec.provider_chain] == ["http_worker_schema_match"]
+    assert "title" in spec.output_schema["properties"]
+    assert "company_name" in spec.output_schema["properties"]
+
+
+def test_build_actor_spec_maps_real_estate_strategy_to_schema_family() -> None:
+    from packages.core.actor_runtime.families import ActorBaseFamily, build_actor_spec
+
+    spec = build_actor_spec(
+        _entry(
+            route_strategy="real_estate_schema",
+            name="auction-com-property-scraper",
+            title="Auction.com Property Scraper",
+            description="Extract distressed property listings, prices, addresses, beds, and baths.",
+            categories=("REAL_ESTATE", "LEAD_GENERATION"),
+        )
+    )
+
+    assert spec.base_family == ActorBaseFamily.REAL_ESTATE_SCHEMA
+    assert spec.required_env_names == ()
+    assert [step.name for step in spec.provider_chain] == ["http_worker_schema_match"]
+    assert "price" in spec.output_schema["properties"]
+    assert "address" in spec.output_schema["properties"]
+
+
+def test_build_actor_spec_maps_lead_review_and_news_native_families() -> None:
+    from packages.core.actor_runtime.families import ActorBaseFamily, build_actor_spec
+
+    lead = build_actor_spec(
+        _entry(
+            name="shopify-lead-scraper",
+            title="Shopify Lead Scraper",
+            description="Extract business contact emails, phones, and websites for prospecting.",
+            categories=("LEAD_GENERATION", "BUSINESS"),
+        )
+    )
+    review = build_actor_spec(
+        _entry(
+            name="trustpilot-reviews-scraper",
+            title="Trustpilot Reviews Scraper",
+            description="Extract company reviews, ratings, reviewer names, and dates.",
+            categories=("LEAD_GENERATION", "ECOMMERCE"),
+        )
+    )
+    news = build_actor_spec(
+        _entry(
+            name="cnn-article-scraper",
+            title="CNN Article Scraper",
+            description="Extract news articles, headlines, authors, dates, and article body.",
+            categories=("NEWS",),
+        )
+    )
+
+    assert lead.base_family == ActorBaseFamily.LEAD_GENERATION_GENERIC
+    assert [step.name for step in lead.provider_chain] == ["http_worker_contacts"]
+    assert review.base_family == ActorBaseFamily.REVIEW_MONITORING_GENERIC
+    assert [step.name for step in review.provider_chain] == ["http_worker_reviews"]
+    assert news.base_family == ActorBaseFamily.NEWS_CONTENT_MONITORING
+    assert [step.name for step in news.provider_chain] == ["http_worker_content_monitoring"]
+
+
 def test_commerce_storefront_runner_uses_shopify_connector() -> None:
     from packages.core.actor_runtime import ActorRunState
     from packages.core.actor_runtime.families import CommerceStorefrontGenericRunner, build_actor_spec
@@ -125,7 +206,7 @@ def test_marketplace_runner_skips_missing_keepa_key_without_execute() -> None:
         ),
         task_id="task-1",
         tenant_id="tenant-1",
-        secrets_manager=SecretsManager(),
+        secrets_manager=EmptySecrets(),
     )
 
     result = asyncio.run(runner.run({"target": "https://www.amazon.com/s?k=laptop"}))
@@ -164,7 +245,7 @@ def test_local_maps_runner_executes_with_browser_fallback_when_provider_keys_are
         ),
         task_id="task-1",
         tenant_id="tenant-1",
-        secrets_manager=SecretsManager(),
+        secrets_manager=EmptySecrets(),
         maps_factory=FakeMapsConnector,
     )
 
@@ -221,3 +302,166 @@ def test_local_maps_runner_prefers_serper_provider_when_key_is_present() -> None
 
     assert result.state == ActorRunState.SUCCEEDED
     assert result.provider == "serper_places"
+
+
+def test_job_board_runner_schema_matches_and_validates_worker_items() -> None:
+    from packages.core.actor_runtime import ActorRunState
+    from packages.core.actor_runtime.families import JobBoardSchemaRunner, build_actor_spec
+
+    class FakeHttpWorker:
+        async def process_task(self, task: dict) -> dict:
+            assert task["url"] == "https://jobs.example.com"
+            return {
+                "status": "success",
+                "status_code": 200,
+                "extracted_data": [
+                    {
+                        "job_url": "https://jobs.example.com/roles/1",
+                        "name": "Generic listing card heading",
+                        "title": "Data Engineer",
+                        "company": "Acme Inc",
+                        "description": "Build data pipelines.",
+                        "source": "Example Jobs",
+                    }
+                ],
+                "item_count": 1,
+                "confidence": 0.7,
+                "extraction_method": "deterministic",
+                "bytes_downloaded": 2048,
+                "duration_ms": 12,
+                "artifacts": [],
+            }
+
+        async def close(self) -> None:
+            pass
+
+    runner = JobBoardSchemaRunner(
+        build_actor_spec(_entry(route_strategy="job_board_schema", title="Job Board Scraper")),
+        task_id="task-1",
+        tenant_id="tenant-1",
+        http_worker_factory=FakeHttpWorker,
+    )
+
+    result = asyncio.run(runner.run({"target": "https://jobs.example.com"}))
+
+    assert result.state == ActorRunState.SUCCEEDED
+    assert result.provider == "http_worker_schema_match"
+    item = result.output["extracted_data"][0]
+    assert item["url"] == "https://jobs.example.com/roles/1"
+    assert item["title"] == "Data Engineer"
+    assert item["company_name"] == "Acme Inc"
+    assert result.output["schema_matched"]["match_confidence"] >= 0.8
+
+
+def test_real_estate_runner_schema_matches_and_validates_worker_items() -> None:
+    from packages.core.actor_runtime import ActorRunState
+    from packages.core.actor_runtime.families import RealEstateSchemaRunner, build_actor_spec
+
+    class FakeHttpWorker:
+        async def process_task(self, task: dict) -> dict:
+            assert task["url"] == "https://homes.example.com/listing/1"
+            return {
+                "status": "success",
+                "status_code": 200,
+                "extracted_data": [
+                    {
+                        "property_url": "https://homes.example.com/listing/1",
+                        "title": "Beautiful Family Home",
+                        "description": "A wonderful 4 bed 3 bath home.",
+                        "source": "Example Homes",
+                        "price": 450000,
+                        "address": {"city": "Springfield", "state": "IL"},
+                        "features": {"bedrooms": 4, "bathrooms": 3},
+                    }
+                ],
+                "item_count": 1,
+                "confidence": 0.72,
+                "extraction_method": "deterministic",
+                "bytes_downloaded": 4096,
+                "duration_ms": 18,
+                "artifacts": [],
+            }
+
+        async def close(self) -> None:
+            pass
+
+    runner = RealEstateSchemaRunner(
+        build_actor_spec(_entry(route_strategy="real_estate_schema", title="Real Estate Scraper")),
+        task_id="task-1",
+        tenant_id="tenant-1",
+        http_worker_factory=FakeHttpWorker,
+    )
+
+    result = asyncio.run(runner.run({"target": "https://homes.example.com/listing/1"}))
+
+    assert result.state == ActorRunState.SUCCEEDED
+    assert result.provider == "http_worker_schema_match"
+    item = result.output["extracted_data"][0]
+    assert item["url"] == "https://homes.example.com/listing/1"
+    assert item["address"]["city"] == "Springfield"
+    assert item["features"]["bedrooms"] == 4
+
+
+def test_lead_review_and_content_runners_filter_existing_worker_items() -> None:
+    from packages.core.actor_runtime import ActorRunState
+    from packages.core.actor_runtime.families import (
+        LeadGenerationGenericRunner,
+        NewsContentMonitoringRunner,
+        ReviewMonitoringGenericRunner,
+        build_actor_spec,
+    )
+
+    class FakeHttpWorker:
+        async def process_task(self, task: dict) -> dict:
+            return {
+                "status": "success",
+                "status_code": 200,
+                "extracted_data": [
+                    {"name": "Acme", "email": "sales@example.com", "phone": "555-0100"},
+                    {"review_title": "Great", "review_text": "Loved it", "rating": "5"},
+                    {"title": "Market Update", "content_type": "article", "full_content": "News body"},
+                    {"name": "Decorative item"},
+                ],
+                "item_count": 4,
+                "confidence": 0.8,
+                "extraction_method": "deterministic",
+                "bytes_downloaded": 1024,
+                "duration_ms": 10,
+                "artifacts": [],
+            }
+
+        async def close(self) -> None:
+            pass
+
+    lead_runner = LeadGenerationGenericRunner(
+        build_actor_spec(_entry(title="Business Lead Scraper", categories=("LEAD_GENERATION",))),
+        task_id="task-1",
+        tenant_id="tenant-1",
+        http_worker_factory=FakeHttpWorker,
+    )
+    review_runner = ReviewMonitoringGenericRunner(
+        build_actor_spec(_entry(title="Trustpilot Reviews Scraper", description="Extract reviews and ratings.")),
+        task_id="task-1",
+        tenant_id="tenant-1",
+        http_worker_factory=FakeHttpWorker,
+    )
+    content_runner = NewsContentMonitoringRunner(
+        build_actor_spec(_entry(title="News Article Scraper", categories=("NEWS",))),
+        task_id="task-1",
+        tenant_id="tenant-1",
+        http_worker_factory=FakeHttpWorker,
+    )
+
+    lead = asyncio.run(lead_runner.run({"target": "https://example.com"}))
+    review = asyncio.run(review_runner.run({"target": "https://example.com/reviews"}))
+    content = asyncio.run(content_runner.run({"target": "https://example.com/news"}))
+
+    assert lead.state == ActorRunState.SUCCEEDED
+    assert lead.output["item_count"] == 1
+    assert lead.output["extracted_data"][0]["email"] == "sales@example.com"
+    assert review.state == ActorRunState.SUCCEEDED
+    assert review.output["item_count"] == 1
+    assert review.output["extracted_data"][0]["review_text"] == "Loved it"
+    assert content.state == ActorRunState.SUCCEEDED
+    assert content.output["item_count"] == 1
+    assert content.output["extracted_data"][0]["content_type"] == "article"

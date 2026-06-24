@@ -22,7 +22,14 @@ logger = logging.getLogger(__name__)
 
 actors_router = APIRouter(prefix="/actors", tags=["Actors"])
 
-RUNNABLE_NATIVE_STRATEGIES = {"native_pipeline"}
+RUNNABLE_NATIVE_STRATEGIES = {
+    "native_pipeline",
+    "job_board_schema",
+    "real_estate_schema",
+    "lead_generation_generic",
+    "review_monitoring_generic",
+    "news_content_monitoring",
+}
 
 
 def _utcnow() -> datetime:
@@ -252,8 +259,14 @@ async def create_actor_run(
     )
 
     duration_ms = int((_utcnow() - now).total_seconds() * 1000)
-    task = await task_repo.update(task_id, tenant_id, status=task_status, metadata_json=task_metadata)
-    run = await run_repo.update(
+    updated_task = await task_repo.update(task_id, tenant_id, status=task_status, metadata_json=task_metadata)
+    if updated_task is not None:
+        task = updated_task
+    else:
+        task.status = task_status
+        task.metadata_json = task_metadata
+
+    updated_run = await run_repo.update(
         run_id,
         tenant_id,
         status=run_status,
@@ -263,6 +276,16 @@ async def create_actor_run(
         bytes_downloaded=int(output.get("bytes_downloaded", 0) if output else 0),
         status_code=output.get("status_code") if output else None,
     )
+    if updated_run is not None:
+        run = updated_run
+    else:
+        run.status = run_status
+        run.error = runtime_result.error
+        run.completed_at = _utcnow()
+        run.duration_ms = int(output.get("duration_ms", duration_ms) if output else duration_ms)
+        run.bytes_downloaded = int(output.get("bytes_downloaded", 0) if output else 0)
+        run.status_code = output.get("status_code") if output else None
+
     result = await _persist_actor_run_result(
         session=session,
         tenant_id=tenant_id,
