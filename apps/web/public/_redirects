@@ -1,0 +1,2 @@
+/api/* https://scraper-platform-production-17cb.up.railway.app/api/:splat 200!
+/* /index.html 200
