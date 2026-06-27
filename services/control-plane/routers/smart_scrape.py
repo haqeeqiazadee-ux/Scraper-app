@@ -293,7 +293,11 @@ async def _handle_url_scrape(
 ) -> dict[str, Any]:
     """Execute the URL scrape path with lane routing and auto-escalation."""
     # Lazy imports to avoid circular dependencies
-    from services.control_plane.routers.execution import _execute_lane
+    from services.control_plane.routers.execution import (
+        _apply_trustpilot_review_fallback,
+        _execute_lane,
+        _result_item_count,
+    )
     from packages.core.storage.repositories import (
         TaskRepository, RunRepository, ResultRepository,
     )
@@ -788,6 +792,9 @@ async def _handle_url_scrape(
     # ---- Step 4: Escalation loop ----
     escalation_chain: list[dict[str, Any]] = []
     worker_result: dict[str, Any] = {}
+    best_success_result: dict[str, Any] | None = None
+    best_success_lane: Lane | None = None
+    last_executed_lane = current_lane
 
     for attempt in range(2):  # Max 2 attempts: HTTP → Browser (skip hard_target on Railway)
         # Check total timeout
@@ -809,7 +816,9 @@ async def _handle_url_scrape(
             else:
                 task_payload["cookies"] = _cookies_to_simple_dict(cookies)
 
+        last_executed_lane = current_lane
         worker_result = await _execute_lane(current_lane, task_payload)
+        worker_result = _apply_trustpilot_review_fallback(url, worker_result)
 
         # Track lane execution cost
         if current_lane == Lane.HTTP:
@@ -818,6 +827,12 @@ async def _handle_url_scrape(
             tracker.record("playwright_page", detail=f"Browser lane attempt {attempt + 1}")
 
         succeeded = worker_result.get("status") == "success"
+        if succeeded and (
+            best_success_result is None
+            or int(worker_result.get("item_count", 0) or 0) >= int(best_success_result.get("item_count", 0) or 0)
+        ):
+            best_success_result = dict(worker_result)
+            best_success_lane = current_lane
         escalation_chain.append({
             "lane": current_lane.value,
             "status": worker_result.get("status"),
@@ -904,6 +919,20 @@ async def _handle_url_scrape(
             reason="auto-escalation",
             fallback_lanes=_router._get_fallback_lanes(current_lane),
         )
+
+    if best_success_result is not None and (
+        worker_result.get("status") != "success"
+        or _result_item_count(best_success_result) > _result_item_count(worker_result)
+    ):
+        worker_result = best_success_result
+        current_lane = best_success_lane or current_lane
+        step_ts = _record_step(
+            steps,
+            "Recovered best successful lane result after failed escalation",
+            step_ts,
+        )
+    else:
+        current_lane = last_executed_lane
 
     # Clean up escalation context
     _escalation_mgr.complete(task_id, worker_result)

@@ -176,6 +176,23 @@
         "docs/agent-sync/runtime/result-packets/U1-apify-grade-ui-product-design.json"
       ],
       "status": "completed_validation_passed"
+    },
+    {
+      "lock_group": "actor-proof-factory",
+      "packet_id": "P1-actor-proof-factory-27753",
+      "files": [
+        "packages/core/actor_runtime/proof.py",
+        "packages/core/actor_runtime/__init__.py",
+        "packages/core/storage/models.py",
+        "packages/core/storage/repositories.py",
+        "services/control-plane/routers/actors.py",
+        "scripts/run_actor_proof_factory.py",
+        "tests/unit/test_actor_proof_factory.py",
+        "apps/web/src/pages/ActorsPage.tsx",
+        "apps/web/src/pages/ActorDetailPage.tsx",
+        "docs/agent-sync/runtime/result-packets/P1-actor-proof-factory-27753.json"
+      ],
+      "status": "completed_validation_passed"
     }
   ],
   "pending_lock_groups": [

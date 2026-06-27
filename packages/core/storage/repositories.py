@@ -27,10 +27,17 @@ from packages.core.actor_runtime.fixtures import (
     RegressionFixtureCandidate,
     materialize_regression_fixture,
 )
+from packages.core.actor_runtime.proof import (
+    ActorProofFailureClass,
+    ActorProofLevel,
+    ActorProofRecord,
+    ActorProofSummary,
+)
 from packages.core.storage.models import (
     ActorLearningEventModel,
     ActorRegressionFixtureCandidateModel,
     ActorStrategyProfileModel,
+    ActorWorkflowProofModel,
     ArtifactModel,
     PolicyModel,
     ReplayValidationResultModel,
@@ -670,4 +677,142 @@ class ActorFixtureRepository:
             expected_assertions=tuple(row.expected_assertions_json or []),
             tags=tuple(row.tags_json or []),
             created_at=row.created_at,
+        )
+
+
+class ActorProofRepository:
+    """Durable per-actor workflow proof ledger."""
+
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def record_proof(self, proof: ActorProofRecord) -> ActorProofRecord:
+        row = ActorWorkflowProofModel(
+            tenant_id=proof.tenant_id,
+            actor_id=proof.actor_id,
+            catalog_version=proof.catalog_version,
+            catalog_total=proof.catalog_total,
+            proof_level=proof.proof_level.value,
+            last_verified_at=proof.last_verified_at.replace(tzinfo=None),
+            test_input_json=proof.test_input,
+            run_id=proof.run_id,
+            result_id=proof.result_id,
+            items_count=proof.items_count,
+            schema_passed=proof.schema_passed,
+            export_json_passed=proof.export_json_passed,
+            export_csv_passed=proof.export_csv_passed,
+            ui_route_passed=proof.ui_route_passed,
+            live_e2e_passed=proof.live_e2e_passed,
+            fixture_replay_passed=proof.fixture_replay_passed,
+            blocked_reason=proof.blocked_reason,
+            failure_reason=proof.failure_reason,
+            failure_class=proof.failure_class.value,
+            source_timestamp=proof.source_timestamp.replace(tzinfo=None) if proof.source_timestamp else None,
+            policy_version=proof.policy_version,
+            tenant_scope=proof.tenant_scope,
+            provenance_json=list(proof.provenance),
+            proof_metadata_json=proof.proof_metadata,
+        )
+        self._session.add(row)
+        await self._session.flush()
+        return self._proof_from_row(row)
+
+    async def latest_for_actor(self, actor_id: str, tenant_id: str) -> ActorProofRecord | None:
+        stmt = (
+            select(ActorWorkflowProofModel)
+            .where(
+                ActorWorkflowProofModel.actor_id == actor_id,
+                ActorWorkflowProofModel.tenant_id == tenant_id,
+            )
+            .order_by(ActorWorkflowProofModel.last_verified_at.desc(), ActorWorkflowProofModel.created_at.desc())
+            .limit(1)
+        )
+        result = await self._session.execute(stmt)
+        row = result.scalar_one_or_none()
+        return self._proof_from_row(row) if row is not None else None
+
+    async def latest_records(
+        self,
+        tenant_id: str,
+        *,
+        limit: int = 50,
+        offset: int = 0,
+        proof_level: str | None = None,
+    ) -> tuple[list[ActorProofRecord], int]:
+        latest = await self._latest_by_actor(tenant_id)
+        records = list(latest.values())
+        if proof_level:
+            records = [record for record in records if record.proof_level.value == proof_level]
+        records.sort(key=lambda record: record.last_verified_at, reverse=True)
+        return records[offset: offset + limit], len(records)
+
+    async def summary(self, tenant_id: str, *, catalog_actor_count: int) -> ActorProofSummary:
+        latest = await self._latest_by_actor(tenant_id)
+        counts_by_level: dict[str, int] = {}
+        blocked_actor_count = 0
+        stale_actor_count = 0
+        for record in latest.values():
+            counts_by_level[record.proof_level.value] = counts_by_level.get(record.proof_level.value, 0) + 1
+            if record.failure_class != ActorProofFailureClass.NONE or record.blocked_reason:
+                blocked_actor_count += 1
+            if record.catalog_total and record.catalog_total != catalog_actor_count:
+                stale_actor_count += 1
+
+        proof_ledger_count = len(latest)
+        return ActorProofSummary(
+            tenant_id=tenant_id,
+            catalog_actor_count=catalog_actor_count,
+            proof_ledger_count=proof_ledger_count,
+            counts_by_level=counts_by_level,
+            live_e2e_passed_count=counts_by_level.get(ActorProofLevel.LIVE_E2E_PASSED.value, 0),
+            fixture_replay_passed_count=counts_by_level.get(ActorProofLevel.FIXTURE_REPLAY_PASSED.value, 0),
+            runtime_smoke_passed_count=counts_by_level.get(ActorProofLevel.RUNTIME_SMOKE_PASSED.value, 0),
+            ui_route_passed_count=counts_by_level.get(ActorProofLevel.UI_ROUTE_PASSED.value, 0),
+            blocked_actor_count=blocked_actor_count,
+            unverified_actor_count=max(catalog_actor_count - proof_ledger_count, 0),
+            stale_actor_count=stale_actor_count,
+        )
+
+    async def _latest_by_actor(self, tenant_id: str) -> dict[str, ActorProofRecord]:
+        stmt = (
+            select(ActorWorkflowProofModel)
+            .where(ActorWorkflowProofModel.tenant_id == tenant_id)
+            .order_by(ActorWorkflowProofModel.actor_id.asc(), ActorWorkflowProofModel.last_verified_at.desc())
+        )
+        result = await self._session.execute(stmt)
+        latest: dict[str, ActorProofRecord] = {}
+        for row in result.scalars().all():
+            if row.actor_id not in latest:
+                latest[row.actor_id] = self._proof_from_row(row)
+        return latest
+
+    def serialize(self, proof: ActorProofRecord) -> dict:
+        return proof.model_dump(mode="json")
+
+    def _proof_from_row(self, row: ActorWorkflowProofModel) -> ActorProofRecord:
+        return ActorProofRecord(
+            actor_id=row.actor_id,
+            tenant_id=row.tenant_id,
+            catalog_version=row.catalog_version,
+            catalog_total=row.catalog_total,
+            proof_level=ActorProofLevel(row.proof_level),
+            last_verified_at=row.last_verified_at,
+            test_input=row.test_input_json or {},
+            run_id=row.run_id,
+            result_id=row.result_id,
+            items_count=row.items_count,
+            schema_passed=row.schema_passed,
+            export_json_passed=row.export_json_passed,
+            export_csv_passed=row.export_csv_passed,
+            ui_route_passed=row.ui_route_passed,
+            live_e2e_passed=row.live_e2e_passed,
+            fixture_replay_passed=row.fixture_replay_passed,
+            blocked_reason=row.blocked_reason,
+            failure_reason=row.failure_reason,
+            failure_class=ActorProofFailureClass(row.failure_class or ActorProofFailureClass.NONE.value),
+            source_timestamp=row.source_timestamp,
+            policy_version=row.policy_version,
+            tenant_scope=row.tenant_scope,
+            provenance=tuple(row.provenance_json or []),
+            proof_metadata=row.proof_metadata_json or {},
         )

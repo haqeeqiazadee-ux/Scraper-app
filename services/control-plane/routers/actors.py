@@ -20,6 +20,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from packages.core.actor_catalog.registry import actor_catalog
 from packages.core.actor_runtime import (
     ActorLearningEvent,
+    ActorProofFailureClass,
+    ActorProofLevel,
+    ActorProofRecord,
     ActorRuntimeResult,
     ActorRunState,
     FixtureReviewStatus,
@@ -30,13 +33,19 @@ from packages.core.actor_runtime import (
     StrategyPatchStatus,
     StrategyProfile,
     StrategyProfileEngine,
+    actor_catalog_version,
+    actor_public_route,
     build_actor_spec,
     build_default_strategy_profile,
+    choose_proof_level,
+    classify_actor_proof_failure,
     create_actor_runner,
+    generate_actor_test_input,
 )
 from packages.core.storage.models import ResultModel, RunModel, TaskModel
 from packages.core.storage.repositories import (
     ActorFixtureRepository,
+    ActorProofRepository,
     ActorStrategyProfileRepository,
     ResultRepository,
     RunRepository,
@@ -124,6 +133,36 @@ class FixtureCandidateCreateRequest(BaseModel):
 class FixtureReviewRequest(BaseModel):
     reviewed_by: str = "codex"
     notes: str = ""
+
+
+class ActorProofRecordRequest(BaseModel):
+    proof_level: ActorProofLevel = ActorProofLevel.API_MAPPED
+    test_input: dict[str, Any] = Field(default_factory=dict)
+    run_id: str | None = None
+    result_id: str | None = None
+    items_count: int = 0
+    schema_passed: bool = False
+    export_json_passed: bool = False
+    export_csv_passed: bool = False
+    ui_route_passed: bool = False
+    live_e2e_passed: bool = False
+    fixture_replay_passed: bool = False
+    blocked_reason: str | None = None
+    failure_reason: str | None = None
+    failure_class: ActorProofFailureClass = ActorProofFailureClass.NONE
+    source_timestamp: datetime | None = None
+    policy_version: str = "actor-proof-v1"
+    provenance: list[str] = Field(default_factory=list)
+    proof_metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class ActorProofFromRunRequest(BaseModel):
+    ui_route_passed: bool = False
+    fixture_replay_passed: bool = False
+    source_timestamp: datetime | None = None
+    policy_version: str = "actor-proof-v1"
+    provenance: list[str] = Field(default_factory=list)
+    proof_metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 def _terminal_status_for_state(state: ActorRunState) -> tuple[str, str]:
@@ -269,6 +308,44 @@ def _serialize_learning_event(row: Any) -> dict[str, Any]:
         "metrics": row.metrics_json or {},
         "evidence": row.evidence_json or [],
     }
+
+
+def _catalog_proof_for_actor(actor_id: str, tenant_id: str) -> ActorProofRecord:
+    entry = actor_catalog.get(actor_id)
+    if entry is None:
+        raise HTTPException(status_code=404, detail=f"Actor {actor_id} not found")
+    catalog_total = actor_catalog.total
+    return ActorProofRecord(
+        actor_id=actor_id,
+        tenant_id=tenant_id,
+        catalog_version=actor_catalog_version(catalog_total),
+        catalog_total=catalog_total,
+        proof_level=ActorProofLevel.API_MAPPED,
+        test_input=generate_actor_test_input(entry),
+        tenant_scope="tenant",
+        provenance=(
+            "actor_catalog:registry",
+            "api:/api/v1/actors/{actor_id}",
+            f"ui:{actor_public_route(actor_id)}",
+        ),
+        proof_metadata={
+            "persisted": False,
+            "route_strategy": entry.route_strategy,
+            "runnable_status": entry.runnable_status,
+            "claim_boundary": "api_mapped_not_live_e2e",
+        },
+    )
+
+
+def _serialize_proof(proof: ActorProofRecord, *, persisted: bool = True) -> dict[str, Any]:
+    data = proof.model_dump(mode="json")
+    data["persisted"] = persisted
+    data["claim_boundary"] = (
+        "live_e2e_proven"
+        if proof.proof_level == ActorProofLevel.LIVE_E2E_PASSED and proof.live_e2e_passed
+        else "not_live_e2e_proven"
+    )
+    return data
 
 
 async def _load_actor_run_row(
@@ -922,6 +999,187 @@ async def materialize_actor_fixture_candidate(
         raise HTTPException(status_code=404, detail="Fixture candidate not found")
     await session.flush()
     return {"success": True, "data": fixture.model_dump(mode="json")}
+
+
+@actors_router.get("/proof/summary")
+async def get_actor_proof_summary(
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
+) -> dict[str, Any]:
+    """Return honest proof counts for the current actor catalog."""
+    repo = ActorProofRepository(session)
+    summary = await repo.summary(tenant_id, catalog_actor_count=actor_catalog.total)
+    data = summary.model_dump(mode="json")
+    data["proof_levels"] = [level.value for level in ActorProofLevel]
+    data["full_catalog_live_e2e_proven"] = (
+        summary.proof_ledger_count == summary.catalog_actor_count
+        and summary.live_e2e_passed_count == summary.catalog_actor_count
+        and summary.catalog_actor_count > 0
+    )
+    return {"success": True, "data": data}
+
+
+@actors_router.get("/proof/records")
+async def list_actor_proof_records(
+    proof_level: str = Query("", description="Optional proof-level filter"),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
+) -> dict[str, Any]:
+    """List latest tenant-scoped proof rows without implying full live E2E coverage."""
+    repo = ActorProofRepository(session)
+    items, total = await repo.latest_records(
+        tenant_id,
+        proof_level=proof_level or None,
+        limit=limit,
+        offset=offset,
+    )
+    return {
+        "success": True,
+        "data": {
+            "items": [_serialize_proof(item) for item in items],
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+        },
+    }
+
+
+@actors_router.get("/{actor_id}/proof")
+async def get_actor_proof(
+    actor_id: str,
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
+) -> dict[str, Any]:
+    """Return latest proof for one actor, or a non-persisted API-mapped fallback."""
+    if actor_catalog.get(actor_id) is None:
+        raise HTTPException(status_code=404, detail=f"Actor {actor_id} not found")
+    repo = ActorProofRepository(session)
+    proof = await repo.latest_for_actor(actor_id, tenant_id)
+    if proof is None:
+        return {"success": True, "data": _serialize_proof(_catalog_proof_for_actor(actor_id, tenant_id), persisted=False)}
+    return {"success": True, "data": _serialize_proof(proof)}
+
+
+@actors_router.post("/{actor_id}/proof")
+async def record_actor_proof(
+    actor_id: str,
+    body: ActorProofRecordRequest,
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
+) -> dict[str, Any]:
+    """Persist a proof row created by a proof runner, UI route verifier, or fixture replay."""
+    entry = actor_catalog.get(actor_id)
+    if entry is None:
+        raise HTTPException(status_code=404, detail=f"Actor {actor_id} not found")
+    catalog_total = actor_catalog.total
+    proof = ActorProofRecord(
+        actor_id=actor_id,
+        tenant_id=tenant_id,
+        catalog_version=actor_catalog_version(catalog_total),
+        catalog_total=catalog_total,
+        proof_level=body.proof_level,
+        test_input=body.test_input or generate_actor_test_input(entry),
+        run_id=body.run_id,
+        result_id=body.result_id,
+        items_count=body.items_count,
+        schema_passed=body.schema_passed,
+        export_json_passed=body.export_json_passed,
+        export_csv_passed=body.export_csv_passed,
+        ui_route_passed=body.ui_route_passed,
+        live_e2e_passed=body.live_e2e_passed,
+        fixture_replay_passed=body.fixture_replay_passed,
+        blocked_reason=body.blocked_reason,
+        failure_reason=body.failure_reason,
+        failure_class=body.failure_class,
+        source_timestamp=body.source_timestamp,
+        policy_version=body.policy_version,
+        tenant_scope="tenant",
+        provenance=tuple(body.provenance or ["manual-proof-api"]),
+        proof_metadata={
+            **body.proof_metadata,
+            "route_strategy": entry.route_strategy,
+            "runnable_status": entry.runnable_status,
+        },
+    )
+    saved = await ActorProofRepository(session).record_proof(proof)
+    await session.flush()
+    return {"success": True, "data": _serialize_proof(saved)}
+
+
+@actors_router.post("/{actor_id}/runs/{run_id}/proof")
+async def record_actor_proof_from_run(
+    actor_id: str,
+    run_id: str,
+    body: ActorProofFromRunRequest,
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
+) -> dict[str, Any]:
+    """Verify a persisted actor run into an explicit proof row."""
+    entry = actor_catalog.get(actor_id)
+    if entry is None:
+        raise HTTPException(status_code=404, detail=f"Actor {actor_id} not found")
+    task, run, result = await _load_actor_run_row(
+        session=session,
+        actor_id=actor_id,
+        run_id=run_id,
+        tenant_id=tenant_id,
+    )
+    metadata = task.metadata_json or {}
+    item_count = int(result.item_count or 0) if result is not None else 0
+    has_result = result is not None
+    export_json_passed = has_result
+    export_csv_passed = has_result
+    failure_class = classify_actor_proof_failure(
+        run_status=run.status,
+        error=run.error or metadata.get("actor_error"),
+        missing_env_names=tuple(metadata.get("missing_env_names") or ()),
+        item_count=item_count,
+    )
+    proof_level = choose_proof_level(
+        run_status=run.status,
+        has_result=has_result,
+        item_count=item_count,
+        export_json_passed=export_json_passed,
+        export_csv_passed=export_csv_passed,
+        ui_route_passed=body.ui_route_passed,
+        fixture_replay_passed=body.fixture_replay_passed,
+    )
+    proof = ActorProofRecord(
+        actor_id=actor_id,
+        tenant_id=tenant_id,
+        catalog_version=actor_catalog_version(actor_catalog.total),
+        catalog_total=actor_catalog.total,
+        proof_level=proof_level,
+        test_input=dict(metadata.get("input") or generate_actor_test_input(entry)),
+        run_id=run.id,
+        result_id=result.id if result is not None else None,
+        items_count=item_count,
+        schema_passed=has_result,
+        export_json_passed=export_json_passed,
+        export_csv_passed=export_csv_passed,
+        ui_route_passed=body.ui_route_passed,
+        live_e2e_passed=proof_level == ActorProofLevel.LIVE_E2E_PASSED,
+        fixture_replay_passed=body.fixture_replay_passed,
+        blocked_reason=run.error if failure_class != ActorProofFailureClass.NONE else None,
+        failure_reason=run.error if failure_class != ActorProofFailureClass.NONE else None,
+        failure_class=failure_class,
+        source_timestamp=body.source_timestamp,
+        policy_version=body.policy_version,
+        tenant_scope="tenant",
+        provenance=tuple(body.provenance or ["actor-run-proof-api", f"run:{run.id}"]),
+        proof_metadata={
+            **body.proof_metadata,
+            "route_strategy": entry.route_strategy,
+            "runnable_status": entry.runnable_status,
+            "export_json_verified": export_json_passed,
+            "export_csv_verified": export_csv_passed,
+        },
+    )
+    saved = await ActorProofRepository(session).record_proof(proof)
+    await session.flush()
+    return {"success": True, "data": _serialize_proof(saved)}
 
 
 @actors_router.get("/{actor_id}/value-metrics")

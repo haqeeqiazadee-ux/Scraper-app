@@ -17,7 +17,7 @@ Phase 5 - Base families B.
 ## Latest Verified Git State
 
 - Local path: `C:\Users\PC\Scraper-app-verified`
-- Branch: `codex/own-stack-actors`
+- Branch: `main`
 - Main baseline commit: `45bdb35dcfd4764500b4b132dde186cedc767455`
 - Remote `main`: `45bdb35dcfd4764500b4b132dde186cedc767455`
 - Remote `saas-repair`: `6802b655194a46abf3f9067f3d8a4b11a110180a`
@@ -135,7 +135,10 @@ Phase 5 can be committed only after:
 - [x] Fixture review materialization local packet passed for candidate queues, approve/reject, materialization, tenant isolation, and redaction preservation.
 - [x] Customer value dashboards local packet passed for tenant-scoped actor value metrics and actor detail dashboard build verification.
 - [x] Apify-grade UI/product design local packet passed for category rail, featured workflows, active filter chips, API-first run console, value trends, accessibility labels, responsive behavior, and Claude design validation.
+- [x] Actor proof-factory local packet passed for proof levels, durable proof rows, proof APIs, proof runner, proof UI status, sample ledger, and Claude validation.
+- [ ] Full 27,753 live E2E proof is not claimed: current sample ledger contains 3 `api_mapped` rows and 0 `live_e2e_passed` rows.
 - [x] Full live E2E gate was run.
-- [ ] Full live E2E gate is blocked: initial suite passed 49/56; failed-subset rerun recovered 3 transient UI/DNS cases but still failed 4 scrape-execution cases.
+- [x] Full live E2E local fixback passed for the 4 persistent scrape-execution cases: example.com, httpbin.org/html UI scrape path, Trustpilot smart scrape, and Trustpilot template execution.
+- [ ] Full live E2E production rerun is pending after deployment of the local fixback commit.
 - [x] Deployment reachability check passed for frontend root and backend health; public API account endpoint correctly returned 401 without an API key.
-- [ ] Full SaaS release candidate not claimed: live scrape E2E failures and post-deploy latest-commit verification remain open.
+- [ ] Full SaaS release candidate not claimed: post-deploy latest-commit verification and live H1 rerun remain open.

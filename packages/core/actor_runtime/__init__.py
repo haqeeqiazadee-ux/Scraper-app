@@ -50,6 +50,17 @@ from packages.core.actor_runtime.profiles import (
     StrategyProfileStore,
     build_default_strategy_profile,
 )
+from packages.core.actor_runtime.proof import (
+    ActorProofFailureClass,
+    ActorProofLevel,
+    ActorProofRecord,
+    ActorProofSummary,
+    actor_catalog_version,
+    actor_public_route,
+    choose_proof_level,
+    classify_actor_proof_failure,
+    generate_actor_test_input,
+)
 from packages.core.actor_runtime.provider_chain import ProviderChain
 from packages.core.actor_runtime.runner import BaseActorRunner
 from packages.core.actor_runtime.workflows import (
@@ -89,6 +100,10 @@ __all__ = [
     "ActorSecurityAssessment",
     "ActorSpec",
     "ActorLearningEvent",
+    "ActorProofFailureClass",
+    "ActorProofLevel",
+    "ActorProofRecord",
+    "ActorProofSummary",
     "BaseActorRunner",
     "CommerceStorefrontGenericRunner",
     "FreshnessPolicy",
@@ -133,6 +148,8 @@ __all__ = [
     "WorkflowSpec",
     "WorkflowUIContract",
     "assess_actor_payload_security",
+    "actor_catalog_version",
+    "actor_public_route",
     "build_actor_spec",
     "build_actor_governance_metadata",
     "build_actor_trace",
@@ -141,9 +158,12 @@ __all__ = [
     "build_regression_fixture_candidate",
     "materialize_regression_fixture",
     "build_query_fingerprint",
+    "choose_proof_level",
+    "classify_actor_proof_failure",
     "create_actor_runner",
     "determine_actor_family",
     "estimate_actor_cost",
     "evaluate_actor_output",
+    "generate_actor_test_input",
     "workflow_registry",
 ]

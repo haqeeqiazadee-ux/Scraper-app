@@ -9,6 +9,8 @@ Supersedes: `docs/agent-sync/SCRAPER_APP_FINAL_APIFY_COMPETITOR_EXECUTION_PROMPT
 
 The previous prompt was execution-campaign ready, but the phrase "one-shot SaaS execution-prompt ready" was too loose because downstream release blockers remained open. This prompt corrects that by making the blockers mandatory release packets.
 
+This revision also corrects the actor-proof gap: 27,753 catalog/UI/API mapped actors are not the same as 27,753 individually proven end-to-end workflows. The execution campaign must build a proof factory that converts catalog entries into durable per-actor proof rows before any 27,753 E2E claim is allowed.
+
 You are Codex executing in `C:\Users\PC\Scraper-app-verified`.
 
 Your mission is to continue from the current existing state and close the remaining SaaS release blockers without starting from scratch. The accepted local baseline already includes actor catalog, native actor runtime, knowledge/freshness trait, API-first provider ladders, extensible workflow substrate, MCP actor tools, self-learning profile substrate, trace-to-fixture candidates, runtime ledgers, focused tests, and existing React/Vite UI pages.
@@ -33,6 +35,10 @@ Read or inspect these before implementation:
 - `services/control-plane/routers/schedules.py`
 - `services/control-plane/routers/webhooks.py`
 - `services/control-plane/routers/billing.py`
+- `packages/core/actor_catalog/registry.py`
+- `packages/core/actor_catalog/generated/apify_actor_catalog.json`
+- `apps/web/public/data/actors/index.json`
+- `apps/web/public/data/actors/stats.json`
 - `apps/web/src/pages/ActorsPage.tsx`
 - `apps/web/src/pages/ActorDetailPage.tsx`
 - `apps/web/src/pages/ScraperPage.tsx`
@@ -65,7 +71,11 @@ Jules escalation is only for repeated blockers after local fixback and Claude re
 - Do not add raw secrets, API keys, cookies, tokens, credentials, private customer inputs, or unredacted PII to code, docs, fixtures, logs, prompts, graph memory, or result packets.
 - All profile, fixture, trace, dashboard, and value metrics must be tenant-scoped.
 - No customer-visible cached/graph-derived result may be served without provenance, freshness, timestamp, policy version, tenant scope, and decision path.
+- Do not claim "27,753 individually proven E2E workflows" unless a durable proof ledger has one accepted proof row per current catalog actor and the ledger count equals the current catalog total from disk.
+- Keep proof levels explicit. `catalog_only`, `api_mapped`, `runtime_smoke_passed`, `fixture_replay_passed`, `ui_route_passed`, and `live_e2e_passed` are distinct states. Lower proof levels must not be marketed as live E2E.
+- Separate deterministic fixture proof from live external workflow proof in storage, result packets, dashboards, and final QA.
 - Do not overwrite unrelated dirty files.
+- Do not print unnecessary text during execution. Emit only necessary status, blockers, decisions, validation results, artifact paths, and final required output. Avoid filler, repeated explanations, progress theater, and verbose narration.
 - Do not claim full release readiness while any blocker packet is incomplete, untested, externally blocked, or only documented.
 - Do not claim "same level as Apify" or "better than Apify" for UI unless the UI packet has implemented changes, responsive screenshot evidence, accessibility checks, build verification, and Claude design validation with no blocking findings.
 
@@ -266,9 +276,59 @@ Acceptance:
 - Claude design validation returns no blocking findings
 - Codex final QA confirms superiority/parity is evidence-backed, not merely claimed
 
-### Priority 6: `H1-full-e2e`
+### Priority 6: `P1-actor-proof-factory-27753`
 
-Why sixth: E2E should verify completed behavior, not chase unfinished contracts.
+Why sixth: the catalog is large enough that individual proof cannot be created manually. A SaaS-ready Apify competitor needs an automated, resumable proof factory that turns each actor entry into a measured proof state.
+
+Meet the requirement by adding a durable actor proof contract and proof runner for every current catalog actor:
+
+- proof ledger table/model/repository or equivalent durable JSONL plus DB-backed migration path
+- one proof row per actor with `actor_id`, `catalog_version`, `proof_level`, `last_verified_at`, `test_input`, `run_id`, `result_id`, `items_count`, `schema_passed`, `export_json_passed`, `export_csv_passed`, `ui_route_passed`, `live_e2e_passed`, `fixture_replay_passed`, `blocked_reason`, `failure_reason`, `source_timestamp`, `policy_version`, `tenant_scope`, and provenance
+- generated per-actor test input materialization from catalog metadata and family/provider strategy
+- family input templates for ecommerce, social, jobs, real estate, video, maps/local, news/content, reviews, leads, developer/API, and generic web extraction
+- batch runner with concurrency, bounded retries, timeout controls, rate limits, resumability, and deterministic output files
+- API proof flow: `POST /api/v1/actors/{actor_id}/runs`, poll detail, verify persisted result, verify JSON/CSV export, record proof
+- UI proof flow: actor detail route renders, run form/API action is present, value metrics/proof status loads, and no broken route state occurs
+- deterministic fixture proof path for actors that cannot safely run live every time
+- failure classifier that distinguishes implementation bug, bad generated input, missing credentials, provider rate limit, platform instability, anti-bot block, unsupported family, and external outage
+- self-improvement loop that turns failed proof rows into fixture candidates, strategy learning events, provider-ladder proposals, and regression tests
+- proof status surfaced in actor store/detail UI as `Live verified`, `Fixture verified`, `Runtime smoke passed`, `Needs credentials`, `External blocked`, or `Unverified`
+- aggregate proof dashboard that reports total catalog actors, proof ledger rows, live E2E passed, fixture replay passed, runtime smoke passed, UI route passed, blocked counts, stale proof counts, and current unverified count
+
+Expected files:
+
+- `packages/core/storage/models.py`
+- `packages/core/storage/repositories.py`
+- `services/control-plane/routers/actors.py`
+- `packages/core/actor_runtime/`
+- `packages/core/actor_catalog/registry.py`
+- `scripts/`
+- `tests/unit/test_actor_proof_factory.py`
+- `tests/e2e/`
+- `apps/web/src/pages/ActorsPage.tsx`
+- `apps/web/src/pages/ActorDetailPage.tsx`
+- result packet under `docs/agent-sync/runtime/result-packets/`
+
+Acceptance:
+
+- current catalog count is recomputed from disk before proof execution
+- proof runner can resume without re-running already accepted fresh proofs
+- every proof row is tenant-scoped or explicitly marked public/catalog-level
+- generated inputs contain no secrets or private customer data
+- proof levels are enforced by code, not free-form strings
+- JSON and CSV export proof is recorded separately
+- UI route proof is recorded separately from backend run proof
+- fixture replay proof is not counted as live E2E proof
+- failed actors receive structured failure classes and next action
+- proof dashboard/API exposes honest counts and stale proof state
+- focused unit tests pass
+- a bounded live sample run proves the proof factory works before attempting full catalog execution
+- full 27,753 proof execution is attempted only through the resumable runner with rate limits, and any external blockers are recorded without being converted into readiness
+- Codex final QA can answer exactly how many actors are `live_e2e_passed`, `fixture_replay_passed`, `runtime_smoke_passed`, `ui_route_passed`, `blocked`, and `unverified`
+
+### Priority 7: `H1-full-e2e`
+
+Why seventh: E2E should verify completed behavior and proof-factory claims, not chase unfinished contracts.
 
 Meet the requirement by adding/running E2E coverage for:
 
@@ -279,6 +339,7 @@ Meet the requirement by adding/running E2E coverage for:
 - fixture review/materialization
 - value dashboard metrics
 - Apify-grade actor store/detail/run-console UI across desktop and mobile where frontend tooling allows
+- proof factory API, batch runner, ledger, dashboard, and per-actor proof status
 - MCP actor discovery/route/run surface where feasible
 
 Expected files:
@@ -294,8 +355,9 @@ Acceptance:
 - frontend E2E passes or every blocked live dependency is explicitly recorded
 - backend E2E passes against local test app
 - no skipped critical path without a blocker entry
+- no claim that all 27,753 actors are individually proven unless the proof ledger proves it
 
-### Priority 7: `H2-deployment-verification`
+### Priority 8: `H2-deployment-verification`
 
 Why last: deployment verification is only credible after features and E2E pass.
 
@@ -307,6 +369,7 @@ Meet the requirement by verifying:
 - env vars present without leaking values
 - public API smoke
 - actor run smoke on deployed backend
+- proof status/proof dashboard smoke on deployed backend/frontend
 - result export smoke
 - schedule/webhook smoke if safe
 - MCP docs/config accuracy
@@ -362,15 +425,21 @@ Use this order unless current code proves a narrower dependency change:
     "status": "pending"
   },
   {
-    "packet_id": "H1-full-e2e",
+    "packet_id": "P1-actor-proof-factory-27753",
     "priority": 6,
     "depends_on": ["F2", "E3", "G3", "G4", "U1"],
     "status": "pending"
   },
   {
-    "packet_id": "H2-deployment-verification",
+    "packet_id": "H1-full-e2e",
     "priority": 7,
-    "depends_on": ["H1"],
+    "depends_on": ["F2", "E3", "G3", "G4", "U1", "P1"],
+    "status": "pending"
+  },
+  {
+    "packet_id": "H2-deployment-verification",
+    "priority": 8,
+    "depends_on": ["H1", "P1"],
     "status": "pending"
   }
 ]
@@ -393,7 +462,7 @@ Use the continuous-agent-loop pattern:
 9. Run Claude validation after meaningful packet groups or before release claims. For `U1-apify-grade-ui-product-design`, Claude validation must include a dedicated design critique before implementation and a dedicated design validation after implementation.
 10. Fix accepted findings.
 11. Update ledgers and release gate.
-12. Continue until all seven blocker packets are accepted or an external blocker remains after fixback.
+12. Continue until all eight blocker packets are accepted or an external blocker remains after fixback.
 
 Do not stop after one packet unless the user explicitly pauses execution.
 
@@ -424,6 +493,15 @@ Required fields:
   "workflow_ops_checked": false,
   "dashboard_value_checked": false,
   "ui_design_checked": false,
+  "actor_proof_factory_checked": false,
+  "catalog_actor_count": 0,
+  "proof_ledger_count": 0,
+  "live_e2e_passed_count": 0,
+  "fixture_replay_passed_count": 0,
+  "runtime_smoke_passed_count": 0,
+  "ui_route_passed_count": 0,
+  "blocked_actor_count": 0,
+  "unverified_actor_count": 0,
   "claude_design_review_status": "",
   "e2e_checked": false,
   "deployment_checked": false,
@@ -481,13 +559,30 @@ npm.cmd run build
 git diff --check
 ```
 
+Minimum after proof-factory changes:
+
+```powershell
+python -m compileall -q packages services scripts tests
+python -m pytest tests/unit/test_actor_proof_factory.py tests/unit/test_actor_runs_api.py tests/unit/test_actor_value_metrics.py -q
+```
+
+Minimum proof-run validation:
+
+```powershell
+python scripts/<proof_factory_runner>.py --catalog apps/web/public/data/actors/index.json --sample 25 --write-ledger --resume
+python scripts/<proof_factory_runner>.py --catalog apps/web/public/data/actors/index.json --status
+```
+
+Replace `<proof_factory_runner>` with the actual script implemented in the packet. The script must support `--sample`, `--resume`, bounded concurrency, rate limiting, and status reporting before full-catalog execution is allowed.
+
 If full unit/E2E cannot run because of environment dependencies, record exact missing dependency, affected command, and the smallest valid substitute. Do not convert substitute validation into full release readiness.
 
 ## 10. Completion States
 
 Allowed final states:
 
-- `full_saas_release_candidate_ready`: all seven blocker packets accepted, full release gate passed, Claude validation has no blocking findings, Claude UI design validation has no blocking findings, deployment verification complete.
+- `full_saas_release_candidate_ready`: all eight blocker packets accepted, full release gate passed, Claude validation has no blocking findings, Claude UI design validation has no blocking findings, deployment verification complete, and proof-factory status is honestly reported.
+- `full_27753_live_e2e_proven`: only allowed when current catalog count is 27,753 or the current recomputed disk count, proof ledger count equals that count, every actor has `live_e2e_passed`, and Codex final QA verifies the ledger, runner logs, exports, and UI proof evidence.
 - `partial_blocked_not_release_ready`: at least one mandatory blocker remains incomplete, untested, or externally blocked.
 - `blocked`: same external blocker persists after local fixback and Claude review, and no unrelated blocker packet can progress.
 
@@ -495,6 +590,7 @@ Forbidden final states:
 
 - "one-shot ready" while blocker packets remain pending.
 - "better than Apify" while parity/superiority gates are only documented.
+- "27,753 individually proven E2E workflows" while any actor is only cataloged, API mapped, runtime-smoked, fixture-replayed, UI-route-checked, blocked, stale, or unverified.
 - "complete" when only prompt/documentation work has been done.
 
 ## 11. Final Response Required

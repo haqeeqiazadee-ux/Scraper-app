@@ -445,34 +445,76 @@
       "result_packet_path": "docs/agent-sync/runtime/result-packets/U1-apify-grade-ui-product-design.json"
     },
     {
+      "packet_id": "P1-actor-proof-factory-27753",
+      "phase": "Phase P1",
+      "status": "accepted_local_validation_passed",
+      "lock_group": "actor-proof-factory",
+      "reuse_decision": "extend_existing",
+      "files_allowed": [
+        "packages/core/actor_runtime/*",
+        "packages/core/storage/*",
+        "services/control-plane/routers/actors.py",
+        "scripts/*",
+        "tests/unit/*",
+        "apps/web/src/pages/*",
+        "docs/agent-sync/runtime/*",
+        "docs/agent-sync/IMPLEMENTATION_LEDGER.md",
+        "docs/agent-sync/PHASE_STATUS.md"
+      ],
+      "dependencies": [
+        "F2-workflow-ops-parity",
+        "E3-persisted-profile-apis",
+        "G3-fixture-review-materialization",
+        "G4-customer-value-dashboards",
+        "U1-apify-grade-ui-product-design"
+      ],
+      "files_locked": [
+        "docs/agent-sync/runtime/result-packets/P1-actor-proof-factory-27753.json"
+      ],
+      "acceptance_tests": [
+        "python -m pytest tests/unit/test_actor_proof_factory.py tests/unit/test_actor_runs_api.py tests/unit/test_actor_value_metrics.py -q",
+        "python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 3 --write-ledger --resume --ledger docs/agent-sync/runtime/actor-proof-ledger.sample.jsonl",
+        "npm.cmd run build"
+      ],
+      "rollback_plan": "Revert additive proof model/repository/router/UI/runner changes if proof APIs regress actor runtime behavior.",
+      "result_packet_path": "docs/agent-sync/runtime/result-packets/P1-actor-proof-factory-27753.json"
+    },
+    {
       "packet_id": "H1-full-e2e",
       "phase": "Phase H1",
-      "status": "blocked",
+      "status": "local_fixback_passed_pending_deploy_live_rerun",
       "lock_group": "full-e2e",
       "reuse_decision": "extend_existing",
       "files_allowed": [
+        "services/control-plane/routers/execution.py",
+        "services/control-plane/routers/smart_scrape.py",
+        "tests/unit/test_execution_recovery.py",
         "tests/e2e/*",
         "docs/agent-sync/runtime/*",
         "docs/agent-sync/IMPLEMENTATION_LEDGER.md"
       ],
       "dependencies": [
         "U1-apify-grade-ui-product-design",
-        "G4-customer-value-dashboards",
-        "F2-workflow-ops-parity"
+        "F2-workflow-ops-parity",
+        "P1-actor-proof-factory-27753",
+        "G4-customer-value-dashboards"
       ],
       "files_locked": [
         "docs/agent-sync/runtime/result-packets/H1-full-e2e.json"
       ],
       "acceptance_tests": [
+        "python -m compileall -q services packages scripts tests/unit/test_actor_proof_factory.py tests/unit/test_execution_recovery.py",
+        "python -m pytest tests/unit/test_actor_proof_factory.py tests/unit/test_actor_runs_api.py tests/unit/test_actor_value_metrics.py tests/unit/test_execution_recovery.py -q",
+        "local ASGI smoke for example.com, httpbin.org/html, Trustpilot smart scrape, and Trustpilot template execution",
         "C:\\Python314\\python.exe -m pytest tests/e2e/test_all_workflows.py -v"
       ],
-      "rollback_plan": "No code rollback; H1 is a verification packet. Fix live scrape execution failures and rerun.",
+      "rollback_plan": "Revert execution/smart-scrape lane recovery and Trustpilot source fallback if deployed live E2E regresses.",
       "result_packet_path": "docs/agent-sync/runtime/result-packets/H1-full-e2e.json"
     },
     {
       "packet_id": "H2-deployment-verification",
       "phase": "Phase H2",
-      "status": "partial",
+      "status": "partial_blocked_by_H1_and_deploy_smoke",
       "lock_group": "deployment-verification",
       "reuse_decision": "extend_existing",
       "files_allowed": [
@@ -480,6 +522,7 @@
         "docs/agent-sync/IMPLEMENTATION_LEDGER.md"
       ],
       "dependencies": [
+        "P1-actor-proof-factory-27753",
         "H1-full-e2e"
       ],
       "files_locked": [

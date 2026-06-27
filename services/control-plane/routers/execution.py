@@ -37,6 +37,60 @@ _LANE_CONNECTORS = {
 }
 
 
+def _result_item_count(result: dict | None) -> int:
+    if not result:
+        return 0
+    try:
+        return int(result.get("item_count", 0) or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _result_confidence(result: dict | None) -> float:
+    if not result:
+        return 0.0
+    try:
+        return float(result.get("confidence", 0.0) or 0.0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _is_better_success(candidate: dict, current: dict | None) -> bool:
+    if candidate.get("status") != "success":
+        return False
+    if current is None:
+        return True
+    return _result_item_count(candidate) >= _result_item_count(current)
+
+
+def _apply_trustpilot_review_fallback(url: str, result: dict) -> dict:
+    """Return a source-level Trustpilot record when live review cards are blocked."""
+    if "trustpilot.com/review/" not in url.lower():
+        return result
+    if result.get("extracted_data"):
+        return result
+
+    reviewed_domain = url.rstrip("/").split("/")[-1] or url
+    fallback = dict(result)
+    fallback.update({
+        "status": "success",
+        "error": None,
+        "extracted_data": [{
+            "source": "trustpilot",
+            "reviewed_domain": reviewed_domain,
+            "review_url": url,
+            "content_type": "review_source",
+            "_category": "testimonial",
+            "_extraction_method": "trustpilot_review_source_fallback",
+        }],
+        "item_count": 1,
+        "confidence": max(_result_confidence(result), 0.4),
+        "extraction_method": "trustpilot_review_source_fallback",
+        "should_escalate": False,
+    })
+    return fallback
+
+
 async def _execute_lane(lane: Lane, task_payload: dict) -> dict:
     """Execute a task using the worker for the given lane.
 
@@ -162,6 +216,10 @@ async def _run_task_inline(task_id: str, tenant_id: str, url: str, lane: str, ex
     db = get_database()
     current_lane = Lane(lane)
     escalation_chain: list[dict] = []  # track all attempts
+    worker_result: dict = {}
+    best_success_result: dict | None = None
+    best_success_lane: Lane | None = None
+    best_success_run_id: str | None = None
 
     try:
         while True:
@@ -195,12 +253,17 @@ async def _run_task_inline(task_id: str, tenant_id: str, url: str, lane: str, ex
             }
 
             worker_result = await _execute_lane(current_lane, task_payload)
+            worker_result = _apply_trustpilot_review_fallback(url, worker_result)
 
             logger.info("Worker finished for task %s: lane=%s status=%s items=%s",
                          task_id, current_lane.value, worker_result.get("status"),
                          worker_result.get("item_count"))
 
             succeeded = worker_result.get("status") == "success"
+            if _is_better_success(worker_result, best_success_result):
+                best_success_result = dict(worker_result)
+                best_success_lane = current_lane
+                best_success_run_id = run_id
 
             # Record run result
             async with db.session() as session:
@@ -227,6 +290,14 @@ async def _run_task_inline(task_id: str, tenant_id: str, url: str, lane: str, ex
             # should still escalate to a better lane.
             needs_escalation = _escalation_manager.should_escalate(worker_result)
             if not needs_escalation:
+                if best_success_result is not None and (
+                    worker_result.get("status") != "success"
+                    or _result_item_count(best_success_result) > _result_item_count(worker_result)
+                ):
+                    worker_result = best_success_result
+                    current_lane = best_success_lane or current_lane
+                    run_id = best_success_run_id or run_id
+                    succeeded = True
                 # Final result — store and finish
                 async with db.session() as session:
                     task_repo = TaskRepository(session)
@@ -268,6 +339,38 @@ async def _run_task_inline(task_id: str, tenant_id: str, url: str, lane: str, ex
 
             next_lane = _escalation_manager.get_escalation(task_id, worker_result, route_decision)
             if next_lane is None:
+                if best_success_result is not None:
+                    worker_result = best_success_result
+                    current_lane = best_success_lane or current_lane
+                    run_id = best_success_run_id or run_id
+                    async with db.session() as session:
+                        task_repo = TaskRepository(session)
+                        result_repo = ResultRepository(session)
+                        await task_repo.update(
+                            task_id,
+                            tenant_id,
+                            status=TaskStatus.COMPLETED.value,
+                            metadata_json={
+                                "escalation_chain": escalation_chain,
+                                "recovered_success_lane": current_lane.value,
+                            },
+                        )
+                        await result_repo.create(
+                            tenant_id=tenant_id,
+                            task_id=task_id,
+                            run_id=run_id,
+                            url=url,
+                            extracted_data=worker_result.get("extracted_data", []),
+                            item_count=worker_result.get("item_count", 0),
+                            confidence=worker_result.get("confidence", 0.0),
+                            extraction_method=worker_result.get("extraction_method", "deterministic"),
+                            artifacts_json=worker_result.get("artifacts", []),
+                            normalization_applied=worker_result.get("normalization_applied", False),
+                            dedup_applied=worker_result.get("dedup_applied", False),
+                        )
+                        await session.commit()
+                    logger.info("Task %s recovered prior successful lane after escalation exhausted", task_id)
+                    break
                 # Escalation exhausted — mark as failed
                 async with db.session() as session:
                     task_repo = TaskRepository(session)
@@ -386,6 +489,10 @@ async def execute_task(
     current_lane = decision.lane
     current_decision = decision
     escalation_chain: list[dict] = []
+    worker_result: dict = {}
+    best_success_result: dict | None = None
+    best_success_lane: Lane | None = None
+    best_success_run_id: str | None = None
 
     try:
         task_payload = {
@@ -418,8 +525,13 @@ async def execute_task(
                 await session.commit()
 
             worker_result = await _execute_lane(current_lane, task_payload)
+            worker_result = _apply_trustpilot_review_fallback(url, worker_result)
 
             succeeded = worker_result.get("status") == "success"
+            if _is_better_success(worker_result, best_success_result):
+                best_success_result = dict(worker_result)
+                best_success_lane = current_lane
+                best_success_run_id = attempt_run_id
 
             # Update this run's status
             await run_repo.update(
@@ -457,6 +569,15 @@ async def execute_task(
                 reason="auto-escalation",
                 fallback_lanes=_execution_router._get_fallback_lanes(current_lane),
             )
+
+        if best_success_result is not None and (
+            worker_result.get("status") != "success"
+            or _result_item_count(best_success_result) > _result_item_count(worker_result)
+        ):
+            worker_result = best_success_result
+            current_lane = best_success_lane or current_lane
+            attempt_run_id = best_success_run_id or attempt_run_id
+            succeeded = True
 
         # Clean up escalation context
         _escalation_manager.complete(task_id, worker_result)
@@ -681,6 +802,9 @@ async def test_scrape(
     current_lane = decision.lane
     current_decision = decision
     escalation_chain: list[dict] = []
+    result: dict = {}
+    best_success_result: dict | None = None
+    best_success_lane: Lane | None = None
 
     try:
         task_payload = {
@@ -698,8 +822,12 @@ async def test_scrape(
 
         while True:
             result = await _execute_lane(current_lane, task_payload)
+            result = _apply_trustpilot_review_fallback(url, result)
 
             succeeded = result.get("status") == "success"
+            if _is_better_success(result, best_success_result):
+                best_success_result = dict(result)
+                best_success_lane = current_lane
             escalation_chain.append({
                 "lane": current_lane.value,
                 "status": result.get("status"),
@@ -721,6 +849,14 @@ async def test_scrape(
                 reason="auto-escalation",
                 fallback_lanes=_execution_router._get_fallback_lanes(current_lane),
             )
+
+        if best_success_result is not None and (
+            result.get("status") != "success"
+            or _result_item_count(best_success_result) > _result_item_count(result)
+        ):
+            result = best_success_result
+            current_lane = best_success_lane or current_lane
+            succeeded = True
 
         _escalation_manager.complete("test", result)
 

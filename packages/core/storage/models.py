@@ -267,6 +267,44 @@ class ActorRegressionFixtureCandidateModel(Base):
     )
 
 
+class ActorWorkflowProofModel(Base):
+    __tablename__ = "actor_workflow_proofs"
+
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    tenant_id = Column(String(255), nullable=False, index=True)
+    actor_id = Column(String(255), nullable=False, index=True)
+    catalog_version = Column(String(100), nullable=False)
+    catalog_total = Column(Integer, nullable=False, default=0)
+    proof_level = Column(String(50), nullable=False, index=True)
+    last_verified_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    test_input_json = Column(JSON, nullable=False, default=dict)
+    run_id = Column(String(36), nullable=True, index=True)
+    result_id = Column(String(36), nullable=True, index=True)
+    items_count = Column(Integer, nullable=False, default=0)
+    schema_passed = Column(Boolean, nullable=False, default=False)
+    export_json_passed = Column(Boolean, nullable=False, default=False)
+    export_csv_passed = Column(Boolean, nullable=False, default=False)
+    ui_route_passed = Column(Boolean, nullable=False, default=False)
+    live_e2e_passed = Column(Boolean, nullable=False, default=False)
+    fixture_replay_passed = Column(Boolean, nullable=False, default=False)
+    blocked_reason = Column(Text, nullable=True)
+    failure_reason = Column(Text, nullable=True)
+    failure_class = Column(String(100), nullable=False, default="none", index=True)
+    source_timestamp = Column(DateTime, nullable=True)
+    policy_version = Column(String(100), nullable=False, default="actor-proof-v1")
+    tenant_scope = Column(String(50), nullable=False, default="tenant")
+    provenance_json = Column(JSON, nullable=False, default=list)
+    proof_metadata_json = Column(JSON, nullable=False, default=dict)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(DateTime, nullable=True, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        Index("ix_actor_proofs_tenant_actor", "tenant_id", "actor_id"),
+        Index("ix_actor_proofs_tenant_level", "tenant_id", "proof_level"),
+        Index("ix_actor_proofs_tenant_verified", "tenant_id", "last_verified_at"),
+    )
+
+
 # Register Public API models so Base.metadata picks them up for auto-creation
 try:
     from packages.core.storage.models_public_api import (  # noqa: F401, E402

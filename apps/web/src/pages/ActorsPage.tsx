@@ -44,6 +44,16 @@ interface CatalogStats {
   pricing_models: string[];
 }
 
+interface ActorProofSummary {
+  proof_ledger_count: number;
+  live_e2e_passed_count: number;
+  fixture_replay_passed_count: number;
+  runtime_smoke_passed_count: number;
+  ui_route_passed_count: number;
+  unverified_actor_count: number;
+  full_catalog_live_e2e_proven: boolean;
+}
+
 /* ── Strategy Colors ── */
 
 const STRATEGY_COLORS: Record<string, { bg: string; text: string; label: string }> = {
@@ -95,6 +105,7 @@ export function ActorsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCompact, setIsCompact] = useState(false);
+  const [proofSummary, setProofSummary] = useState<ActorProofSummary | null>(null);
 
   // Filters from URL params
   const query = searchParams.get("q") || "";
@@ -129,6 +140,13 @@ export function ActorsPage() {
     fetch("/data/actors/index.json")
       .then((r) => r.json())
       .then((idx) => setTotalChunks(idx.chunk_count))
+      .catch(() => {});
+
+    fetch("/api/v1/actors/proof/summary", { headers: { "X-Tenant-ID": "default" } })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((payload) => {
+        if (payload?.success && payload.data) setProofSummary(payload.data);
+      })
       .catch(() => {});
   }, []);
 
@@ -367,12 +385,13 @@ export function ActorsPage() {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(3, 1fr)",
+                gridTemplateColumns: "repeat(4, 1fr)",
                 gap: 8,
               }}
             >
               <CatalogStat label="Native" value={formatCompact(stats?.by_strategy.native_pipeline || 0)} />
-              <CatalogStat label="Profiles" value="Live" />
+              <CatalogStat label="Proofed" value={formatCompact(proofSummary?.proof_ledger_count || 0)} />
+              <CatalogStat label="Live E2E" value={formatCompact(proofSummary?.live_e2e_passed_count || 0)} />
               <CatalogStat label="API" value="/v1" />
             </div>
           </div>

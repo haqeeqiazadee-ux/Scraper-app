@@ -50,6 +50,18 @@ interface ActorValueMetrics {
   };
 }
 
+interface ActorProofRecord {
+  proof_level: string;
+  live_e2e_passed: boolean;
+  fixture_replay_passed: boolean;
+  ui_route_passed: boolean;
+  items_count: number;
+  last_verified_at: string;
+  failure_class: string;
+  claim_boundary: string;
+  persisted: boolean;
+}
+
 interface ActorRunPayload {
   run_id?: string;
   status?: string;
@@ -89,6 +101,7 @@ export function ActorDetailPage() {
   const navigate = useNavigate();
   const [actor, setActor] = useState<Actor | null>(null);
   const [valueMetrics, setValueMetrics] = useState<ActorValueMetrics | null>(null);
+  const [actorProof, setActorProof] = useState<ActorProofRecord | null>(null);
   const [runTarget, setRunTarget] = useState("");
   const [runBusy, setRunBusy] = useState(false);
   const [runError, setRunError] = useState<string | null>(null);
@@ -182,6 +195,27 @@ export function ActorDetailPage() {
       }
     }
     loadValueMetrics();
+    return () => { cancelled = true; };
+  }, [actorId]);
+
+  useEffect(() => {
+    if (!actorId) return;
+    let cancelled = false;
+    async function loadActorProof() {
+      try {
+        const response = await fetch(`/api/v1/actors/${actorId}/proof`, {
+          headers: { "X-Tenant-ID": "default" },
+        });
+        if (!response.ok) return;
+        const payload = await response.json();
+        if (!cancelled && payload.success && payload.data) {
+          setActorProof(payload.data);
+        }
+      } catch {
+        if (!cancelled) setActorProof(null);
+      }
+    }
+    loadActorProof();
     return () => { cancelled = true; };
   }, [actorId]);
 
@@ -342,6 +376,26 @@ export function ActorDetailPage() {
           >
             {actor.runnable_status.replace(/_/g, " ")}
           </span>
+        </InfoCard>
+
+        <InfoCard label="Proof Status">
+          <span
+            style={{
+              color: actorProof?.live_e2e_passed
+                ? "#6ee7b7"
+                : actorProof?.fixture_replay_passed || actorProof?.ui_route_passed
+                  ? "#93c5fd"
+                  : "#fbbf24",
+              fontWeight: 600,
+            }}
+          >
+            {formatProofLevel(actorProof?.proof_level || "api_mapped")}
+          </span>
+          <p style={{ fontSize: 12, color: "#94a3b8", margin: "4px 0 0" }}>
+            {actorProof?.claim_boundary === "live_e2e_proven"
+              ? `${actorProof.items_count} items verified`
+              : "Mapped, not live E2E proven"}
+          </p>
         </InfoCard>
 
         {/* Categories */}
@@ -625,6 +679,10 @@ function formatDuration(seconds: number): string {
   if (seconds >= 3600) return `${Math.round(seconds / 3600)}h`;
   if (seconds >= 60) return `${Math.round(seconds / 60)}m`;
   return `${seconds}s`;
+}
+
+function formatProofLevel(value: string): string {
+  return value.replace(/_/g, " ");
 }
 
 function MetricTile({ label, value, trend = 0 }: { label: string; value: string; trend?: number }) {
