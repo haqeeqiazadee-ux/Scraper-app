@@ -217,6 +217,8 @@ def generate_actor_test_input(entry: Any) -> dict[str, Any]:
         {
             "name": "[data-proof-name]",
             "description": "[data-proof-description]",
+            "price": "[data-proof-price]",
+            "product_url": "[data-proof-product-url]",
             "source": "[data-proof-source]",
         },
     )

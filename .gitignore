@@ -48,6 +48,7 @@ system/credentials_registry.md
 
 # Node.js (web dashboard, extension)
 node_modules/
+.netlify/
 .next/
 .nuxt/
 dist/
