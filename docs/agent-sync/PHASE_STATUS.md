@@ -145,4 +145,5 @@ Phase 5 can be committed only after:
 - [x] Runtime smoke proof is stricter: completed zero-item runs remain `api_mapped` and cannot become `runtime_smoke_passed`.
 - [x] Hosted proof fixtures added for products, jobs, real estate, contacts, reviews, news, and generic extraction; offline ledger regenerated with fixture targets while keeping all 27,753 rows `api_mapped` until live fixture replay succeeds.
 - [x] Runtime family classifier now uses word-boundary lead matching, so text like `leading classifieds platform` no longer routes generic workflows into lead-generation proof lanes.
+- [x] Hosted fixture replay promotion verified in production on latest Railway deployment `7e2fcb8e-6098-4a0b-82c8-e8ee041708bb` and Netlify deploy `6a40422f954dc32f20af854f`: bounded sample produced 2 `fixture_replay_passed`, 1 `api_mapped`, 0 `live_e2e_passed`, 0 `ui_route_passed`.
 - [ ] Full SaaS release candidate not claimed: 27,753 live E2E actor proof remains open; current full catalog ledger is 27,753 `api_mapped`, 0 `live_e2e_passed`.

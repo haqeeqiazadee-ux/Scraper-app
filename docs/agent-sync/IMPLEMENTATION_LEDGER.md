@@ -1212,4 +1212,7 @@ This file is the mandatory proof trail for the pre-code reuse gate.
   - `python -m pytest tests/unit/test_actor_proof_factory.py tests/unit/test_actor_families.py tests/unit/test_actor_runs_api.py tests/unit/test_actor_value_metrics.py -q`
   - `python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 0 --write-ledger --concurrency 8 --ledger docs/agent-sync/runtime/actor-proof-ledger.jsonl`
   - Claude read-only validation returned `PASS`, no blockers, no fixbacks.
-- Status: Classifier and proof-input routing are corrected locally. Next step is deploy and resample production fixture proof.
+  - Railway deployment `7e2fcb8e-6098-4a0b-82c8-e8ee041708bb` succeeded.
+  - Netlify production deploy `6a40422f954dc32f20af854f` succeeded and hosted fixture URLs returned HTTP 200.
+  - Production proof sample against `https://scraper.exsel.ai`: 3 rows; 2 `fixture_replay_passed`, 1 `api_mapped` unsupported `yt_dlp`, 0 `live_e2e_passed`, 0 `ui_route_passed`.
+- Status: Hosted fixture proof promotion is working in production for the bounded sample. Full 27,753 live E2E proof remains open with 0 `live_e2e_passed` actors.
