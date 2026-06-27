@@ -1304,3 +1304,39 @@ This file is the mandatory proof trail for the pre-code reuse gate.
   - `GET https://scraper.exsel.ai/api/v1/health -> 200`
   - `python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 25 --write-ledger --ledger docs/agent-sync/runtime/actor-proof-ledger.production-video-batch-25.jsonl --base-url https://scraper.exsel.ai --concurrency 1 --rate-limit-per-second 0.5 --timeout 60`
 - Status: Native video metadata execution is implemented, tested, deployed, and proved in a bounded production batch. Full 27,753 live E2E proof remains open; next gate is scaling proof batches and adding UI-route/live-E2E assertions.
+
+## Mainline Loop - Production Proof Rollout Retry Semantics
+
+- Task: Scale production proof beyond 25 actors and make the proof runner retry transient transport failures without overcounting duplicate ledger rows.
+- Phase: P1 production proof rollout
+- Existing files inspected:
+  - `scripts/run_actor_proof_factory.py`
+  - `tests/unit/test_actor_proof_factory.py`
+  - `docs/agent-sync/runtime/actor-proof-ledger.production-rollout.jsonl`
+- Reuse decision: `extend_existing`
+- Reason: The existing proof runner already had sample, resume, rate-limit, timeout, and status support. The missing behavior was latest-row status and success-only resume for retrying transient `URLError` rows in long production batches.
+- Files modified:
+  - `scripts/run_actor_proof_factory.py`
+  - `tests/unit/test_actor_proof_factory.py`
+  - `docs/agent-sync/runtime/actor-proof-ledger.production-rollout.jsonl`
+  - `docs/agent-sync/runtime/result-packets/P1-actor-proof-factory-27753.json`
+  - `docs/agent-sync/runtime/result-packets/H2-deployment-verification.json`
+  - `docs/agent-sync/PHASE_STATUS.md`
+  - `docs/agent-sync/IMPLEMENTATION_LEDGER.md`
+- Evidence:
+  - `--status` now reports latest proof row per actor plus `raw_rows` for audit.
+  - `--resume-success-only` lets the runner skip only successful actors and retry failed/latest non-proof rows.
+  - First 100 production actors proved 100/100: 89 `fixture_replay_passed`, 11 `runtime_smoke_passed`, 0 failures.
+  - Next 150 initially produced transient transport failures; success-only retries recovered all remaining rows.
+  - Final 250-actor rollout latest state: 250 unique actors, 217 `fixture_replay_passed`, 33 `runtime_smoke_passed`, 0 `api_mapped`, 0 failures, 0 `live_e2e_passed`, 0 `ui_route_passed`; raw ledger rows 293 after retries.
+  - Claude validation returned `PASS` for the retry-aware runner diff.
+- Tests/gates:
+  - `python -m pytest tests/unit/test_actor_proof_factory.py -q`
+  - `python -m compileall -q scripts/run_actor_proof_factory.py tests/unit/test_actor_proof_factory.py`
+  - `C:\Users\PC\.local\bin\claude.exe -p "Validate retry-aware proof runner diff"`
+  - `python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 100 --write-ledger --resume --ledger docs/agent-sync/runtime/actor-proof-ledger.production-rollout.jsonl --base-url https://scraper.exsel.ai --tenant proof-factory-rollout --concurrency 1 --rate-limit-per-second 0.5 --timeout 60`
+  - `python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 150 --write-ledger --resume --ledger docs/agent-sync/runtime/actor-proof-ledger.production-rollout.jsonl --base-url https://scraper.exsel.ai --tenant proof-factory-rollout --concurrency 1 --rate-limit-per-second 0.5 --timeout 60`
+  - `python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 36 --write-ledger --resume --resume-success-only --ledger docs/agent-sync/runtime/actor-proof-ledger.production-rollout.jsonl --base-url https://scraper.exsel.ai --tenant proof-factory-rollout --concurrency 1 --rate-limit-per-second 0.4 --timeout 75`
+  - `python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 7 --write-ledger --resume --resume-success-only --ledger docs/agent-sync/runtime/actor-proof-ledger.production-rollout.jsonl --base-url https://scraper.exsel.ai --tenant proof-factory-rollout --concurrency 1 --rate-limit-per-second 0.2 --timeout 90`
+  - `python scripts/run_actor_proof_factory.py --ledger docs/agent-sync/runtime/actor-proof-ledger.production-rollout.jsonl --status`
+- Status: Production proof rollout is at 250 unique actors with zero latest failures. Full 27,753 live E2E proof remains open; next gate is continued rollout scaling and UI-route/live-E2E proof assertions.

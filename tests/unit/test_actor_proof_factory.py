@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 from types import SimpleNamespace
 from typing import Any, Callable
@@ -197,6 +198,35 @@ def test_proof_runner_uses_shared_fixture_input_generation() -> None:
     assert generated["fixture_kind"] == "contacts"
     assert generated["target"].endswith("/fixtures/actor-proof/contacts.html")
     assert _is_fixture_input(generated) is True
+
+
+def test_proof_runner_resume_success_only_retries_failed_latest_rows(tmp_path) -> None:
+    from scripts.run_actor_proof_factory import _read_done
+
+    ledger = tmp_path / "proof.jsonl"
+    rows = [
+        {"actor_id": "a1", "proof_level": "api_mapped", "failure_class": "external_outage"},
+        {"actor_id": "a2", "proof_level": "fixture_replay_passed", "failure_class": "none"},
+        {"actor_id": "a1", "proof_level": "runtime_smoke_passed", "failure_class": "none"},
+    ]
+    ledger.write_text("\n".join(json.dumps(row) for row in rows) + "\n", encoding="utf-8")
+
+    assert _read_done(ledger) == {"a1", "a2"}
+    assert _read_done(ledger, success_only=True) == {"a1", "a2"}
+
+    ledger.write_text(
+        "\n".join(
+            json.dumps(row)
+            for row in [
+                {"actor_id": "a1", "proof_level": "api_mapped", "failure_class": "external_outage"},
+                {"actor_id": "a2", "proof_level": "fixture_replay_passed", "failure_class": "none"},
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    assert _read_done(ledger, success_only=True) == {"a2"}
 
 
 def test_actor_proof_api_records_manual_ui_route_proof() -> None:

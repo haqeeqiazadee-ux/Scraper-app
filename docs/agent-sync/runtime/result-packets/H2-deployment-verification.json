@@ -17,9 +17,10 @@
     "docs/agent-sync/IMPLEMENTATION_LEDGER.md",
     "docs/agent-sync/runtime/actor-proof-ledger.production-batch-25.jsonl",
     "docs/agent-sync/runtime/result-packets/P1-actor-proof-factory-27753.json",
-    "docs/agent-sync/runtime/actor-proof-ledger.production-video-batch-25.jsonl"
+    "docs/agent-sync/runtime/actor-proof-ledger.production-video-batch-25.jsonl",
+    "docs/agent-sync/runtime/actor-proof-ledger.production-rollout.jsonl"
   ],
-  "implementation_summary": "Checked production reachability after Railway deployment 07ba733e-714a-4b6e-9aa6-ce967940acdc with native yt_dlp video family enabled. Backend health and hosted review fixture returned 200. A 25-actor production proof batch produced 23 fixture_replay_passed rows and 2 runtime_smoke_passed yt_dlp rows; no API-mapped failures, live E2E proof, or UI-route proof was claimed.",
+  "implementation_summary": "Checked production reachability after Railway deployment 07ba733e-714a-4b6e-9aa6-ce967940acdc and scaled the proof rollout to 250 unique actors. Latest deduped proof state is 217 fixture_replay_passed and 33 runtime_smoke_passed, with 0 API-mapped failures, 0 live E2E proof, and 0 UI-route proof claimed.",
   "tenant_isolation_checked": true,
   "secrets_touched": false,
   "api_first_boundary_checked": true,
@@ -56,7 +57,12 @@
     "GET https://scraper.exsel.ai/api/v1/health -> 200 after native video deploy",
     "GET https://myscraper.netlify.app/fixtures/actor-proof/reviews.html -> 200 after native video deploy",
     "python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 25 --write-ledger --ledger docs/agent-sync/runtime/actor-proof-ledger.production-video-batch-25.jsonl --base-url https://scraper.exsel.ai --concurrency 1 --rate-limit-per-second 0.5 --timeout 60",
-    "python scripts/run_actor_proof_factory.py --ledger docs/agent-sync/runtime/actor-proof-ledger.production-video-batch-25.jsonl --status"
+    "python scripts/run_actor_proof_factory.py --ledger docs/agent-sync/runtime/actor-proof-ledger.production-video-batch-25.jsonl --status",
+    "python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 100 --write-ledger --resume --ledger docs/agent-sync/runtime/actor-proof-ledger.production-rollout.jsonl --base-url https://scraper.exsel.ai --tenant proof-factory-rollout --concurrency 1 --rate-limit-per-second 0.5 --timeout 60",
+    "python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 150 --write-ledger --resume --ledger docs/agent-sync/runtime/actor-proof-ledger.production-rollout.jsonl --base-url https://scraper.exsel.ai --tenant proof-factory-rollout --concurrency 1 --rate-limit-per-second 0.5 --timeout 60",
+    "python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 36 --write-ledger --resume --resume-success-only --ledger docs/agent-sync/runtime/actor-proof-ledger.production-rollout.jsonl --base-url https://scraper.exsel.ai --tenant proof-factory-rollout --concurrency 1 --rate-limit-per-second 0.4 --timeout 75",
+    "python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 7 --write-ledger --resume --resume-success-only --ledger docs/agent-sync/runtime/actor-proof-ledger.production-rollout.jsonl --base-url https://scraper.exsel.ai --tenant proof-factory-rollout --concurrency 1 --rate-limit-per-second 0.2 --timeout 90",
+    "python scripts/run_actor_proof_factory.py --ledger docs/agent-sync/runtime/actor-proof-ledger.production-rollout.jsonl --status"
   ],
   "tests_passed": [
     "Frontend root returned HTTP 200.",
@@ -77,7 +83,9 @@
     "Post-fix production proof batch: 25 rows; 23 fixture_replay_passed, 2 api_mapped unsupported yt_dlp, 0 live_e2e_passed, 0 ui_route_passed.",
     "Latest Railway deployment 07ba733e-714a-4b6e-9aa6-ce967940acdc succeeded.",
     "Backend /api/v1/health returned HTTP 200 after native video deployment.",
-    "Post-video-family production proof batch: 25 rows; 23 fixture_replay_passed, 2 runtime_smoke_passed yt_dlp, 0 api_mapped, 0 failures, 0 live_e2e_passed, 0 ui_route_passed."
+    "Post-video-family production proof batch: 25 rows; 23 fixture_replay_passed, 2 runtime_smoke_passed yt_dlp, 0 api_mapped, 0 failures, 0 live_e2e_passed, 0 ui_route_passed.",
+    "Production rollout ledger latest state: 250 unique actors, 217 fixture_replay_passed, 33 runtime_smoke_passed, 0 api_mapped, 0 failures; raw_rows=293 after retries.",
+    "Success-only retry recovered all transient URLError rows in the 250-actor rollout."
   ],
   "tests_failed": [],
   "known_limitations": [
@@ -86,11 +94,13 @@
     "Latest post-fix batch is bounded to 25 actors and does not prove all 27,753 workflows end-to-end.",
     "Native yt_dlp/video-family execution remains unimplemented for the two unsupported sampled actors.",
     "Latest post-video batch is bounded to 25 actors and does not prove all 27,753 workflows end-to-end.",
-    "Video-family proof currently reaches runtime_smoke_passed, not live_e2e_passed, because UI-route and per-actor live assertions are still separate gates."
+    "Video-family proof currently reaches runtime_smoke_passed, not live_e2e_passed, because UI-route and per-actor live assertions are still separate gates.",
+    "250-actor rollout is bounded production proof and does not prove all 27,753 workflows.",
+    "Live E2E and UI-route proof remain separate gates and are still 0 in this rollout."
   ],
   "qa_status": "deployment_verified_release_blocked_only_by_full_27753_live_e2e_proof",
   "next_recommended_packet": "scale-live-e2e-proof-beyond-api-mapped-ledger",
-  "updated_at_utc": "2026-06-27T22:08:54Z",
+  "updated_at_utc": "2026-06-27T22:26:38Z",
   "claude_validation_status": "PASS",
   "latest_railway_deployment": "07ba733e-714a-4b6e-9aa6-ce967940acdc",
   "latest_netlify_deployment": "6a40422f954dc32f20af854f",
@@ -105,5 +115,13 @@
   "production_video_batch_api_mapped_count": 0,
   "production_video_batch_failure_count": 0,
   "production_video_batch_live_e2e_passed_count": 0,
-  "production_video_batch_ui_route_passed_count": 0
+  "production_video_batch_ui_route_passed_count": 0,
+  "production_rollout_unique_actor_count": 250,
+  "production_rollout_raw_row_count": 293,
+  "production_rollout_fixture_replay_passed_count": 217,
+  "production_rollout_runtime_smoke_passed_count": 33,
+  "production_rollout_api_mapped_count": 0,
+  "production_rollout_failure_count": 0,
+  "production_rollout_live_e2e_passed_count": 0,
+  "production_rollout_ui_route_passed_count": 0
 }

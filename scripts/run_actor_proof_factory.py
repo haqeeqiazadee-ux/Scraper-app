@@ -48,17 +48,42 @@ def _is_fixture_input(test_input: dict[str, Any]) -> bool:
     return bool(test_input.get("fixture_kind"))
 
 
-def _read_done(ledger_path: Path) -> set[str]:
+def _is_successful_proof(row: dict[str, Any]) -> bool:
+    return (
+        str(row.get("failure_class", "none")) == "none"
+        and str(row.get("proof_level"))
+        in {
+            "runtime_smoke_passed",
+            "fixture_replay_passed",
+            "ui_route_passed",
+            "live_e2e_passed",
+        }
+    )
+
+
+def _read_latest(ledger_path: Path) -> dict[str, dict[str, Any]]:
     if not ledger_path.exists():
-        return set()
-    done: set[str] = set()
+        return {}
+    latest: dict[str, dict[str, Any]] = {}
     for line in ledger_path.read_text(encoding="utf-8").splitlines():
         if not line.strip():
             continue
         try:
-            done.add(str(json.loads(line)["actor_id"]))
+            row = json.loads(line)
+            latest[str(row["actor_id"])] = row
         except (KeyError, json.JSONDecodeError):
             continue
+    return latest
+
+
+def _read_done(ledger_path: Path, *, success_only: bool = False) -> set[str]:
+    latest = _read_latest(ledger_path)
+    if not success_only:
+        return set(latest)
+    done: set[str] = set()
+    for actor_id, row in latest.items():
+        if _is_successful_proof(row):
+            done.add(actor_id)
     return done
 
 
@@ -136,18 +161,27 @@ def _prove_actor(
 
 def _status(ledger_path: Path) -> None:
     counts: dict[str, int] = {}
-    total = 0
+    raw_rows = 0
     if ledger_path.exists():
         for line in ledger_path.read_text(encoding="utf-8").splitlines():
             if not line.strip():
                 continue
-            total += 1
-            try:
-                level = str(json.loads(line).get("proof_level", "unknown"))
-            except json.JSONDecodeError:
-                level = "invalid"
-            counts[level] = counts.get(level, 0) + 1
-    print(json.dumps({"ledger": str(ledger_path), "rows": total, "counts_by_level": counts}, indent=2))
+            raw_rows += 1
+    latest = _read_latest(ledger_path)
+    for row in latest.values():
+        level = str(row.get("proof_level", "unknown"))
+        counts[level] = counts.get(level, 0) + 1
+    print(
+        json.dumps(
+            {
+                "ledger": str(ledger_path),
+                "rows": len(latest),
+                "raw_rows": raw_rows,
+                "counts_by_level": counts,
+            },
+            indent=2,
+        )
+    )
 
 
 def main() -> int:
@@ -162,6 +196,7 @@ def main() -> int:
     parser.add_argument("--timeout", type=int, default=30)
     parser.add_argument("--write-ledger", action="store_true")
     parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--resume-success-only", action="store_true")
     parser.add_argument("--status", action="store_true")
     args = parser.parse_args()
 
@@ -171,7 +206,7 @@ def main() -> int:
         return 0
 
     actors = _load_catalog(Path(args.catalog))
-    done = _read_done(ledger_path) if args.resume else set()
+    done = _read_done(ledger_path, success_only=args.resume_success_only) if args.resume else set()
     pending = [actor for actor in actors if str(actor["id"]) not in done]
     if args.sample > 0:
         pending = pending[: args.sample]
