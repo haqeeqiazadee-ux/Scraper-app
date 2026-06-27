@@ -17,6 +17,8 @@ import json
 import logging
 import os
 import traceback
+from dataclasses import asdict
+from uuid import uuid4
 from typing import Any
 
 from mcp.server import Server
@@ -29,6 +31,7 @@ logger = logging.getLogger(__name__)
 # API key authentication -- read from MCP config / environment
 # ---------------------------------------------------------------------------
 API_KEY = os.environ.get("SCRAPER_API_KEY", "")
+MAX_ACTOR_TOOL_LIMIT = 100
 
 
 def _check_auth() -> str | None:
@@ -183,6 +186,84 @@ async def list_tools() -> list[Tool]:
                 "required": ["url"],
             },
         ),
+        Tool(
+            name="actor_search",
+            description=(
+                "Search the local 27,753-actor catalog without calling Apify. "
+                "Use this to discover reusable own-stack actor workflows."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "q": {"type": "string", "default": "", "description": "Search query"},
+                    "category": {"type": "string", "default": "", "description": "Category filter"},
+                    "developer": {"type": "string", "default": "", "description": "Developer filter"},
+                    "pricing_model": {"type": "string", "default": "", "description": "Pricing model filter"},
+                    "strategy": {"type": "string", "default": "", "description": "Route strategy filter"},
+                    "runnable": {"type": "string", "default": "", "description": "Runnable-status filter"},
+                    "sort": {
+                        "type": "string",
+                        "enum": ["relevant", "name", "popular", "runs", "rating"],
+                        "default": "relevant",
+                    },
+                    "offset": {"type": "integer", "default": 0, "minimum": 0},
+                    "limit": {"type": "integer", "default": 10, "minimum": 1, "maximum": MAX_ACTOR_TOOL_LIMIT},
+                },
+            },
+        ),
+        Tool(
+            name="actor_get",
+            description=(
+                "Get one local actor catalog entry with its own-stack base family, "
+                "API-first provider ladder, and inherited public API surface."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "actor_id": {"type": "string", "description": "Actor catalog ID"},
+                },
+                "required": ["actor_id"],
+            },
+        ),
+        Tool(
+            name="actor_route",
+            description=(
+                "Dry-run route an actor through the native runtime. Returns the "
+                "base family and provider ladder without executing the workflow."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "actor_id": {"type": "string", "description": "Actor catalog ID"},
+                },
+                "required": ["actor_id"],
+            },
+        ),
+        Tool(
+            name="actor_run",
+            description=(
+                "Execute a supported local actor workflow through the native runtime. "
+                "Unsupported route strategies are blocked locally instead of falling "
+                "back to Apify."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "actor_id": {"type": "string", "description": "Actor catalog ID"},
+                    "input": {
+                        "type": "object",
+                        "default": {},
+                        "description": "Actor input payload. Use target, url, or query as appropriate.",
+                    },
+                    "options": {
+                        "type": "object",
+                        "default": {},
+                        "description": "Runtime options such as tenant_id, task_id, or knowledge_context.",
+                    },
+                },
+                "required": ["actor_id"],
+            },
+        ),
     ]
 
 
@@ -203,6 +284,10 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         "search": _handle_search,
         "extract": _handle_extract,
         "route": _handle_route,
+        "actor_search": _handle_actor_search,
+        "actor_get": _handle_actor_get,
+        "actor_route": _handle_actor_route,
+        "actor_run": _handle_actor_run,
     }
 
     handler = handlers.get(name)
@@ -231,6 +316,80 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
 def _json_response(data: Any) -> list[TextContent]:
     """Wrap a Python object as a JSON TextContent response."""
     return [TextContent(type="text", text=json.dumps(data, indent=2, default=str))]
+
+
+def _api_surface(actor_id: str) -> dict[str, str]:
+    return {
+        "run_endpoint": f"/api/v1/actors/{actor_id}/runs",
+        "list_runs_endpoint": f"/api/v1/actors/{actor_id}/runs",
+        "detail_endpoint": f"/api/v1/actors/{actor_id}/runs/{{run_id}}",
+        "result_endpoint": "/api/v1/results/{result_id}",
+        "export_endpoint": "/api/v1/results/{result_id}/export",
+    }
+
+
+def _serialize_provider_ladder(spec: Any) -> list[dict[str, Any]]:
+    return [
+        {
+            "name": step.name,
+            "tier": getattr(step.tier, "value", str(step.tier)),
+            "connector": step.connector,
+            "priority": step.priority,
+            "required_env_names": list(step.required_env_names),
+            "rationale": step.rationale,
+        }
+        for step in spec.provider_chain
+    ]
+
+
+def _actor_summary(entry: Any) -> dict[str, Any]:
+    data = asdict(entry)
+    data["execution_source"] = "local_actor_catalog"
+    return data
+
+
+def _actor_detail(entry: Any) -> dict[str, Any]:
+    spec = _build_actor_spec(entry)
+    data = _actor_summary(entry)
+    data.update(
+        {
+            "base_family": spec.base_family,
+            "provider_ladder": _serialize_provider_ladder(spec),
+            "required_env_names": list(spec.required_env_names),
+            "optional_env_names": list(spec.optional_env_names),
+            "api_surface": _api_surface(entry.actor_id),
+        }
+    )
+    return data
+
+
+def _first_unsupported_provider(spec: Any) -> dict[str, Any] | None:
+    for step in spec.provider_chain:
+        tier = getattr(step.tier, "value", str(step.tier))
+        if tier == "unsupported":
+            return {
+                "name": step.name,
+                "rationale": step.rationale,
+            }
+    return None
+
+
+def _build_actor_spec(entry: Any) -> Any:
+    from packages.core.actor_runtime import build_actor_spec
+
+    return build_actor_spec(entry)
+
+
+def _create_actor_runtime_runner(spec: Any, entry: Any, *, task_id: str, tenant_id: str) -> Any:
+    from packages.core.actor_runtime import create_actor_runner
+
+    return create_actor_runner(spec, entry, task_id=task_id, tenant_id=tenant_id)
+
+
+def _get_actor_entry(actor_id: str) -> Any | None:
+    from packages.core.actor_catalog.registry import actor_catalog
+
+    return actor_catalog.get(actor_id)
 
 
 # ---------------------------------------------------------------------------
@@ -533,6 +692,119 @@ async def _handle_route(args: dict) -> list[TextContent]:
         "confidence": decision.confidence,
         "estimated_cost_per_page": decision.estimated_cost,
     })
+
+
+async def _handle_actor_search(args: dict) -> list[TextContent]:
+    """Search the local actor catalog for MCP clients."""
+    from packages.core.actor_catalog.registry import actor_catalog
+
+    limit = min(max(int(args.get("limit", 10) or 10), 1), MAX_ACTOR_TOOL_LIMIT)
+    offset = max(int(args.get("offset", 0) or 0), 0)
+    actors, total = actor_catalog.search(
+        query=str(args.get("q", "") or ""),
+        category=str(args.get("category", "") or ""),
+        developer=str(args.get("developer", "") or ""),
+        pricing_model=str(args.get("pricing_model", "") or ""),
+        strategy=str(args.get("strategy", "") or ""),
+        runnable=str(args.get("runnable", "") or ""),
+        sort=str(args.get("sort", "relevant") or "relevant"),
+        offset=offset,
+        limit=limit,
+    )
+    return _json_response(
+        {
+            "success": True,
+            "execution_source": "local_actor_catalog",
+            "total": total,
+            "offset": offset,
+            "limit": limit,
+            "data": [_actor_summary(actor) for actor in actors],
+        }
+    )
+
+
+async def _handle_actor_get(args: dict) -> list[TextContent]:
+    """Return one actor plus native execution metadata."""
+    actor_id = str(args["actor_id"])
+    entry = _get_actor_entry(actor_id)
+    if entry is None:
+        return _json_response({"success": False, "error": f"Actor {actor_id} not found"})
+    return _json_response({"success": True, "data": _actor_detail(entry)})
+
+
+async def _handle_actor_route(args: dict) -> list[TextContent]:
+    """Dry-run actor route and provider ladder selection."""
+    actor_id = str(args["actor_id"])
+    entry = _get_actor_entry(actor_id)
+    if entry is None:
+        return _json_response({"success": False, "error": f"Actor {actor_id} not found"})
+
+    spec = _build_actor_spec(entry)
+    unsupported = _first_unsupported_provider(spec)
+    return _json_response(
+        {
+            "success": True,
+            "actor_id": actor_id,
+            "route_strategy": entry.route_strategy,
+            "runnable_status": entry.runnable_status,
+            "base_family": spec.base_family,
+            "provider_ladder": _serialize_provider_ladder(spec),
+            "api_surface": _api_surface(actor_id),
+            "blocked_policy": unsupported is not None,
+            "block_reason": unsupported["rationale"] if unsupported else None,
+        }
+    )
+
+
+async def _handle_actor_run(args: dict) -> list[TextContent]:
+    """Run a supported actor through the native runtime for MCP clients."""
+    actor_id = str(args["actor_id"])
+    entry = _get_actor_entry(actor_id)
+    if entry is None:
+        return _json_response({"success": False, "error": f"Actor {actor_id} not found"})
+
+    spec = _build_actor_spec(entry)
+    unsupported = _first_unsupported_provider(spec)
+    if unsupported is not None:
+        return _json_response(
+            {
+                "success": True,
+                "actor_id": actor_id,
+                "state": "blocked_policy",
+                "error": unsupported["rationale"],
+                "provider_ladder": _serialize_provider_ladder(spec),
+                "api_surface": _api_surface(actor_id),
+                "execution_source": "native_actor_runtime",
+            }
+        )
+
+    payload = dict(args.get("input") or {})
+    options = dict(args.get("options") or {})
+    knowledge_context = options.get("knowledge_context")
+    if isinstance(knowledge_context, dict):
+        payload["knowledge_context"] = knowledge_context
+
+    tenant_id = str(options.get("tenant_id") or "mcp")
+    task_id = str(options.get("task_id") or uuid4())
+    runner = _create_actor_runtime_runner(spec, entry, task_id=task_id, tenant_id=tenant_id)
+    runtime_result = await runner.run(payload)
+    return _json_response(
+        {
+            "success": True,
+            "actor_id": actor_id,
+            "task_id": task_id,
+            "tenant_id": tenant_id,
+            "state": runtime_result.state.value,
+            "provider": runtime_result.provider,
+            "missing_env_names": list(runtime_result.missing_env_names),
+            "output": runtime_result.output,
+            "error": runtime_result.error,
+            "metadata": runtime_result.metadata,
+            "provider_ladder": _serialize_provider_ladder(spec),
+            "api_surface": _api_surface(actor_id),
+            "execution_source": "native_actor_runtime",
+        }
+    )
 
 
 # ---------------------------------------------------------------------------

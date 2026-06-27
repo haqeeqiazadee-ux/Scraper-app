@@ -97,6 +97,8 @@ def _serialize_actor_run(task: TaskModel, run: RunModel, result: ResultModel | N
         "state": metadata.get("actor_state", run.status),
         "missing_env_names": metadata.get("missing_env_names", []),
         "provider": metadata.get("provider"),
+        "knowledge": metadata.get("knowledge", {}),
+        "runtime_metadata": metadata.get("runtime_metadata", {}),
         "output": metadata.get("actor_output", {}),
         "error": run.error,
         "task": {
@@ -243,16 +245,22 @@ async def create_actor_run(
     else:
         spec = build_actor_spec(entry)
         runner = create_actor_runner(spec, entry, task_id=task_id, tenant_id=tenant_id)
-        runtime_result = await runner.run(body.input)
+        runtime_payload = dict(body.input)
+        knowledge_context = body.options.get("knowledge_context")
+        if isinstance(knowledge_context, dict):
+            runtime_payload["knowledge_context"] = knowledge_context
+        runtime_result = await runner.run(runtime_payload)
 
     task_status, run_status = _terminal_status_for_state(runtime_result.state)
     output = runtime_result.output if runtime_result.state == ActorRunState.SUCCEEDED else {}
-    task_metadata = task.metadata_json or {}
+    task_metadata = dict(task.metadata_json or {})
     task_metadata.update(
         {
             "actor_state": runtime_result.state.value,
             "missing_env_names": list(runtime_result.missing_env_names),
             "provider": runtime_result.provider,
+            "knowledge": runtime_result.metadata.get("knowledge", {}),
+            "runtime_metadata": runtime_result.metadata,
             "actor_output": output,
             "actor_error": runtime_result.error,
         }

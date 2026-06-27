@@ -1,0 +1,87 @@
+{
+  "packet_id": "E1-mcp-parity-gap-and-routing",
+  "lane_id": "codex-core-e1-mcp-parity",
+  "lane_type": "codex_core",
+  "agent": "codex",
+  "role": "execution_owner",
+  "phase": "Phase F",
+  "lock_group": "mcp-parity",
+  "files_read": [
+    "packages/core/mcp_server.py",
+    "tests/e2e/playwright/test_mcp_e2e.py",
+    "services/control-plane/routers/actors.py",
+    "packages/core/actor_catalog/registry.py",
+    "packages/core/actor_runtime/families.py",
+    "apps/web/src/pages/McpPage.tsx"
+  ],
+  "files_changed": [
+    "packages/core/mcp_server.py",
+    "tests/unit/test_mcp_actor_tools.py",
+    "apps/web/src/pages/McpPage.tsx",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_MCP_PARITY_GAP_AND_ROUTING_2026-06-27.md",
+    "docs/agent-sync/runtime/result-packets/E1-mcp-parity-gap-and-routing.json",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_TASK_DAG_2026-06-27.json",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_LOCKS_2026-06-27.json",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_QA_QUEUE.jsonl",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_DECISION_LEDGER.jsonl",
+    "docs/agent-sync/IMPLEMENTATION_LEDGER.md"
+  ],
+  "parallel_safe": true,
+  "lock_conflicts_checked": true,
+  "reuse_decision": "extend_existing",
+  "implementation_summary": "Extended the existing stdio MCP server with actor_search, actor_get, actor_route, and actor_run tools backed by the local actor catalog and native actor runtime. Unsupported route strategies now return blocked_policy rather than delegating to Apify.",
+  "knowledge_decision": "actor_run forwards options.knowledge_context to the native runtime payload",
+  "freshness_policy_version": "inherited_from_actor_runtime",
+  "graph_nodes_changed": [],
+  "graph_edges_changed": [],
+  "vector_records_changed": [],
+  "cache_modes_tested": [
+    "knowledge_context_forwarding"
+  ],
+  "tenant_isolation_checked": true,
+  "external_rnd_sources_checked": [
+    "docs/agent-sync/SCRAPER_APP_APIFY_COMPETITOR_EXTERNAL_RND_2026-06-27.md",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_EXTERNAL_RND_GAP_MATRIX_2026-06-27.md"
+  ],
+  "apify_parity_gates_checked": [
+    "mcp_actor_search",
+    "mcp_actor_detail",
+    "mcp_actor_route",
+    "mcp_actor_run"
+  ],
+  "better_than_apify_gates_checked": [
+    "local_catalog_no_apify_execution",
+    "machine_readable_blocked_policy_for_unsupported_routes",
+    "provider_ladder_visible_to_agents",
+    "stable_public_api_surface_visible_to_agents"
+  ],
+  "mcp_parity_checked": true,
+  "observability_eval_checked": false,
+  "ai_security_checked": false,
+  "pricing_cost_checked": false,
+  "customer_value_proof_checked": false,
+  "tests_run": [
+    "python C:\\Users\\PC\\second-brain\\tools\\reuse_gate.py --project C:\\Users\\PC\\Scraper-app-verified --task \"E1 MCP parity gap and routing\" --terms \"MCP tools/list tools/call jsonrpc actor run route public api\"",
+    "python -m pytest tests/unit/test_mcp_actor_tools.py -q",
+    "python -m pytest tests/unit/test_actor_provider_ladder.py tests/unit/test_workflow_extension_contract.py tests/unit/test_actor_runtime.py -q",
+    "python -m compileall -q packages/core/mcp_server.py tests/unit/test_mcp_actor_tools.py",
+    "npm.cmd run build"
+  ],
+  "tests_passed": [
+    "reuse_gate returned extend_existing",
+    "5 MCP actor tests passed with pre-existing pytest warning",
+    "15 provider/workflow/runtime regression tests passed with pre-existing pytest warning",
+    "compileall passed",
+    "apps/web production build passed"
+  ],
+  "tests_failed": [],
+  "known_limitations": [
+    "MCP actor runs execute through the stdio server process and do not yet persist via FastAPI actor-run storage",
+    "No streamed HTTP/SSE MCP gateway was added in this packet",
+    "Full frontend E2E MCP page run remains downstream"
+  ],
+  "secrets_touched": false,
+  "provider_or_live_claims": [],
+  "qa_status": "accepted_local_validation_passed",
+  "next_recommended_packet": "F1-frontend-actor-workflow-extension-ui"
+}

@@ -1,0 +1,161 @@
+{
+  "generated_at": "2026-06-27",
+  "project": "Scraper-app",
+  "repo_path": "C:\\Users\\PC\\Scraper-app-verified",
+  "branch": "codex/own-stack-actors",
+  "head": "2461423885f348ffa21136e16502e5f6b8bb5ef3",
+  "remote": "https://github.com/haqeeqiazadee-ux/Scraper-app.git",
+  "baseline_main": "45bdb35dcfd4764500b4b132dde186cedc767455",
+  "worktree_status_before_seed_artifacts": {
+    "branch": "codex/own-stack-actors",
+    "untracked": [
+      "docs/agent-sync/SCRAPER_APP_APIFY_COMPETITOR_EXTERNAL_RND_2026-06-27.md",
+      "docs/agent-sync/SCRAPER_APP_APIFY_WORKFLOWS_SELF_LEARNING_LOOP_PROMPT_2026-06-27.md",
+      "docs/agent-sync/SCRAPER_APP_APIFY_WORKFLOWS_SELF_LEARNING_LOOP_VALIDATION_2026-06-27.md",
+      "docs/agent-sync/SCRAPER_APP_FINAL_APIFY_COMPETITOR_EXECUTION_PROMPT_2026-06-27.md"
+    ],
+    "tracked_modifications": []
+  },
+  "current_phase": "Phase 5 - Base families B",
+  "reuse_gate": {
+    "decision": "extend_existing",
+    "reason": "Current repo already has generated actor catalog data, actor_catalog registry, actor_runtime models/provider_chain/runner/families, native actor API routes, frontend actor data, focused actor tests, phase ledgers, and validated final execution prompt. Implementation must extend existing modules instead of creating a greenfield replacement."
+  },
+  "graph_context": {
+    "graphify_wiki_index_present": false,
+    "graphify_command_available": false,
+    "limitation": "Project Graphify navigation was unavailable in this checkout; state seed used disk files, rg, ledgers, generated catalog data, and tests."
+  },
+  "actor_catalog": {
+    "total": 27753,
+    "web_stats_total": 27753,
+    "base_family_counts": {
+      "lead_generation_generic": 7268,
+      "generic_web_page_extraction": 4840,
+      "yt_dlp": 3055,
+      "review_monitoring_generic": 2768,
+      "job_board_schema": 2483,
+      "commerce_storefront_generic": 2357,
+      "real_estate_schema": 1691,
+      "news_content_monitoring": 1447,
+      "marketplace_product_catalog": 1165,
+      "local_maps_serp": 679
+    },
+    "route_strategy_counts": {
+      "native_pipeline": 20524,
+      "yt_dlp": 3055,
+      "job_board_schema": 2483,
+      "real_estate_schema": 1691
+    },
+    "runnable_status_counts": {
+      "runnable": 20524,
+      "runnable_with_schema": 7229
+    }
+  },
+  "existing_runtime_surface": {
+    "actor_runtime_files": [
+      "packages/core/actor_runtime/__init__.py",
+      "packages/core/actor_runtime/models.py",
+      "packages/core/actor_runtime/provider_chain.py",
+      "packages/core/actor_runtime/runner.py",
+      "packages/core/actor_runtime/families.py"
+    ],
+    "actor_catalog_files": [
+      "packages/core/actor_catalog/__init__.py",
+      "packages/core/actor_catalog/registry.py",
+      "packages/core/actor_catalog/generated/apify_actor_catalog.json"
+    ],
+    "actor_api_files": [
+      "services/control-plane/routers/actors.py"
+    ],
+    "frontend_actor_files": [
+      "apps/web/src/data/apifyActors.generated.json",
+      "apps/web/public/data/actors/index.json",
+      "apps/web/public/data/actors/stats.json",
+      "apps/web/public/data/actors/chunk-0.json through chunk-27.json"
+    ],
+    "focused_tests_present": [
+      "tests/unit/test_actor_catalog.py",
+      "tests/unit/test_actor_runtime.py",
+      "tests/unit/test_actor_families.py",
+      "tests/unit/test_actor_runs_api.py"
+    ],
+    "future_tests_not_yet_present": [
+      "tests/unit/test_actor_knowledge_memory.py",
+      "tests/unit/test_actor_freshness_policy.py",
+      "tests/unit/test_actor_graph_memory.py",
+      "tests/unit/test_actor_traces.py",
+      "tests/unit/test_actor_evals.py",
+      "tests/unit/test_actor_ai_security.py",
+      "tests/unit/test_actor_costs.py"
+    ]
+  },
+  "runtime_symbols": {
+    "packages/core/actor_runtime/families.py": [
+      "build_actor_spec",
+      "create_actor_runner"
+    ],
+    "services/control-plane/routers/actors.py": [
+      "RUNNABLE_NATIVE_STRATEGIES",
+      "create_actor_run",
+      "list_actor_runs",
+      "get_actor_run",
+      "actor_stats"
+    ]
+  },
+  "source_artifact_hashes": [
+    {
+      "path": "AGENTS.md",
+      "bytes": 8832,
+      "sha256": "cea2e57e57914a960935bb952b0a0b5206b1ff09742b2adf9cd79a14a35d0126"
+    },
+    {
+      "path": "CLAUDE.md",
+      "bytes": 8834,
+      "sha256": "e6ed60cda484aaa1d4b4b9a39eca0b886fa3eafe3406514925f96d5d42a9af76"
+    },
+    {
+      "path": "docs/agent-sync/PHASE_STATUS.md",
+      "bytes": 6115,
+      "sha256": "86b4893371538f268533da192c727bb33fccaa543905147e6381ad7cbffa359f"
+    },
+    {
+      "path": "docs/agent-sync/IMPLEMENTATION_LEDGER.md",
+      "bytes": 16751,
+      "sha256": "3e421b4cd0a695bf39d4c6fd14c4a82b8ad64634f816b6e308e5b67a4eeb80b0"
+    },
+    {
+      "path": "docs/agent-sync/CODEX_RELEASE_GATE.md",
+      "bytes": 4360,
+      "sha256": "6e29dac2173308e6d54811a78b55d40effb157b74aa03d4e5070f8d1eb598d63"
+    },
+    {
+      "path": "docs/agent-sync/SCRAPER_APP_FINAL_APIFY_COMPETITOR_EXECUTION_PROMPT_2026-06-27.md",
+      "bytes": 21568,
+      "sha256": "9346a7f65de31d6a184f5daa4c77d5d23f04b93ed8984b78d57ece0f919f2dfa"
+    },
+    {
+      "path": "docs/agent-sync/SCRAPER_APP_APIFY_COMPETITOR_EXTERNAL_RND_2026-06-27.md",
+      "bytes": 14738,
+      "sha256": "414c33fe203cce1bcefa616d374df24bbd0e6f9d5427a5df185c9de2b1795b8c"
+    },
+    {
+      "path": "packages/core/actor_runtime/families.py",
+      "bytes": 26655,
+      "sha256": "5fae1a82955b56a5a07731aba6fe678f3b83d07ec931544df0492a65f2c2b18a"
+    },
+    {
+      "path": "services/control-plane/routers/actors.py",
+      "bytes": 14361,
+      "sha256": "cbb4ba8d726df34a871d66a0778e811a8238eccbe5585018aec994fd2ec4c2d3"
+    }
+  ],
+  "prompt_and_rnd_status": {
+    "final_prompt": "docs/agent-sync/SCRAPER_APP_FINAL_APIFY_COMPETITOR_EXECUTION_PROMPT_2026-06-27.md",
+    "external_rnd": "docs/agent-sync/SCRAPER_APP_APIFY_COMPETITOR_EXTERNAL_RND_2026-06-27.md",
+    "validation_report": "docs/agent-sync/SCRAPER_APP_APIFY_WORKFLOWS_SELF_LEARNING_LOOP_VALIDATION_2026-06-27.md",
+    "external_rnd_stale": false,
+    "project_prompt_validator_available": false
+  },
+  "first_execution_status": "state_seed_created"
+}

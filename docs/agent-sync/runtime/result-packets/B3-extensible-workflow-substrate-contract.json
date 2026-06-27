@@ -1,0 +1,82 @@
+{
+  "packet_id": "B3-extensible-workflow-substrate-contract",
+  "lane_id": "codex-core-b3-workflow-substrate",
+  "lane_type": "codex_core",
+  "agent": "codex",
+  "role": "execution_owner",
+  "phase": "Phase B",
+  "lock_group": "extensible-workflow-substrate",
+  "files_read": [
+    "packages/core/actor_runtime/__init__.py",
+    "packages/core/actor_runtime/models.py",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_TASK_DAG_2026-06-27.json",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_LOCKS_2026-06-27.json",
+    "docs/agent-sync/IMPLEMENTATION_LEDGER.md"
+  ],
+  "files_changed": [
+    "packages/core/actor_runtime/workflows.py",
+    "packages/core/actor_runtime/__init__.py",
+    "tests/unit/test_workflow_extension_contract.py",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_EXTENSIBLE_WORKFLOW_SUBSTRATE_2026-06-27.md",
+    "docs/agent-sync/runtime/result-packets/B3-extensible-workflow-substrate-contract.json",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_TASK_DAG_2026-06-27.json",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_LOCKS_2026-06-27.json",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_QA_QUEUE.jsonl",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_DECISION_LEDGER.jsonl",
+    "docs/agent-sync/IMPLEMENTATION_LEDGER.md"
+  ],
+  "parallel_safe": true,
+  "lock_conflicts_checked": true,
+  "reuse_decision": "extend_existing",
+  "implementation_summary": "Added a category-agnostic WorkflowSpec substrate with ProviderLadder, WorkflowAdapter, WorkflowProfile, WorkflowUIContract, WorkflowAPISurface, WorkflowQAGate, and WorkflowRegistry so future platform categories can register through stable contracts without rewriting shared runtime, router, or storage foundations.",
+  "knowledge_decision": null,
+  "freshness_policy_version": "default_actor_runtime_freshness_policy",
+  "graph_nodes_changed": [],
+  "graph_edges_changed": [],
+  "vector_records_changed": [],
+  "cache_modes_tested": [
+    "default_freshness_policy_inheritance"
+  ],
+  "tenant_isolation_checked": true,
+  "external_rnd_sources_checked": [
+    "docs/agent-sync/SCRAPER_APP_APIFY_COMPETITOR_EXTERNAL_RND_2026-06-27.md",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_EXTERNAL_RND_GAP_MATRIX_2026-06-27.md"
+  ],
+  "apify_parity_gates_checked": [
+    "workflow_spec_contract",
+    "provider_ladder_contract",
+    "stable_actor_api_surface",
+    "result_export_contract"
+  ],
+  "better_than_apify_gates_checked": [
+    "new_category_without_core_runtime_rewrite",
+    "mandatory_qa_gate_contract",
+    "knowledge_freshness_inheritance",
+    "api_first_provider_ladder_inheritance"
+  ],
+  "mcp_parity_checked": false,
+  "observability_eval_checked": false,
+  "ai_security_checked": false,
+  "pricing_cost_checked": false,
+  "customer_value_proof_checked": false,
+  "tests_run": [
+    "python C:\\Users\\PC\\second-brain\\tools\\reuse_gate.py --project C:\\Users\\PC\\Scraper-app-verified --task \"B3 extensible workflow substrate contract\" --terms \"WorkflowSpec workflow registry extensible platform category actor runtime\"",
+    "python -m pytest tests/unit/test_workflow_extension_contract.py tests/unit/test_actor_provider_ladder.py tests/unit/test_actor_runtime.py -q",
+    "python -m compileall -q packages/core/actor_runtime tests/unit/test_workflow_extension_contract.py"
+  ],
+  "tests_passed": [
+    "reuse_gate returned extend_existing",
+    "15 focused workflow/provider/runtime tests passed with pre-existing pytest warning",
+    "compileall passed"
+  ],
+  "tests_failed": [],
+  "known_limitations": [
+    "B3 creates the reusable workflow substrate and proof tests, not concrete adapters for every future category",
+    "Generated UI from WorkflowUIContract remains a downstream packet",
+    "MCP parity, billing/pricing proof, and customer-value proof remain downstream gates"
+  ],
+  "secrets_touched": false,
+  "provider_or_live_claims": [],
+  "qa_status": "accepted_local_validation_passed",
+  "next_recommended_packet": "E1-mcp-parity-gap-and-routing"
+}

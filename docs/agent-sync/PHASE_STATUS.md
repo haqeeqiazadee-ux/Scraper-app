@@ -113,3 +113,21 @@ Phase 5 can be committed only after:
 - [x] Focused Phase 5 suite passed: 22 tests.
 - [x] Phase 1-5 regression passed: 53 tests.
 - [x] Secret scan passed.
+
+## Phase 6 Results - AI-Native Actor Runtime Hardening
+
+- [x] Existing actor runtime, actor API, MCP server, frontend MCP page, and runtime ledgers inspected before implementation.
+- [x] API-first/provider-first `ProviderTier` ladder added to actor provider steps.
+- [x] Current base families now expose tier, connector, priority, required env names, and rationale.
+- [x] Unsupported route strategies now receive machine-readable unsupported provider ladders.
+- [x] Extensible workflow substrate added with `WorkflowSpec`, `ProviderLadder`, `WorkflowAdapter`, `WorkflowProfile`, `WorkflowUIContract`, `WorkflowAPISurface`, `WorkflowQAGate`, and `WorkflowRegistry`.
+- [x] MCP server now exposes actor search/detail/route/run tools backed by local catalog and native runtime.
+- [x] MCP page updated to list actor tools.
+- [x] Strategy-profile substrate added with sanitized learning events, replay-gated patch proposals, and guarded profile promotion.
+- [x] Base actor runner exposes strategy profile metadata and can emit sanitized learning events through an injected store.
+- [x] Trace-to-fixture candidate substrate added for failed, low-confidence, missing-field, and security-risk actor traces.
+- [x] Focused actor/MCP/profile/fixture regression passed: 70 tests.
+- [x] Frontend build passed.
+- [x] Runtime JSON/result packet validation passed.
+- [x] Claude read-only validation passed with no blocking findings.
+- [ ] Full SaaS release candidate not claimed: persisted profile APIs, fixture review queues, workflow operations parity, customer value dashboards, full E2E, and deployment verification remain open.

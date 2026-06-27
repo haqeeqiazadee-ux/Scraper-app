@@ -1,0 +1,84 @@
+{
+  "packet_id": "D1-observability-security-cost-tests",
+  "agent": "codex",
+  "role": "execution_owner",
+  "phase": "Phase G",
+  "lock_group": "actor-observability-security-cost",
+  "files_read": [
+    "packages/core/cost_tracker.py",
+    "packages/core/tracing.py",
+    "services/control-plane/middleware/cost_audit.py",
+    "packages/core/actor_runtime/models.py",
+    "packages/core/actor_runtime/runner.py"
+  ],
+  "files_changed": [
+    "packages/core/actor_runtime/__init__.py",
+    "packages/core/actor_runtime/models.py",
+    "packages/core/actor_runtime/governance.py",
+    "packages/core/actor_runtime/runner.py",
+    "tests/unit/test_actor_traces.py",
+    "tests/unit/test_actor_evals.py",
+    "tests/unit/test_actor_ai_security.py",
+    "tests/unit/test_actor_costs.py",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_TASK_DAG_2026-06-27.json",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_LOCKS_2026-06-27.json",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_QA_QUEUE.jsonl",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_DECISION_LEDGER.jsonl",
+    "docs/agent-sync/runtime/result-packets/D1-observability-security-cost-tests.json",
+    "docs/agent-sync/IMPLEMENTATION_LEDGER.md"
+  ],
+  "reuse_decision": "extend_existing",
+  "implementation_summary": "Added actor runtime governance metadata for trace IDs, AI/security risk flags without secret values, per-family cost estimates with knowledge-reuse savings, and output quality evals. BaseActorRunner now attaches these fields on successful fresh and cached runs.",
+  "knowledge_decision": "used_as_cost_and_trace_dimension",
+  "freshness_policy_version": "actor_runtime.FreshnessPolicy.v1",
+  "graph_nodes_changed": [],
+  "graph_edges_changed": [],
+  "vector_records_changed": [],
+  "cache_modes_tested": [
+    "cached_reuse_zero_cost_with_savings",
+    "fresh_run_family_cost_estimate",
+    "runner_metadata_on_fresh_success"
+  ],
+  "tenant_isolation_checked": true,
+  "external_rnd_sources_checked": [
+    "docs/agent-sync/SCRAPER_APP_APIFY_COMPETITOR_EXTERNAL_RND_2026-06-27.md"
+  ],
+  "apify_parity_gates_checked": [
+    "actor_runtime_success_metadata",
+    "actor_api_metadata_passthrough"
+  ],
+  "better_than_apify_gates_checked": [
+    "trace_metadata",
+    "quality_eval_metadata",
+    "secret-safe_security_metadata",
+    "cost_savings_metadata"
+  ],
+  "mcp_parity_checked": false,
+  "observability_eval_checked": true,
+  "ai_security_checked": true,
+  "pricing_cost_checked": true,
+  "customer_value_proof_checked": false,
+  "tests_run": [
+    "python -m pytest tests/unit/test_actor_traces.py tests/unit/test_actor_evals.py tests/unit/test_actor_ai_security.py tests/unit/test_actor_costs.py tests/unit/test_actor_runtime.py tests/unit/test_actor_knowledge_memory.py tests/unit/test_actor_runs_api.py -q",
+    "python -m compileall -q packages/core/actor_runtime tests/unit/test_actor_traces.py tests/unit/test_actor_evals.py tests/unit/test_actor_ai_security.py tests/unit/test_actor_costs.py",
+    "python -m pytest tests/unit/test_actor_runtime.py tests/unit/test_actor_families.py tests/unit/test_actor_freshness_policy.py tests/unit/test_actor_graph_memory.py tests/unit/test_actor_knowledge_memory.py tests/unit/test_actor_runs_api.py tests/unit/test_actor_traces.py tests/unit/test_actor_evals.py tests/unit/test_actor_ai_security.py tests/unit/test_actor_costs.py -q",
+    "git diff --check -- packages/core/actor_runtime services/control-plane/routers/actors.py tests/unit docs/agent-sync/runtime docs/agent-sync/IMPLEMENTATION_LEDGER.md"
+  ],
+  "tests_passed": [
+    "30 governance/runtime/API tests passed with pre-existing warnings",
+    "47 focused actor runtime/API/governance tests passed with pre-existing warnings",
+    "compileall actor runtime passed",
+    "git diff --check exited 0"
+  ],
+  "tests_failed": [],
+  "known_limitations": [
+    "governance metadata is deterministic local metadata, not yet exported to OpenTelemetry spans",
+    "quality eval is a contract-level heuristic, not a model-graded eval yet",
+    "cost estimate is based on existing COST_TABLE and not yet tied to billing ledger writes",
+    "customer value proof remains deferred"
+  ],
+  "secrets_touched": false,
+  "provider_or_live_claims": [],
+  "qa_status": "accepted_local_validation_passed",
+  "next_recommended_packet": "E1-mcp-parity-gap-and-routing"
+}

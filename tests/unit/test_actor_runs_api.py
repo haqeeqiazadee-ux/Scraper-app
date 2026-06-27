@@ -236,6 +236,75 @@ def test_actor_run_success_persists_result(monkeypatch: pytest.MonkeyPatch) -> N
     asyncio.run(_with_client(scenario))
 
 
+def test_actor_run_persists_runtime_knowledge_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
+    actor_id = _first_actor_with_strategy("native_pipeline")
+
+    from packages.core.actor_runtime import ActorRuntimeResult, ActorRunState, BaseActorRunner
+    from services.control_plane.routers import actors as actors_router_module
+
+    class KnowledgeRunner(BaseActorRunner):
+        async def run(self, payload: dict) -> Any:
+            assert payload["knowledge_context"]["query_fingerprint"] == "fp-knowledge-1"
+            assert payload["knowledge_context"]["requested_fields"] == ["name"]
+            return ActorRuntimeResult(
+                actor_id=self.spec.actor_id,
+                state=ActorRunState.SUCCEEDED,
+                provider="knowledge-test-provider",
+                output={
+                    "extracted_data": [{"name": "Cached Item"}],
+                    "item_count": 1,
+                    "confidence": 0.93,
+                    "status_code": 200,
+                    "extraction_method": "knowledge_cached",
+                    "duration_ms": 2,
+                    "bytes_downloaded": 0,
+                },
+                metadata={
+                    "base_family": "generic_web_page_extraction",
+                    "knowledge": {
+                        "decision": "serve_cached",
+                        "freshness_state": "fresh",
+                        "source": "graph",
+                        "age_seconds": 42,
+                    },
+                },
+            )
+
+    def fake_create_runner(spec: ActorSpec, entry: Any, *, task_id: str, tenant_id: str) -> KnowledgeRunner:
+        return KnowledgeRunner(spec)
+
+    monkeypatch.setattr(actors_router_module, "create_actor_runner", fake_create_runner)
+
+    async def scenario(client: AsyncClient) -> None:
+        response = await client.post(
+            f"/api/v1/actors/{actor_id}/runs",
+            json={
+                "input": {"target": "https://example.com/products"},
+                "options": {
+                    "knowledge_context": {
+                        "query_fingerprint": "fp-knowledge-1",
+                        "requested_fields": ["name"],
+                    }
+                },
+            },
+            headers=TENANT_HEADER,
+        )
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert data["knowledge"]["decision"] == "serve_cached"
+        assert data["knowledge"]["source"] == "graph"
+        assert data["runtime_metadata"]["knowledge"]["freshness_state"] == "fresh"
+
+        detail = await client.get(
+            f"/api/v1/actors/{actor_id}/runs/{data['run']['id']}",
+            headers=TENANT_HEADER,
+        )
+        assert detail.status_code == 200
+        assert detail.json()["data"]["knowledge"]["age_seconds"] == 42
+
+    asyncio.run(_with_client(scenario))
+
+
 def test_actor_run_list_is_newest_first_and_paginated() -> None:
     actor_id = _first_actor_with_strategy("yt_dlp")
 

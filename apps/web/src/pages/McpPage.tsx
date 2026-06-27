@@ -31,6 +31,26 @@ const TOOLS = [
     description: "Dry-run routing decision",
     params: ["url"],
   },
+  {
+    name: "actor_search",
+    description: "Search the local actor catalog",
+    params: ["q", "category", "strategy", "limit"],
+  },
+  {
+    name: "actor_get",
+    description: "Inspect actor detail and provider ladder",
+    params: ["actor_id"],
+  },
+  {
+    name: "actor_route",
+    description: "Dry-run actor family and provider routing",
+    params: ["actor_id"],
+  },
+  {
+    name: "actor_run",
+    description: "Run a supported native actor workflow",
+    params: ["actor_id", "input", "options"],
+  },
 ];
 
 const CLAUDE_DESKTOP_CONFIG = `{
@@ -194,7 +214,7 @@ export function McpPage() {
       }}>
         <span style={{ fontSize: 16, lineHeight: 1 }}>&#129302;</span>
         <div>
-          <strong style={{ color: "var(--color-text)" }}>MCP Server</strong> connects Claude, VS Code, or any MCP-compatible AI agent directly to your scraping infrastructure. Agents can scrape, crawl, search, and extract without leaving their environment.
+          <strong style={{ color: "var(--color-text)" }}>MCP Server</strong> connects Claude, VS Code, or any MCP-compatible AI agent directly to your scraping infrastructure. Agents can scrape, crawl, search, extract, discover local actor workflows, inspect provider ladders, and run supported native actors without leaving their environment.
           <br />
           <span style={{ fontSize: 12 }}>
             <strong>Use cases:</strong> AI-powered research, automated data collection from Claude, agent workflows

@@ -1,0 +1,95 @@
+{
+  "packet_id": "B1-knowledge-runtime-contract-tests",
+  "agent": "codex",
+  "role": "execution_owner",
+  "phase": "Phase D",
+  "lock_group": "actor-runtime-knowledge-contract",
+  "files_read": [
+    "packages/core/actor_runtime/models.py",
+    "packages/core/actor_runtime/runner.py",
+    "packages/core/actor_runtime/provider_chain.py",
+    "packages/core/actor_runtime/families.py",
+    "packages/core/actor_runtime/__init__.py",
+    "tests/unit/test_actor_runtime.py",
+    "tests/unit/test_actor_families.py"
+  ],
+  "files_changed": [
+    "packages/core/actor_runtime/__init__.py",
+    "packages/core/actor_runtime/models.py",
+    "packages/core/actor_runtime/knowledge.py",
+    "packages/core/actor_runtime/runner.py",
+    "tests/unit/test_actor_knowledge_memory.py",
+    "tests/unit/test_actor_freshness_policy.py",
+    "tests/unit/test_actor_graph_memory.py",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_TASK_DAG_2026-06-27.json",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_LOCKS_2026-06-27.json",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_QA_QUEUE.jsonl",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_DECISION_LEDGER.jsonl",
+    "docs/agent-sync/runtime/result-packets/B1-knowledge-runtime-contract-tests.json",
+    "docs/agent-sync/IMPLEMENTATION_LEDGER.md"
+  ],
+  "reuse_decision": "extend_existing",
+  "implementation_summary": "Added an opt-in knowledge-backed actor runtime trait through BaseActorRunner, with freshness policy models, graph traversal budget policy, knowledge snapshot evaluation, cache/graph/vector/obsidian/database source metadata, safe query fingerprinting, and post-run knowledge recording hooks.",
+  "knowledge_decision": "run_fresh|serve_cached|serve_cached_and_refresh|partial_refresh",
+  "freshness_policy_version": "actor_runtime.FreshnessPolicy.v1",
+  "graph_nodes_changed": [],
+  "graph_edges_changed": [],
+  "vector_records_changed": [],
+  "cache_modes_tested": [
+    "missing_snapshot_runs_fresh",
+    "fresh_snapshot_serves_cached",
+    "stale_snapshot_serves_cached_and_refreshes",
+    "missing_requested_fields_requests_partial_refresh",
+    "tenant_mismatch_runs_fresh",
+    "missing_provenance_runs_fresh"
+  ],
+  "tenant_isolation_checked": true,
+  "external_rnd_sources_checked": [
+    "docs/agent-sync/SCRAPER_APP_APIFY_COMPETITOR_EXTERNAL_RND_2026-06-27.md"
+  ],
+  "apify_parity_gates_checked": [
+    "runtime_default_behavior",
+    "base_family_runner_regression"
+  ],
+  "better_than_apify_gates_checked": [
+    "knowledge_runtime_trait",
+    "timestamp_freshness_policy",
+    "bounded_graph_traversal",
+    "tenant_isolation",
+    "provenance_required_cache_reuse"
+  ],
+  "mcp_parity_checked": false,
+  "observability_eval_checked": false,
+  "ai_security_checked": false,
+  "pricing_cost_checked": false,
+  "customer_value_proof_checked": false,
+  "tests_run": [
+    "python -m pytest tests/unit/test_actor_runtime.py tests/unit/test_actor_families.py tests/unit/test_actor_freshness_policy.py tests/unit/test_actor_graph_memory.py tests/unit/test_actor_knowledge_memory.py -q",
+    "python -m pytest tests/unit/test_actor_runs_api.py -q",
+    "python -m compileall -q packages/core/actor_runtime tests/unit/test_actor_freshness_policy.py tests/unit/test_actor_graph_memory.py tests/unit/test_actor_knowledge_memory.py",
+    "git diff --check -- packages/core/actor_runtime tests/unit docs/agent-sync/runtime docs/agent-sync/IMPLEMENTATION_LEDGER.md",
+    "python -m pytest tests/unit -q",
+    "python -m ruff check packages/core/actor_runtime tests/unit/test_actor_freshness_policy.py tests/unit/test_actor_graph_memory.py tests/unit/test_actor_knowledge_memory.py"
+  ],
+  "tests_passed": [
+    "28 passed, 1 pre-existing pytest config warning",
+    "10 actor API regression tests passed with pre-existing warnings",
+    "compileall passed",
+    "git diff --check exited 0"
+  ],
+  "tests_failed": [
+    "python -m pytest tests/unit -q failed during collection because DATABASE_URL, yt_dlp, and pytest_asyncio were unavailable in the current environment",
+    "python -m ruff check failed because ruff is not installed in the current environment"
+  ],
+  "known_limitations": [
+    "knowledge_store integration is opt-in and not yet wired to persistent database/graph/vector stores",
+    "serve_cached_and_refresh marks stale reuse but does not schedule a background refresh yet",
+    "actor API response metadata wiring is deferred to C1",
+    "graphify-out/wiki/index.md absent",
+    "graphify command unavailable"
+  ],
+  "secrets_touched": false,
+  "provider_or_live_claims": [],
+  "qa_status": "accepted_local_validation_passed",
+  "next_recommended_packet": "C1-actor-run-api-knowledge-metadata"
+}

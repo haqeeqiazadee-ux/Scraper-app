@@ -1,0 +1,81 @@
+{
+  "packet_id": "G2-trace-to-fixture-promotion",
+  "lane_id": "codex-core-g2-trace-fixture",
+  "lane_type": "codex_core",
+  "agent": "codex",
+  "role": "execution_owner",
+  "phase": "Phase G",
+  "lock_group": "trace-to-fixture-promotion",
+  "files_read": [
+    "packages/core/actor_runtime/models.py",
+    "packages/core/actor_runtime/governance.py",
+    "packages/core/actor_runtime/profiles.py",
+    "tests/unit/test_actor_traces.py",
+    "tests/unit/test_actor_evals.py"
+  ],
+  "files_changed": [
+    "packages/core/actor_runtime/fixtures.py",
+    "packages/core/actor_runtime/__init__.py",
+    "tests/unit/test_actor_trace_to_fixture.py",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_TRACE_TO_FIXTURE_PROMOTION_2026-06-27.md",
+    "docs/agent-sync/runtime/result-packets/G2-trace-to-fixture-promotion.json",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_TASK_DAG_2026-06-27.json",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_LOCKS_2026-06-27.json",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_QA_QUEUE.jsonl",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_DECISION_LEDGER.jsonl",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_EXTERNAL_RND_GAP_MATRIX_2026-06-27.md",
+    "docs/agent-sync/IMPLEMENTATION_LEDGER.md"
+  ],
+  "parallel_safe": true,
+  "lock_conflicts_checked": true,
+  "reuse_decision": "extend_existing",
+  "implementation_summary": "Added deterministic trace-to-fixture candidate generation for failed, low-confidence, missing-field, and security-risk actor results, with payload redaction and stable fixture IDs.",
+  "knowledge_decision": null,
+  "freshness_policy_version": null,
+  "graph_nodes_changed": [],
+  "graph_edges_changed": [],
+  "vector_records_changed": [],
+  "cache_modes_tested": [],
+  "tenant_isolation_checked": true,
+  "external_rnd_sources_checked": [
+    "docs/agent-sync/SCRAPER_APP_APIFY_COMPETITOR_EXTERNAL_RND_2026-06-27.md",
+    "docs/agent-sync/SCRAPER_APP_FINAL_APIFY_COMPETITOR_EXECUTION_PROMPT_2026-06-27.md"
+  ],
+  "apify_parity_gates_checked": [
+    "deterministic_fixture_candidate_model",
+    "trace_source_linkage"
+  ],
+  "better_than_apify_gates_checked": [
+    "trace_to_fixture_candidate_generation",
+    "low_confidence_fixture_trigger",
+    "secret_redaction_in_fixture_candidates",
+    "stable_fixture_id_generation"
+  ],
+  "mcp_parity_checked": false,
+  "observability_eval_checked": true,
+  "ai_security_checked": true,
+  "pricing_cost_checked": false,
+  "customer_value_proof_checked": false,
+  "tests_run": [
+    "python C:\\Users\\PC\\second-brain\\tools\\reuse_gate.py --project C:\\Users\\PC\\Scraper-app-verified --task \"G2 trace to fixture promotion\" --terms \"trace fixture promotion eval actor runtime regression low confidence\"",
+    "python -m pytest tests/unit/test_actor_trace_to_fixture.py -q",
+    "python -m pytest tests/unit/test_actor_traces.py tests/unit/test_actor_evals.py tests/unit/test_actor_strategy_profiles.py tests/unit/test_actor_runtime.py -q",
+    "python -m compileall -q packages/core/actor_runtime tests/unit/test_actor_trace_to_fixture.py"
+  ],
+  "tests_passed": [
+    "reuse_gate returned extend_existing",
+    "3 trace-to-fixture tests passed with pre-existing pytest warning",
+    "14 impacted trace/eval/profile/runtime tests passed with pre-existing pytest warning",
+    "compileall passed"
+  ],
+  "tests_failed": [],
+  "known_limitations": [
+    "Fixture candidates are not yet persisted to a review queue",
+    "No automatic fixture file materialization or CI replay scheduling is enabled",
+    "Human/Codex approval remains required before generated fixtures become tests"
+  ],
+  "secrets_touched": false,
+  "provider_or_live_claims": [],
+  "qa_status": "accepted_local_validation_passed",
+  "next_recommended_packet": "F2-workflow-operations-parity"
+}

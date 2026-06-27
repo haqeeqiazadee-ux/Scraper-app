@@ -1,0 +1,126 @@
+{
+  "generated_at": "2026-06-27",
+  "active_locks": [],
+  "completed_locks": [
+    {
+      "lock_group": "docs-runtime-state",
+      "packet_id": "A1-state-seed-existing-code-map",
+      "files": [
+        "docs/agent-sync/runtime/APIFY_WORKFLOWS_STATE_SEED_2026-06-27.json",
+        "docs/agent-sync/runtime/APIFY_WORKFLOWS_TASK_DAG_2026-06-27.json",
+        "docs/agent-sync/runtime/APIFY_WORKFLOWS_LOCKS_2026-06-27.json",
+        "docs/agent-sync/runtime/APIFY_WORKFLOWS_QA_QUEUE.jsonl",
+        "docs/agent-sync/runtime/APIFY_WORKFLOWS_DECISION_LEDGER.jsonl",
+        "docs/agent-sync/runtime/APIFY_WORKFLOWS_KNOWLEDGE_MEMORY_PLAN_2026-06-27.md",
+        "docs/agent-sync/runtime/APIFY_WORKFLOWS_EXTERNAL_RND_GAP_MATRIX_2026-06-27.md"
+      ],
+      "status": "completed_validation_passed"
+    },
+    {
+      "lock_group": "actor-runtime-knowledge-contract",
+      "packet_id": "B1-knowledge-runtime-contract-tests",
+      "files": [
+        "packages/core/actor_runtime/__init__.py",
+        "packages/core/actor_runtime/models.py",
+        "packages/core/actor_runtime/knowledge.py",
+        "packages/core/actor_runtime/runner.py",
+        "tests/unit/test_actor_knowledge_memory.py",
+        "tests/unit/test_actor_freshness_policy.py",
+        "tests/unit/test_actor_graph_memory.py",
+        "docs/agent-sync/runtime/result-packets/B1-knowledge-runtime-contract-tests.json"
+      ],
+      "status": "completed_validation_passed"
+    },
+    {
+      "lock_group": "actor-api-knowledge-metadata",
+      "packet_id": "C1-actor-run-api-knowledge-metadata",
+      "files": [
+        "services/control-plane/routers/actors.py",
+        "tests/unit/test_actor_runs_api.py",
+        "docs/agent-sync/runtime/result-packets/C1-actor-run-api-knowledge-metadata.json"
+      ],
+      "status": "completed_validation_passed"
+    },
+    {
+      "lock_group": "actor-observability-security-cost",
+      "packet_id": "D1-observability-security-cost-tests",
+      "files": [
+        "packages/core/actor_runtime/__init__.py",
+        "packages/core/actor_runtime/models.py",
+        "packages/core/actor_runtime/governance.py",
+        "packages/core/actor_runtime/runner.py",
+        "tests/unit/test_actor_traces.py",
+        "tests/unit/test_actor_evals.py",
+        "tests/unit/test_actor_ai_security.py",
+        "tests/unit/test_actor_costs.py",
+        "docs/agent-sync/runtime/result-packets/D1-observability-security-cost-tests.json"
+      ],
+      "status": "completed_validation_passed"
+    },
+    {
+      "lock_group": "api-first-provider-ladder",
+      "packet_id": "B2-api-first-provider-ladder-map",
+      "files": [
+        "packages/core/actor_runtime/models.py",
+        "packages/core/actor_runtime/families.py",
+        "packages/core/actor_runtime/__init__.py",
+        "tests/unit/test_actor_provider_ladder.py",
+        "docs/agent-sync/runtime/APIFY_WORKFLOWS_API_FIRST_PROVIDER_LADDER_2026-06-27.md",
+        "docs/agent-sync/runtime/result-packets/B2-api-first-provider-ladder-map.json"
+      ],
+      "status": "completed_validation_passed"
+    },
+    {
+      "lock_group": "extensible-workflow-substrate",
+      "packet_id": "B3-extensible-workflow-substrate-contract",
+      "files": [
+        "packages/core/actor_runtime/workflows.py",
+        "packages/core/actor_runtime/__init__.py",
+        "tests/unit/test_workflow_extension_contract.py",
+        "docs/agent-sync/runtime/APIFY_WORKFLOWS_EXTENSIBLE_WORKFLOW_SUBSTRATE_2026-06-27.md",
+        "docs/agent-sync/runtime/result-packets/B3-extensible-workflow-substrate-contract.json"
+      ],
+      "status": "completed_validation_passed"
+    },
+    {
+      "lock_group": "mcp-parity",
+      "packet_id": "E1-mcp-parity-gap-and-routing",
+      "files": [
+        "packages/core/mcp_server.py",
+        "tests/unit/test_mcp_actor_tools.py",
+        "apps/web/src/pages/McpPage.tsx",
+        "docs/agent-sync/runtime/APIFY_WORKFLOWS_MCP_PARITY_GAP_AND_ROUTING_2026-06-27.md",
+        "docs/agent-sync/runtime/result-packets/E1-mcp-parity-gap-and-routing.json"
+      ],
+      "status": "completed_validation_passed"
+    },
+    {
+      "lock_group": "self-learning-strategy-profiles",
+      "packet_id": "E2-self-learning-strategy-profiles",
+      "files": [
+        "packages/core/actor_runtime/profiles.py",
+        "packages/core/actor_runtime/runner.py",
+        "packages/core/actor_runtime/__init__.py",
+        "tests/unit/test_actor_strategy_profiles.py",
+        "docs/agent-sync/runtime/APIFY_WORKFLOWS_SELF_LEARNING_STRATEGY_PROFILES_2026-06-27.md",
+        "docs/agent-sync/runtime/result-packets/E2-self-learning-strategy-profiles.json"
+      ],
+      "status": "completed_validation_passed"
+    },
+    {
+      "lock_group": "trace-to-fixture-promotion",
+      "packet_id": "G2-trace-to-fixture-promotion",
+      "files": [
+        "packages/core/actor_runtime/fixtures.py",
+        "packages/core/actor_runtime/__init__.py",
+        "tests/unit/test_actor_trace_to_fixture.py",
+        "docs/agent-sync/runtime/APIFY_WORKFLOWS_TRACE_TO_FIXTURE_PROMOTION_2026-06-27.md",
+        "docs/agent-sync/runtime/result-packets/G2-trace-to-fixture-promotion.json"
+      ],
+      "status": "completed_validation_passed"
+    }
+  ],
+  "pending_lock_groups": [],
+  "queue_cap": 6,
+  "reserved_fixback_slots": 1
+}

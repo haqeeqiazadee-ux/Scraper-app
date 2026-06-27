@@ -1,0 +1,76 @@
+{
+  "packet_id": "C1-actor-run-api-knowledge-metadata",
+  "agent": "codex",
+  "role": "execution_owner",
+  "phase": "Phase F",
+  "lock_group": "actor-api-knowledge-metadata",
+  "files_read": [
+    "services/control-plane/routers/actors.py",
+    "tests/unit/test_actor_runs_api.py"
+  ],
+  "files_changed": [
+    "services/control-plane/routers/actors.py",
+    "tests/unit/test_actor_runs_api.py",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_TASK_DAG_2026-06-27.json",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_LOCKS_2026-06-27.json",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_QA_QUEUE.jsonl",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_DECISION_LEDGER.jsonl",
+    "docs/agent-sync/runtime/result-packets/C1-actor-run-api-knowledge-metadata.json",
+    "docs/agent-sync/IMPLEMENTATION_LEDGER.md"
+  ],
+  "reuse_decision": "extend_existing",
+  "implementation_summary": "Extended the existing actor run API to persist and return runtime knowledge metadata, forward request options.knowledge_context into actor execution payloads, and assign a fresh metadata dict so nested JSON metadata survives detail/list retrieval.",
+  "knowledge_decision": "surfaced_from_runtime_result.metadata.knowledge",
+  "freshness_policy_version": "actor_runtime.FreshnessPolicy.v1",
+  "graph_nodes_changed": [],
+  "graph_edges_changed": [],
+  "vector_records_changed": [],
+  "cache_modes_tested": [
+    "api_options_knowledge_context_forwarded",
+    "api_response_top_level_knowledge_metadata",
+    "api_detail_persists_knowledge_metadata"
+  ],
+  "tenant_isolation_checked": true,
+  "external_rnd_sources_checked": [
+    "docs/agent-sync/SCRAPER_APP_APIFY_COMPETITOR_EXTERNAL_RND_2026-06-27.md"
+  ],
+  "apify_parity_gates_checked": [
+    "actor_run_create",
+    "actor_run_detail",
+    "actor_run_list",
+    "native_no_apify_redirect"
+  ],
+  "better_than_apify_gates_checked": [
+    "knowledge_metadata_transparency",
+    "knowledge_context_request_contract",
+    "tenant_scoped_metadata_persistence"
+  ],
+  "mcp_parity_checked": false,
+  "observability_eval_checked": false,
+  "ai_security_checked": false,
+  "pricing_cost_checked": false,
+  "customer_value_proof_checked": false,
+  "tests_run": [
+    "python -m pytest tests/unit/test_actor_runs_api.py tests/unit/test_actor_runtime.py tests/unit/test_actor_knowledge_memory.py -q",
+    "python -m compileall -q services/control-plane/routers/actors.py tests/unit/test_actor_runs_api.py",
+    "python -m pytest tests/unit/test_actor_runtime.py tests/unit/test_actor_families.py tests/unit/test_actor_freshness_policy.py tests/unit/test_actor_graph_memory.py tests/unit/test_actor_knowledge_memory.py tests/unit/test_actor_runs_api.py -q",
+    "git diff --check -- packages/core/actor_runtime services/control-plane/routers/actors.py tests/unit docs/agent-sync/runtime docs/agent-sync/IMPLEMENTATION_LEDGER.md"
+  ],
+  "tests_passed": [
+    "22 actor API/runtime focused tests passed after JSON metadata persistence fix",
+    "39 actor runtime/API focused tests passed with pre-existing warnings",
+    "compileall actor API passed",
+    "git diff --check exited 0"
+  ],
+  "tests_failed": [],
+  "known_limitations": [
+    "persistent knowledge_store implementation remains deferred",
+    "background stale refresh scheduler remains deferred",
+    "graph/vector/obsidian adapters remain deferred",
+    "full unit suite remains environment-blocked as documented in B1"
+  ],
+  "secrets_touched": false,
+  "provider_or_live_claims": [],
+  "qa_status": "accepted_local_validation_passed",
+  "next_recommended_packet": "D1-observability-security-cost-tests"
+}

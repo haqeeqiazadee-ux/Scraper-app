@@ -291,3 +291,427 @@ This file is the mandatory proof trail for the pre-code reuse gate.
   - Lead, review, and news/content monitoring families do not hard-require external API keys for direct URL runs.
   - Amazon marketplace classification still wins before generic review classification, preserving `KEEPA_API_KEY` skip semantics.
 - Status: Phase 5 gate passed; ready to commit.
+
+## Phase A - Final Apify Competitor Execution Seed
+
+- Task: Start the final existing-state Apify competitor execution prompt by generating the state seed, task DAG, lock file, QA queue, decision ledger, knowledge memory plan, external R&D gap matrix, and first result packet.
+- Phase: A
+- Existing files inspected:
+  - `docs/agent-sync/SCRAPER_APP_FINAL_APIFY_COMPETITOR_EXECUTION_PROMPT_2026-06-27.md`
+  - `docs/agent-sync/SCRAPER_APP_APIFY_COMPETITOR_EXTERNAL_RND_2026-06-27.md`
+  - `docs/agent-sync/SCRAPER_APP_APIFY_WORKFLOWS_SELF_LEARNING_LOOP_VALIDATION_2026-06-27.md`
+  - `docs/agent-sync/PHASE_STATUS.md`
+  - `docs/agent-sync/CODEX_RELEASE_GATE.md`
+  - `docs/agent-sync/IMPLEMENTATION_LEDGER.md`
+  - `packages/core/actor_catalog/registry.py`
+  - `packages/core/actor_runtime/families.py`
+  - `packages/core/actor_runtime/models.py`
+  - `packages/core/actor_runtime/provider_chain.py`
+  - `packages/core/actor_runtime/runner.py`
+  - `services/control-plane/routers/actors.py`
+  - `tests/unit/test_actor_catalog.py`
+  - `tests/unit/test_actor_runtime.py`
+  - `tests/unit/test_actor_families.py`
+  - `tests/unit/test_actor_runs_api.py`
+- Reuse decision: `extend_existing`
+- Reason: The repo already has the 27,753-actor generated catalog, actor catalog registry, native actor runtime, base-family runners, actor run API, frontend actor data, Phase 1-5 ledgers, focused actor tests, final prompt, and external R&D. The correct next step is to extend this baseline with knowledge-backed runtime tests and implementation rather than rebuilding.
+- Files to modify:
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_STATE_SEED_2026-06-27.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_TASK_DAG_2026-06-27.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_LOCKS_2026-06-27.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_QA_QUEUE.jsonl`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_DECISION_LEDGER.jsonl`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_KNOWLEDGE_MEMORY_PLAN_2026-06-27.md`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_EXTERNAL_RND_GAP_MATRIX_2026-06-27.md`
+  - `docs/agent-sync/runtime/result-packets/A1-state-seed-existing-code-map.json`
+  - `docs/agent-sync/IMPLEMENTATION_LEDGER.md`
+- Tests/gates:
+  - Parse generated JSON and JSONL artifacts.
+  - `git diff --check` on generated runtime artifacts and ledger entry.
+  - Verify catalog total and base-family counts from current disk.
+- Status: State seed artifacts generated; local validation passed (`JSON_VALIDATION=PASS`, `CATALOG_STATE_CHECK=PASS`, `git diff --check` exited 0).
+
+## Phase B - Knowledge Runtime Contract Trait
+
+- Task: Add the inherited knowledge-backed decision trait for actor runs so every actor copy can decide between cached/database/graph/vector/obsidian reuse, partial refresh, stale-while-revalidate, or fresh execution.
+- Phase: B1
+- Existing files inspected:
+  - `packages/core/actor_runtime/models.py`
+  - `packages/core/actor_runtime/runner.py`
+  - `packages/core/actor_runtime/provider_chain.py`
+  - `packages/core/actor_runtime/families.py`
+  - `packages/core/actor_runtime/__init__.py`
+  - `tests/unit/test_actor_runtime.py`
+  - `tests/unit/test_actor_families.py`
+- Reuse decision: `extend_existing`
+- Reason: `BaseActorRunner` is already the shared ancestor for the native actor runtime. Adding an opt-in knowledge store and freshness evaluator there gives all current and generated actors the same inherited trait while preserving existing no-store behavior.
+- Files modified:
+  - `packages/core/actor_runtime/__init__.py`
+  - `packages/core/actor_runtime/models.py`
+  - `packages/core/actor_runtime/knowledge.py`
+  - `packages/core/actor_runtime/runner.py`
+  - `tests/unit/test_actor_knowledge_memory.py`
+  - `tests/unit/test_actor_freshness_policy.py`
+  - `tests/unit/test_actor_graph_memory.py`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_TASK_DAG_2026-06-27.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_LOCKS_2026-06-27.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_QA_QUEUE.jsonl`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_DECISION_LEDGER.jsonl`
+  - `docs/agent-sync/runtime/result-packets/B1-knowledge-runtime-contract-tests.json`
+  - `docs/agent-sync/IMPLEMENTATION_LEDGER.md`
+- Tests/gates:
+  - `python -m pytest tests/unit/test_actor_runtime.py tests/unit/test_actor_families.py tests/unit/test_actor_freshness_policy.py tests/unit/test_actor_graph_memory.py tests/unit/test_actor_knowledge_memory.py -q`
+  - `python -m pytest tests/unit/test_actor_runs_api.py -q`
+  - `python -m compileall -q packages/core/actor_runtime tests/unit/test_actor_freshness_policy.py tests/unit/test_actor_graph_memory.py tests/unit/test_actor_knowledge_memory.py`
+  - `git diff --check -- packages/core/actor_runtime tests/unit docs/agent-sync/runtime docs/agent-sync/IMPLEMENTATION_LEDGER.md`
+- Evidence:
+  - Focused runtime/family/knowledge suite passed: 28 tests.
+  - Actor run API regression passed: 10 tests.
+  - Compile check passed for actor runtime and new unit tests.
+  - `git diff --check` passed with only CRLF conversion warnings.
+  - Full `tests/unit` collection remains environment-blocked by missing `DATABASE_URL`, `yt_dlp`, and `pytest_asyncio`.
+  - `ruff` check was not available because `ruff` is not installed in the current environment.
+- Status: B1 local validation passed; next packet is C1 actor API knowledge metadata wiring.
+
+## Phase C - Actor API Knowledge Metadata Wiring
+
+- Task: Surface the B1 knowledge-runtime decisions through the existing actor run API and persist them for detail/list retrieval.
+- Phase: C1
+- Existing files inspected:
+  - `services/control-plane/routers/actors.py`
+  - `tests/unit/test_actor_runs_api.py`
+  - `packages/core/storage/repositories.py`
+  - `packages/core/storage/models.py`
+- Reuse decision: `extend_existing`
+- Reason: The actor run API already creates task/run/result rows and serializes tenant-scoped run state. C1 extends that existing metadata flow instead of creating a new endpoint or store.
+- Files modified:
+  - `services/control-plane/routers/actors.py`
+  - `tests/unit/test_actor_runs_api.py`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_TASK_DAG_2026-06-27.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_LOCKS_2026-06-27.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_QA_QUEUE.jsonl`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_DECISION_LEDGER.jsonl`
+  - `docs/agent-sync/runtime/result-packets/C1-actor-run-api-knowledge-metadata.json`
+  - `docs/agent-sync/IMPLEMENTATION_LEDGER.md`
+- Tests/gates:
+  - `python -m pytest tests/unit/test_actor_runs_api.py tests/unit/test_actor_runtime.py tests/unit/test_actor_knowledge_memory.py -q`
+  - `python -m compileall -q services/control-plane/routers/actors.py tests/unit/test_actor_runs_api.py`
+  - `python -m pytest tests/unit/test_actor_runtime.py tests/unit/test_actor_families.py tests/unit/test_actor_freshness_policy.py tests/unit/test_actor_graph_memory.py tests/unit/test_actor_knowledge_memory.py tests/unit/test_actor_runs_api.py -q`
+  - `git diff --check -- packages/core/actor_runtime services/control-plane/routers/actors.py tests/unit docs/agent-sync/runtime docs/agent-sync/IMPLEMENTATION_LEDGER.md`
+- Evidence:
+  - Actor run API now returns top-level `knowledge` and `runtime_metadata`.
+  - `options.knowledge_context` is forwarded into the runtime payload.
+  - Task metadata updates now assign a fresh JSON dict so nested metadata persists.
+  - Focused actor API/runtime suite passed: 39 tests.
+  - Compile check passed for actor API and updated test.
+  - `git diff --check` passed with only CRLF conversion warnings.
+- Status: C1 local validation passed; next packet is D1 observability/security/cost contracts.
+
+## Phase D - Actor Runtime Governance Contracts
+
+- Task: Add actor-level observability, eval, AI/security, and pricing/cost metadata contracts on top of the knowledge runtime trait.
+- Phase: D1
+- Existing files inspected:
+  - `packages/core/cost_tracker.py`
+  - `packages/core/tracing.py`
+  - `services/control-plane/middleware/cost_audit.py`
+  - `packages/core/actor_runtime/models.py`
+  - `packages/core/actor_runtime/runner.py`
+- Reuse decision: `extend_existing`
+- Reason: Existing platform tracing and cost-tracking primitives are present. D1 adds actor-specific governance metadata in `actor_runtime` and attaches it through `BaseActorRunner`, preserving the inherited trait model.
+- Files modified:
+  - `packages/core/actor_runtime/__init__.py`
+  - `packages/core/actor_runtime/models.py`
+  - `packages/core/actor_runtime/governance.py`
+  - `packages/core/actor_runtime/runner.py`
+  - `tests/unit/test_actor_traces.py`
+  - `tests/unit/test_actor_evals.py`
+  - `tests/unit/test_actor_ai_security.py`
+  - `tests/unit/test_actor_costs.py`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_TASK_DAG_2026-06-27.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_LOCKS_2026-06-27.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_QA_QUEUE.jsonl`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_DECISION_LEDGER.jsonl`
+  - `docs/agent-sync/runtime/result-packets/D1-observability-security-cost-tests.json`
+  - `docs/agent-sync/IMPLEMENTATION_LEDGER.md`
+- Tests/gates:
+  - `python -m pytest tests/unit/test_actor_traces.py tests/unit/test_actor_evals.py tests/unit/test_actor_ai_security.py tests/unit/test_actor_costs.py tests/unit/test_actor_runtime.py tests/unit/test_actor_knowledge_memory.py tests/unit/test_actor_runs_api.py -q`
+  - `python -m compileall -q packages/core/actor_runtime tests/unit/test_actor_traces.py tests/unit/test_actor_evals.py tests/unit/test_actor_ai_security.py tests/unit/test_actor_costs.py`
+  - `python -m pytest tests/unit/test_actor_runtime.py tests/unit/test_actor_families.py tests/unit/test_actor_freshness_policy.py tests/unit/test_actor_graph_memory.py tests/unit/test_actor_knowledge_memory.py tests/unit/test_actor_runs_api.py tests/unit/test_actor_traces.py tests/unit/test_actor_evals.py tests/unit/test_actor_ai_security.py tests/unit/test_actor_costs.py -q`
+  - `git diff --check -- packages/core/actor_runtime services/control-plane/routers/actors.py tests/unit docs/agent-sync/runtime docs/agent-sync/IMPLEMENTATION_LEDGER.md`
+- Evidence:
+  - Governance/runtime/API suite passed: 30 tests.
+  - Full focused actor runtime/API/governance suite passed: 47 tests.
+  - Compile check passed for actor runtime and new governance tests.
+  - Secret-bearing payload values are not emitted by security metadata.
+  - Cached knowledge reuse records zero estimated runtime cost and an avoided-cost estimate.
+  - `git diff --check` passed with only CRLF conversion warnings.
+- Status: D1 local validation passed; next packet is E1 MCP parity gap and routing.
+
+## Prompt Correction - API-First Provider-First Gate
+
+- Task: Correct the execution docs after review showed the API-first strategy was implicit but not explicit enough.
+- Phase: Documentation correction
+- Existing files inspected:
+  - `docs/agent-sync/SCRAPER_APP_FINAL_APIFY_COMPETITOR_EXECUTION_PROMPT_2026-06-27.md`
+  - `docs/agent-sync/SCRAPER_APP_APIFY_COMPETITOR_EXTERNAL_RND_2026-06-27.md`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_EXTERNAL_RND_GAP_MATRIX_2026-06-27.md`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_TASK_DAG_2026-06-27.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_LOCKS_2026-06-27.json`
+- Reuse decision: `extend_existing`
+- Reason: The current platform already has public API routes and provider connectors. The right correction is to strengthen the prompt and task DAG so future packets prefer official/public APIs, provider SDKs, existing internal APIs, and existing connectors before adding scrape/browser code.
+- Files modified:
+  - `docs/agent-sync/SCRAPER_APP_FINAL_APIFY_COMPETITOR_EXECUTION_PROMPT_2026-06-27.md`
+  - `docs/agent-sync/SCRAPER_APP_APIFY_COMPETITOR_EXTERNAL_RND_2026-06-27.md`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_EXTERNAL_RND_GAP_MATRIX_2026-06-27.md`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_TASK_DAG_2026-06-27.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_LOCKS_2026-06-27.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_DECISION_LEDGER.jsonl`
+  - `docs/agent-sync/IMPLEMENTATION_LEDGER.md`
+- Evidence:
+  - Final execution prompt now explicitly states API-first/provider-first is mandatory.
+  - External R&D now includes an API-first platform spine section.
+  - Gap matrix now includes API-first/provider-first routing.
+  - Task DAG now includes `B2-api-first-provider-ladder-map` as a pending gate before broader new scraper/browser work.
+- Status: Documentation correction accepted; next implementation priority is B2 provider ladder mapping, then E1 MCP parity.
+
+## Prompt Fixback - One-Shot SaaS Multi-Agent Readiness
+
+- Task: Make the final execution prompt explicit enough for simultaneous multi-agent, multi-loop coding and gap-fix execution in one uninterrupted SaaS completion campaign.
+- Phase: Prompt validation
+- Existing files inspected:
+  - `docs/agent-sync/SCRAPER_APP_FINAL_APIFY_COMPETITOR_EXECUTION_PROMPT_2026-06-27.md`
+  - `docs/agent-sync/SCRAPER_APP_APIFY_COMPETITOR_EXTERNAL_RND_2026-06-27.md`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_EXTERNAL_RND_GAP_MATRIX_2026-06-27.md`
+  - `docs/agent-sync/SCRAPER_APP_APIFY_WORKFLOWS_SELF_LEARNING_LOOP_VALIDATION_2026-06-27.md`
+- Reuse decision: `extend_existing`
+- Reason: The final prompt already had roles, DAG, loops, locks, and validation, but it needed explicit one-shot continuous execution semantics, simultaneous lane rules, and non-deferrable release readiness criteria.
+- Files modified:
+  - `docs/agent-sync/SCRAPER_APP_FINAL_APIFY_COMPETITOR_EXECUTION_PROMPT_2026-06-27.md`
+  - `docs/agent-sync/SCRAPER_APP_APIFY_WORKFLOWS_SELF_LEARNING_LOOP_VALIDATION_2026-06-27.md`
+  - `docs/agent-sync/runtime/result-packets/DOC-one-shot-saas-readiness-validation.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_DECISION_LEDGER.jsonl`
+  - `docs/agent-sync/IMPLEMENTATION_LEDGER.md`
+- Validation:
+  - Project prompt validator unavailable: `scripts/oneshot/validate_prompt_contract.py` is absent.
+  - Claude validation pass 1: PASS, with business-risk advisory that deferred mandatory gates could appear compatible with release readiness.
+  - Codex fixback: changed stop conditions and acceptance criteria so deferred mandatory parity/superiority gates force `partial_blocked_not_release_ready`.
+  - Claude validation pass 2: PASS, no blocking findings, no fixbacks required.
+- Status: Prompt is one-shot SaaS execution-campaign ready. This validates the prompt contract, not that the SaaS implementation is already complete.
+
+## Prompt Fixback - Future Workflow Extensibility
+
+- Task: Ensure the SaaS architecture leaves room for future workflows across any category of platforms.
+- Phase: Prompt validation
+- Existing files inspected:
+  - `docs/agent-sync/SCRAPER_APP_FINAL_APIFY_COMPETITOR_EXECUTION_PROMPT_2026-06-27.md`
+  - `docs/agent-sync/SCRAPER_APP_APIFY_COMPETITOR_EXTERNAL_RND_2026-06-27.md`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_EXTERNAL_RND_GAP_MATRIX_2026-06-27.md`
+- Reuse decision: `extend_existing`
+- Reason: The prompt already required API-first and actor-runtime inheritance, but needed a harder architectural contract that new workflow categories must register through stable extension points rather than core rewrites.
+- Files modified:
+  - `docs/agent-sync/SCRAPER_APP_FINAL_APIFY_COMPETITOR_EXECUTION_PROMPT_2026-06-27.md`
+  - `docs/agent-sync/SCRAPER_APP_APIFY_COMPETITOR_EXTERNAL_RND_2026-06-27.md`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_EXTERNAL_RND_GAP_MATRIX_2026-06-27.md`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_TASK_DAG_2026-06-27.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_LOCKS_2026-06-27.json`
+  - `docs/agent-sync/runtime/result-packets/DOC-extensible-workflow-substrate-readiness.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_DECISION_LEDGER.jsonl`
+  - `docs/agent-sync/SCRAPER_APP_APIFY_WORKFLOWS_SELF_LEARNING_LOOP_VALIDATION_2026-06-27.md`
+  - `docs/agent-sync/IMPLEMENTATION_LEDGER.md`
+- Evidence:
+  - Final prompt now includes `Extensible Workflow Architecture Contract`.
+  - Required units are `WorkflowSpec`, `ProviderLadder`, `WorkflowAdapter`, `WorkflowProfile`, `WorkflowUIContract`, `WorkflowAPISurface`, and `WorkflowQAGate`.
+  - Acceptance criteria now require future category support without shared runtime/router/storage rewrites.
+  - Gap matrix now includes extensible workflow substrate.
+  - Task DAG now includes `B3-extensible-workflow-substrate-contract`.
+- Validation:
+  - Local JSON validation passed: `EXTENSIBILITY_JSON_VALIDATION=PASS`.
+  - Local grep checklist found extension units and B3 references.
+  - Claude validation pass 1: PASS with timing-risk advisory.
+  - Codex fixback added the rule that B3 must be accepted before any new platform-category packet beyond existing Phase 5 base families.
+  - Claude validation pass 2: PASS, no blocking findings, no required fixbacks.
+- Status: Accepted Claude-validated extensibility prompt fixback.
+
+## Phase B2 - API-First Provider Ladder Map
+
+- Task: Make API-first/provider-first routing explicit in the actor runtime provider contract before new scrape/browser work.
+- Phase: B2
+- Existing files inspected:
+  - `docs/agent-sync/OWN_STACK_RND_V2/actor_base_family_matrix.json`
+  - `docs/agent-sync/OWN_STACK_RND_V2/actor_base_family_summary.json`
+  - `packages/core/actor_runtime/families.py`
+  - `packages/core/actor_runtime/models.py`
+  - `packages/connectors/`
+  - `services/control-plane/routers/`
+- Reuse decision: `extend_existing`
+- Reason: Existing `ActorSpec`, `ProviderStep`, and `build_actor_spec(...)` already define per-family provider chains. B2 extends those structures with tier metadata, connector references, rationales, and explicit unsupported ladders instead of introducing a parallel routing stack.
+- Files modified:
+  - `packages/core/actor_runtime/models.py`
+  - `packages/core/actor_runtime/families.py`
+  - `packages/core/actor_runtime/__init__.py`
+  - `tests/unit/test_actor_provider_ladder.py`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_API_FIRST_PROVIDER_LADDER_2026-06-27.md`
+  - `docs/agent-sync/runtime/result-packets/B2-api-first-provider-ladder-map.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_TASK_DAG_2026-06-27.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_LOCKS_2026-06-27.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_QA_QUEUE.jsonl`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_DECISION_LEDGER.jsonl`
+  - `docs/agent-sync/IMPLEMENTATION_LEDGER.md`
+- Evidence:
+  - Added `ProviderTier` values: `official_public_api`, `provider_sdk`, `internal_connector`, `http_extraction`, `browser_unblocker`, `authenticated_session`, and `unsupported`.
+  - Provider steps now include `tier`, `connector`, and `rationale`.
+  - Current family ladders are documented in `APIFY_WORKFLOWS_API_FIRST_PROVIDER_LADDER_2026-06-27.md`.
+  - `yt_dlp` now receives a machine-readable unsupported provider ladder instead of an empty chain.
+  - Catalog provider-ladder recompute loaded 27,753 actors.
+- Tests/gates:
+  - `python -m pytest tests/unit/test_actor_provider_ladder.py tests/unit/test_actor_runtime.py tests/unit/test_actor_families.py tests/unit/test_actor_runs_api.py -q`
+  - `python -m compileall -q packages/core/actor_runtime tests/unit/test_actor_provider_ladder.py`
+- Status: B2 local validation passed; next implementation packet is B3 extensible workflow substrate contract.
+
+## Phase B3 - Extensible Workflow Substrate Contract
+
+- Task: Add a stable extension contract so future workflow categories and platforms can be added without rewriting shared runtime, router, or storage foundations.
+- Phase: B3
+- Existing files inspected:
+  - `packages/core/actor_runtime/__init__.py`
+  - `packages/core/actor_runtime/models.py`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_TASK_DAG_2026-06-27.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_LOCKS_2026-06-27.json`
+  - `docs/agent-sync/IMPLEMENTATION_LEDGER.md`
+- Reuse decision: `extend_existing`
+- Reason: Existing actor runtime/API contracts are the right inheritance point. B3 adds workflow-level registration and QA gates around them instead of introducing a separate platform system.
+- Files modified:
+  - `packages/core/actor_runtime/workflows.py`
+  - `packages/core/actor_runtime/__init__.py`
+  - `tests/unit/test_workflow_extension_contract.py`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_EXTENSIBLE_WORKFLOW_SUBSTRATE_2026-06-27.md`
+  - `docs/agent-sync/runtime/result-packets/B3-extensible-workflow-substrate-contract.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_TASK_DAG_2026-06-27.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_LOCKS_2026-06-27.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_QA_QUEUE.jsonl`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_DECISION_LEDGER.jsonl`
+  - `docs/agent-sync/IMPLEMENTATION_LEDGER.md`
+- Evidence:
+  - Added `WorkflowSpec`, `ProviderLadder`, `WorkflowAdapter`, `WorkflowProfile`, `WorkflowUIContract`, `WorkflowAPISurface`, `WorkflowQAGate`, and `WorkflowRegistry`.
+  - Synthetic `health_devices` future-platform workflow registers without core runtime, router, or storage rewrite flags.
+  - Extension safety rejects core runtime rewrites and incomplete QA gates.
+  - Duplicate workflow IDs are rejected by the registry.
+- Tests/gates:
+  - `python C:\Users\PC\second-brain\tools\reuse_gate.py --project C:\Users\PC\Scraper-app-verified --task "B3 extensible workflow substrate contract" --terms "WorkflowSpec workflow registry extensible platform category actor runtime"`
+  - `python -m pytest tests/unit/test_workflow_extension_contract.py tests/unit/test_actor_provider_ladder.py tests/unit/test_actor_runtime.py -q`
+  - `python -m compileall -q packages/core/actor_runtime tests/unit/test_workflow_extension_contract.py`
+- Status: B3 local validation passed; next implementation packet is E1 MCP parity gap and routing.
+
+## Phase E1 - MCP Parity Gap And Routing
+
+- Task: Expose actor catalog discovery, detail, route, and native run operations through the existing MCP server so AI clients can use actor workflows directly.
+- Phase: E1
+- Existing files inspected:
+  - `packages/core/mcp_server.py`
+  - `tests/e2e/playwright/test_mcp_e2e.py`
+  - `services/control-plane/routers/actors.py`
+  - `packages/core/actor_catalog/registry.py`
+  - `packages/core/actor_runtime/families.py`
+  - `apps/web/src/pages/McpPage.tsx`
+- Reuse decision: `extend_existing`
+- Reason: The existing stdio MCP server already exposes generic scraping tools. E1 extends that server with actor tools backed by the local catalog and native runtime instead of creating a separate MCP implementation.
+- Files modified:
+  - `packages/core/mcp_server.py`
+  - `tests/unit/test_mcp_actor_tools.py`
+  - `apps/web/src/pages/McpPage.tsx`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_MCP_PARITY_GAP_AND_ROUTING_2026-06-27.md`
+  - `docs/agent-sync/runtime/result-packets/E1-mcp-parity-gap-and-routing.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_TASK_DAG_2026-06-27.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_LOCKS_2026-06-27.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_QA_QUEUE.jsonl`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_DECISION_LEDGER.jsonl`
+  - `docs/agent-sync/IMPLEMENTATION_LEDGER.md`
+- Evidence:
+  - MCP now exposes `actor_search`, `actor_get`, `actor_route`, and `actor_run`.
+  - Actor MCP tools use the local generated catalog and native actor runtime; unsupported route strategies return `blocked_policy`.
+  - Provider ladder and public actor API surface are visible in MCP responses.
+  - `actor_run` forwards `options.knowledge_context` into the native runner payload.
+  - MCP page now lists the actor tools.
+- Tests/gates:
+  - `python C:\Users\PC\second-brain\tools\reuse_gate.py --project C:\Users\PC\Scraper-app-verified --task "E1 MCP parity gap and routing" --terms "MCP tools/list tools/call jsonrpc actor run route public api"`
+  - `python -m pytest tests/unit/test_mcp_actor_tools.py -q`
+  - `python -m pytest tests/unit/test_actor_provider_ladder.py tests/unit/test_workflow_extension_contract.py tests/unit/test_actor_runtime.py -q`
+  - `python -m compileall -q packages/core/mcp_server.py tests/unit/test_mcp_actor_tools.py`
+  - `npm.cmd run build` from `apps/web`
+- Status: E1 local validation passed; next implementation packet is frontend/API workflow expansion.
+
+## Phase E2 - Self-Learning Strategy Profiles
+
+- Task: Add a safe inherited self-learning profile mechanism with sanitized events, structured patch proposals, deterministic replay validation, and guarded profile promotion.
+- Phase: E2
+- Existing files inspected:
+  - `packages/core/actor_runtime/runner.py`
+  - `packages/core/actor_runtime/models.py`
+  - `packages/core/actor_runtime/workflows.py`
+  - `tests/unit/test_actor_runtime.py`
+  - `tests/unit/test_actor_evals.py`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_EXTERNAL_RND_GAP_MATRIX_2026-06-27.md`
+- Reuse decision: `extend_existing`
+- Reason: The existing actor runtime/eval/security metadata and B3 `WorkflowProfile` concept are the correct base. E2 adds profile models and replay-gated promotion without enabling hidden autonomous runtime mutation.
+- Files modified:
+  - `packages/core/actor_runtime/profiles.py`
+  - `packages/core/actor_runtime/runner.py`
+  - `packages/core/actor_runtime/__init__.py`
+  - `tests/unit/test_actor_strategy_profiles.py`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_SELF_LEARNING_STRATEGY_PROFILES_2026-06-27.md`
+  - `docs/agent-sync/runtime/result-packets/E2-self-learning-strategy-profiles.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_TASK_DAG_2026-06-27.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_LOCKS_2026-06-27.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_QA_QUEUE.jsonl`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_DECISION_LEDGER.jsonl`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_EXTERNAL_RND_GAP_MATRIX_2026-06-27.md`
+  - `docs/agent-sync/IMPLEMENTATION_LEDGER.md`
+- Evidence:
+  - Added `StrategyProfile`, `ActorLearningEvent`, `StrategyPatchProposal`, `ReplayValidationResult`, `StrategyProfileEngine`, and `StrategyProfileStore`.
+  - `BaseActorRunner` exposes profile version/policy metadata on results and can emit sanitized learning events through an injected store.
+  - Sensitive payload keys are redacted before event fingerprinting and result metadata exposure.
+  - Profile promotion is blocked until deterministic replay passes required fixtures with no security blockers or errors.
+- Tests/gates:
+  - `python C:\Users\PC\second-brain\tools\reuse_gate.py --project C:\Users\PC\Scraper-app-verified --task "E2 self-learning strategy profiles" --terms "strategy profile learning event replay promote actor runtime eval fixture"`
+  - `python -m pytest tests/unit/test_actor_strategy_profiles.py -q`
+  - `python -m pytest tests/unit/test_actor_runtime.py tests/unit/test_actor_knowledge_memory.py tests/unit/test_actor_traces.py tests/unit/test_actor_evals.py tests/unit/test_actor_runs_api.py tests/unit/test_mcp_actor_tools.py -q`
+  - `python -m compileall -q packages/core/actor_runtime tests/unit/test_actor_strategy_profiles.py`
+- Status: E2 local validation passed; next implementation packet should persist profile state or add trace-to-fixture promotion.
+
+## Phase G2 - Trace-To-Fixture Promotion
+
+- Task: Add deterministic regression fixture candidates from failed, low-confidence, missing-field, or security-risk actor traces.
+- Phase: G2
+- Existing files inspected:
+  - `packages/core/actor_runtime/models.py`
+  - `packages/core/actor_runtime/governance.py`
+  - `packages/core/actor_runtime/profiles.py`
+  - `tests/unit/test_actor_traces.py`
+  - `tests/unit/test_actor_evals.py`
+- Reuse decision: `extend_existing`
+- Reason: Existing trace/eval/security metadata is the right source for fixture candidates. G2 adds a redacted candidate model and generator without automatically writing fixtures or changing runtime behavior.
+- Files modified:
+  - `packages/core/actor_runtime/fixtures.py`
+  - `packages/core/actor_runtime/__init__.py`
+  - `tests/unit/test_actor_trace_to_fixture.py`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_TRACE_TO_FIXTURE_PROMOTION_2026-06-27.md`
+  - `docs/agent-sync/runtime/result-packets/G2-trace-to-fixture-promotion.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_TASK_DAG_2026-06-27.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_LOCKS_2026-06-27.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_QA_QUEUE.jsonl`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_DECISION_LEDGER.jsonl`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_EXTERNAL_RND_GAP_MATRIX_2026-06-27.md`
+  - `docs/agent-sync/IMPLEMENTATION_LEDGER.md`
+- Evidence:
+  - Added `RegressionFixtureCandidate`, `TraceToFixturePromoter`, and `build_regression_fixture_candidate`.
+  - Low-confidence and missing-field traces create redacted fixture candidates.
+  - Successful high-confidence traces do not create candidates.
+  - Failed traces produce deterministic fixture IDs.
+  - Secrets/cookies are redacted before fixture candidate serialization.
+- Tests/gates:
+  - `python C:\Users\PC\second-brain\tools\reuse_gate.py --project C:\Users\PC\Scraper-app-verified --task "G2 trace to fixture promotion" --terms "trace fixture promotion eval actor runtime regression low confidence"`
+  - `python -m pytest tests/unit/test_actor_trace_to_fixture.py -q`
+  - `python -m pytest tests/unit/test_actor_traces.py tests/unit/test_actor_evals.py tests/unit/test_actor_strategy_profiles.py tests/unit/test_actor_runtime.py -q`
+  - `python -m compileall -q packages/core/actor_runtime tests/unit/test_actor_trace_to_fixture.py`
+- Status: G2 local validation passed; next implementation packet should add fixture review/persistence or workflow operations parity.

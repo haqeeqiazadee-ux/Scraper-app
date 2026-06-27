@@ -1,0 +1,281 @@
+{
+  "generated_at": "2026-06-27",
+  "repo_path": "C:\\Users\\PC\\Scraper-app-verified",
+  "branch": "codex/own-stack-actors",
+  "head": "2461423885f348ffa21136e16502e5f6b8bb5ef3",
+  "execution_mode": "extend_existing",
+  "packets": [
+    {
+      "packet_id": "A1-state-seed-existing-code-map",
+      "phase": "Phase A",
+      "status": "completed",
+      "lock_group": "docs-runtime-state",
+      "reuse_decision": "extend_existing",
+      "files_allowed": [
+        "docs/agent-sync/runtime/*",
+        "docs/agent-sync/IMPLEMENTATION_LEDGER.md"
+      ],
+      "files_locked": [
+        "docs/agent-sync/runtime/APIFY_WORKFLOWS_STATE_SEED_2026-06-27.json",
+        "docs/agent-sync/runtime/APIFY_WORKFLOWS_TASK_DAG_2026-06-27.json",
+        "docs/agent-sync/runtime/APIFY_WORKFLOWS_LOCKS_2026-06-27.json",
+        "docs/agent-sync/runtime/APIFY_WORKFLOWS_QA_QUEUE.jsonl",
+        "docs/agent-sync/runtime/APIFY_WORKFLOWS_DECISION_LEDGER.jsonl",
+        "docs/agent-sync/runtime/APIFY_WORKFLOWS_KNOWLEDGE_MEMORY_PLAN_2026-06-27.md",
+        "docs/agent-sync/runtime/APIFY_WORKFLOWS_EXTERNAL_RND_GAP_MATRIX_2026-06-27.md"
+      ],
+      "dependencies": [],
+      "acceptance_tests": [
+        "local JSON parse for runtime seed artifacts",
+        "git diff --check on generated docs"
+      ],
+      "rollback_plan": "Remove generated runtime state artifacts and ledger entry with a reviewed patch if state seed is rejected.",
+      "result_packet_path": "docs/agent-sync/runtime/result-packets/A1-state-seed-existing-code-map.json"
+    },
+    {
+      "packet_id": "B2-api-first-provider-ladder-map",
+      "phase": "Phase B",
+      "status": "completed",
+      "lock_group": "api-first-provider-ladder",
+      "reuse_decision": "extend_existing",
+      "files_allowed": [
+        "packages/core/actor_runtime/*",
+        "packages/connectors/*",
+        "services/control-plane/routers/*",
+        "docs/agent-sync/runtime/*",
+        "tests/unit/test_actor_provider_ladder.py"
+      ],
+      "files_locked": [
+        "packages/core/actor_runtime/models.py",
+        "packages/core/actor_runtime/families.py",
+        "packages/core/actor_runtime/__init__.py",
+        "tests/unit/test_actor_provider_ladder.py",
+        "docs/agent-sync/runtime/APIFY_WORKFLOWS_API_FIRST_PROVIDER_LADDER_2026-06-27.md"
+      ],
+      "dependencies": [
+        "A1-state-seed-existing-code-map"
+      ],
+      "acceptance_tests": [
+        "Provider-ladder matrix generated from current connectors/runtime",
+        "python -m pytest tests/unit/test_actor_provider_ladder.py -q"
+      ],
+      "rollback_plan": "Revert only provider-ladder docs/tests/runtime metadata added by this packet.",
+      "result_packet_path": "docs/agent-sync/runtime/result-packets/B2-api-first-provider-ladder-map.json"
+    },
+    {
+      "packet_id": "B3-extensible-workflow-substrate-contract",
+      "phase": "Phase B",
+      "status": "completed",
+      "lock_group": "extensible-workflow-substrate",
+      "reuse_decision": "extend_existing",
+      "files_allowed": [
+        "packages/core/actor_runtime/*",
+        "packages/core/actor_catalog/*",
+        "services/control-plane/routers/*",
+        "apps/web/src/pages/*",
+        "docs/agent-sync/runtime/*",
+        "tests/unit/test_workflow_extension_contract.py"
+      ],
+      "dependencies": [
+        "B2-api-first-provider-ladder-map"
+      ],
+      "files_locked": [
+        "packages/core/actor_runtime/workflows.py",
+        "packages/core/actor_runtime/__init__.py",
+        "tests/unit/test_workflow_extension_contract.py",
+        "docs/agent-sync/runtime/APIFY_WORKFLOWS_EXTENSIBLE_WORKFLOW_SUBSTRATE_2026-06-27.md",
+        "docs/agent-sync/runtime/result-packets/B3-extensible-workflow-substrate-contract.json"
+      ],
+      "acceptance_tests": [
+        "WorkflowSpec/ProviderLadder/WorkflowAdapter/WorkflowProfile/UI/API/QA extension contract documented or implemented",
+        "No-core-rewrite proof for adding a synthetic future platform category",
+        "python -m pytest tests/unit/test_workflow_extension_contract.py tests/unit/test_actor_provider_ladder.py tests/unit/test_actor_runtime.py -q",
+        "python -m compileall -q packages/core/actor_runtime tests/unit/test_workflow_extension_contract.py"
+      ],
+      "rollback_plan": "Revert only workflow-extension substrate docs/tests/runtime metadata added by this packet.",
+      "result_packet_path": "docs/agent-sync/runtime/result-packets/B3-extensible-workflow-substrate-contract.json"
+    },
+    {
+      "packet_id": "B1-knowledge-runtime-contract-tests",
+      "phase": "Phase D",
+      "status": "completed",
+      "lock_group": "actor-runtime-knowledge-contract",
+      "reuse_decision": "extend_existing",
+      "files_allowed": [
+        "packages/core/actor_runtime/*",
+        "tests/unit/test_actor_knowledge_memory.py",
+        "tests/unit/test_actor_freshness_policy.py",
+        "tests/unit/test_actor_graph_memory.py"
+      ],
+      "files_locked": [
+        "packages/core/actor_runtime/__init__.py",
+        "packages/core/actor_runtime/models.py",
+        "packages/core/actor_runtime/knowledge.py",
+        "packages/core/actor_runtime/runner.py",
+        "tests/unit/test_actor_knowledge_memory.py",
+        "tests/unit/test_actor_freshness_policy.py",
+        "tests/unit/test_actor_graph_memory.py"
+      ],
+      "dependencies": [
+        "A1-state-seed-existing-code-map"
+      ],
+      "acceptance_tests": [
+        "python -m pytest tests/unit/test_actor_knowledge_memory.py tests/unit/test_actor_freshness_policy.py tests/unit/test_actor_graph_memory.py -q",
+        "python -m pytest tests/unit/test_actor_runtime.py tests/unit/test_actor_families.py -q"
+      ],
+      "rollback_plan": "Revert only knowledge-runtime tests/models added by this packet; keep prior Phase 5 runtime unchanged.",
+      "result_packet_path": "docs/agent-sync/runtime/result-packets/B1-knowledge-runtime-contract-tests.json"
+    },
+    {
+      "packet_id": "C1-actor-run-api-knowledge-metadata",
+      "phase": "Phase F",
+      "status": "completed",
+      "lock_group": "actor-api-knowledge-metadata",
+      "reuse_decision": "extend_existing",
+      "files_allowed": [
+        "services/control-plane/routers/actors.py",
+        "tests/unit/test_actor_runs_api.py"
+      ],
+      "files_locked": [
+        "services/control-plane/routers/actors.py",
+        "tests/unit/test_actor_runs_api.py"
+      ],
+      "dependencies": [
+        "B1-knowledge-runtime-contract-tests"
+      ],
+      "acceptance_tests": [
+        "python -m pytest tests/unit/test_actor_runs_api.py -q"
+      ],
+      "rollback_plan": "Revert actor API metadata additions while preserving existing native run endpoints.",
+      "result_packet_path": "docs/agent-sync/runtime/result-packets/C1-actor-run-api-knowledge-metadata.json"
+    },
+    {
+      "packet_id": "D1-observability-security-cost-tests",
+      "phase": "Phase G",
+      "status": "completed",
+      "lock_group": "actor-observability-security-cost",
+      "reuse_decision": "extend_existing",
+      "files_allowed": [
+        "packages/core/actor_runtime/*",
+        "tests/unit/test_actor_traces.py",
+        "tests/unit/test_actor_evals.py",
+        "tests/unit/test_actor_ai_security.py",
+        "tests/unit/test_actor_costs.py"
+      ],
+      "files_locked": [
+        "packages/core/actor_runtime/__init__.py",
+        "packages/core/actor_runtime/models.py",
+        "packages/core/actor_runtime/governance.py",
+        "packages/core/actor_runtime/runner.py",
+        "tests/unit/test_actor_traces.py",
+        "tests/unit/test_actor_evals.py",
+        "tests/unit/test_actor_ai_security.py",
+        "tests/unit/test_actor_costs.py"
+      ],
+      "dependencies": [
+        "B1-knowledge-runtime-contract-tests"
+      ],
+      "acceptance_tests": [
+        "python -m pytest tests/unit/test_actor_traces.py tests/unit/test_actor_evals.py tests/unit/test_actor_ai_security.py tests/unit/test_actor_costs.py -q"
+      ],
+      "rollback_plan": "Revert observability/security/cost scaffolding and tests added by packet.",
+      "result_packet_path": "docs/agent-sync/runtime/result-packets/D1-observability-security-cost-tests.json"
+    },
+    {
+      "packet_id": "E1-mcp-parity-gap-and-routing",
+      "phase": "Phase F",
+      "status": "completed",
+      "lock_group": "mcp-parity",
+      "reuse_decision": "extend_existing",
+      "files_allowed": [
+        "packages/core/*",
+        "services/control-plane/routers/*",
+        "tests/unit/*mcp*",
+        "apps/web/src/pages/McpPage.tsx",
+        "docs/agent-sync/runtime/*"
+      ],
+      "dependencies": [
+        "A1-state-seed-existing-code-map"
+      ],
+      "files_locked": [
+        "packages/core/mcp_server.py",
+        "tests/unit/test_mcp_actor_tools.py",
+        "apps/web/src/pages/McpPage.tsx",
+        "docs/agent-sync/runtime/APIFY_WORKFLOWS_MCP_PARITY_GAP_AND_ROUTING_2026-06-27.md",
+        "docs/agent-sync/runtime/result-packets/E1-mcp-parity-gap-and-routing.json"
+      ],
+      "acceptance_tests": [
+        "python -m pytest tests/unit/test_mcp_actor_tools.py -q",
+        "python -m pytest tests/unit/test_actor_provider_ladder.py tests/unit/test_workflow_extension_contract.py tests/unit/test_actor_runtime.py -q",
+        "python -m compileall -q packages/core/mcp_server.py tests/unit/test_mcp_actor_tools.py",
+        "npm.cmd run build"
+      ],
+      "rollback_plan": "Revert only MCP parity additions.",
+      "result_packet_path": "docs/agent-sync/runtime/result-packets/E1-mcp-parity-gap-and-routing.json"
+    },
+    {
+      "packet_id": "E2-self-learning-strategy-profiles",
+      "phase": "Phase E",
+      "status": "completed",
+      "lock_group": "self-learning-strategy-profiles",
+      "reuse_decision": "extend_existing",
+      "files_allowed": [
+        "packages/core/actor_runtime/*",
+        "tests/unit/test_actor_strategy_profiles.py",
+        "docs/agent-sync/runtime/*",
+        "docs/agent-sync/IMPLEMENTATION_LEDGER.md"
+      ],
+      "dependencies": [
+        "B1-knowledge-runtime-contract-tests",
+        "B3-extensible-workflow-substrate-contract",
+        "D1-observability-security-cost-tests"
+      ],
+      "files_locked": [
+        "packages/core/actor_runtime/profiles.py",
+        "packages/core/actor_runtime/runner.py",
+        "packages/core/actor_runtime/__init__.py",
+        "tests/unit/test_actor_strategy_profiles.py",
+        "docs/agent-sync/runtime/APIFY_WORKFLOWS_SELF_LEARNING_STRATEGY_PROFILES_2026-06-27.md",
+        "docs/agent-sync/runtime/result-packets/E2-self-learning-strategy-profiles.json"
+      ],
+      "acceptance_tests": [
+        "python -m pytest tests/unit/test_actor_strategy_profiles.py -q",
+        "python -m pytest tests/unit/test_actor_runtime.py tests/unit/test_actor_knowledge_memory.py tests/unit/test_actor_traces.py tests/unit/test_actor_evals.py tests/unit/test_actor_runs_api.py tests/unit/test_mcp_actor_tools.py -q",
+        "python -m compileall -q packages/core/actor_runtime tests/unit/test_actor_strategy_profiles.py"
+      ],
+      "rollback_plan": "Revert only strategy-profile substrate, tests, and runtime metadata additions.",
+      "result_packet_path": "docs/agent-sync/runtime/result-packets/E2-self-learning-strategy-profiles.json"
+    },
+    {
+      "packet_id": "G2-trace-to-fixture-promotion",
+      "phase": "Phase G",
+      "status": "completed",
+      "lock_group": "trace-to-fixture-promotion",
+      "reuse_decision": "extend_existing",
+      "files_allowed": [
+        "packages/core/actor_runtime/*",
+        "tests/unit/test_actor_trace_to_fixture.py",
+        "docs/agent-sync/runtime/*",
+        "docs/agent-sync/IMPLEMENTATION_LEDGER.md"
+      ],
+      "dependencies": [
+        "D1-observability-security-cost-tests",
+        "E2-self-learning-strategy-profiles"
+      ],
+      "files_locked": [
+        "packages/core/actor_runtime/fixtures.py",
+        "packages/core/actor_runtime/__init__.py",
+        "tests/unit/test_actor_trace_to_fixture.py",
+        "docs/agent-sync/runtime/APIFY_WORKFLOWS_TRACE_TO_FIXTURE_PROMOTION_2026-06-27.md",
+        "docs/agent-sync/runtime/result-packets/G2-trace-to-fixture-promotion.json"
+      ],
+      "acceptance_tests": [
+        "python -m pytest tests/unit/test_actor_trace_to_fixture.py -q",
+        "python -m pytest tests/unit/test_actor_traces.py tests/unit/test_actor_evals.py tests/unit/test_actor_strategy_profiles.py tests/unit/test_actor_runtime.py -q",
+        "python -m compileall -q packages/core/actor_runtime tests/unit/test_actor_trace_to_fixture.py"
+      ],
+      "rollback_plan": "Revert only trace-to-fixture candidate substrate, tests, and documentation.",
+      "result_packet_path": "docs/agent-sync/runtime/result-packets/G2-trace-to-fixture-promotion.json"
+    }
+  ]
+}

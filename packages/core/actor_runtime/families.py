@@ -5,7 +5,7 @@ from enum import StrEnum
 from typing import Any, Callable
 from urllib.parse import urlparse
 
-from packages.core.actor_runtime.models import ActorSpec, ProviderStep
+from packages.core.actor_runtime.models import ActorSpec, ProviderStep, ProviderTier
 from packages.core.actor_runtime.runner import BaseActorRunner
 from packages.core.interfaces import FetchRequest
 from packages.core.secrets import SecretsManager
@@ -77,33 +77,131 @@ def build_actor_spec(entry: Any) -> ActorSpec:
     provider_chain: tuple[ProviderStep, ...] = ()
 
     if family == ActorBaseFamily.GENERIC_WEB_PAGE_EXTRACTION:
-        provider_chain = (ProviderStep(name="http_worker", priority=1),)
+        provider_chain = (
+            ProviderStep(
+                name="http_worker",
+                tier=ProviderTier.HTTP_EXTRACTION,
+                connector="services.worker_http.worker.HttpWorker",
+                priority=1,
+                rationale="Generic pages have no stable official API; use native HTTP extraction before browser fallback.",
+            ),
+        )
     elif family == ActorBaseFamily.COMMERCE_STOREFRONT_GENERIC:
         provider_chain = (
-            ProviderStep(name="shopify_products_json", priority=1),
-            ProviderStep(name="http_worker", priority=2),
+            ProviderStep(
+                name="shopify_products_json",
+                tier=ProviderTier.OFFICIAL_PUBLIC_API,
+                connector="packages.connectors.shopify_connector.ShopifyConnector",
+                priority=1,
+                rationale="Prefer storefront product APIs such as Shopify products.json when available.",
+            ),
+            ProviderStep(
+                name="http_worker",
+                tier=ProviderTier.HTTP_EXTRACTION,
+                connector="services.worker_http.worker.HttpWorker",
+                priority=2,
+                rationale="Fallback to native HTTP extraction when storefront API is absent or empty.",
+            ),
         )
     elif family == ActorBaseFamily.MARKETPLACE_PRODUCT_CATALOG:
         if _is_amazon_family(entry):
             required_env_names = ("KEEPA_API_KEY",)
-            provider_chain = (ProviderStep(name="keepa", required_env_names=("KEEPA_API_KEY",), priority=1),)
+            provider_chain = (
+                ProviderStep(
+                    name="keepa",
+                    tier=ProviderTier.PROVIDER_SDK,
+                    required_env_names=("KEEPA_API_KEY",),
+                    connector="packages.connectors.keepa_connector.KeepaConnector",
+                    priority=1,
+                    rationale="Amazon workflows must prefer Keepa provider data and skip when the required key is absent.",
+                ),
+            )
         else:
-            provider_chain = (ProviderStep(name="http_worker", priority=1),)
+            provider_chain = (
+                ProviderStep(
+                    name="http_worker",
+                    tier=ProviderTier.HTTP_EXTRACTION,
+                    connector="services.worker_http.worker.HttpWorker",
+                    priority=1,
+                    rationale="Non-Amazon marketplace support currently falls back to native HTTP extraction unless a connector is added.",
+                ),
+            )
     elif family == ActorBaseFamily.LOCAL_MAPS_SERP:
         optional_env_names = ("SERPER_API_KEY", "GOOGLE_MAPS_API_KEY")
         provider_chain = (
-            ProviderStep(name="serper_places", required_env_names=("SERPER_API_KEY",), priority=1),
-            ProviderStep(name="google_places", required_env_names=("GOOGLE_MAPS_API_KEY",), priority=2),
-            ProviderStep(name="maps_browser_fallback", priority=3),
+            ProviderStep(
+                name="serper_places",
+                tier=ProviderTier.PROVIDER_SDK,
+                required_env_names=("SERPER_API_KEY",),
+                connector="packages.connectors.google_maps_connector.GoogleMapsConnector",
+                priority=1,
+                rationale="Prefer Serper places API for fast structured local business results.",
+            ),
+            ProviderStep(
+                name="google_places",
+                tier=ProviderTier.OFFICIAL_PUBLIC_API,
+                required_env_names=("GOOGLE_MAPS_API_KEY",),
+                connector="packages.connectors.google_maps_connector.GoogleMapsConnector",
+                priority=2,
+                rationale="Use Google Places credentials when available.",
+            ),
+            ProviderStep(
+                name="maps_browser_fallback",
+                tier=ProviderTier.BROWSER_UNBLOCKER,
+                connector="packages.connectors.google_maps_connector.GoogleMapsConnector",
+                priority=3,
+                rationale="Fallback to browser-assisted maps extraction only when API/provider credentials are unavailable.",
+            ),
         )
     elif family in (ActorBaseFamily.JOB_BOARD_SCHEMA, ActorBaseFamily.REAL_ESTATE_SCHEMA):
-        provider_chain = (ProviderStep(name="http_worker_schema_match", priority=1),)
+        provider_chain = (
+            ProviderStep(
+                name="http_worker_schema_match",
+                tier=ProviderTier.HTTP_EXTRACTION,
+                connector="services.worker_http.worker.HttpWorker",
+                priority=1,
+                rationale="Schema families use native HTTP extraction and Pydantic validation until a platform-specific API connector is registered.",
+            ),
+        )
     elif family == ActorBaseFamily.LEAD_GENERATION_GENERIC:
-        provider_chain = (ProviderStep(name="http_worker_contacts", priority=1),)
+        provider_chain = (
+            ProviderStep(
+                name="http_worker_contacts",
+                tier=ProviderTier.HTTP_EXTRACTION,
+                connector="services.worker_http.worker.HttpWorker",
+                priority=1,
+                rationale="Lead extraction uses native HTTP contact extraction unless a category-specific provider is registered.",
+            ),
+        )
     elif family == ActorBaseFamily.REVIEW_MONITORING_GENERIC:
-        provider_chain = (ProviderStep(name="http_worker_reviews", priority=1),)
+        provider_chain = (
+            ProviderStep(
+                name="http_worker_reviews",
+                tier=ProviderTier.HTTP_EXTRACTION,
+                connector="services.worker_http.worker.HttpWorker",
+                priority=1,
+                rationale="Review monitoring uses native HTTP review extraction until official review APIs are mapped.",
+            ),
+        )
     elif family == ActorBaseFamily.NEWS_CONTENT_MONITORING:
-        provider_chain = (ProviderStep(name="http_worker_content_monitoring", priority=1),)
+        provider_chain = (
+            ProviderStep(
+                name="http_worker_content_monitoring",
+                tier=ProviderTier.HTTP_EXTRACTION,
+                connector="services.worker_http.worker.HttpWorker",
+                priority=1,
+                rationale="News/content monitoring uses native HTTP content extraction until feed/API connectors are mapped.",
+            ),
+        )
+    elif not provider_chain:
+        provider_chain = (
+            ProviderStep(
+                name="unsupported_route_strategy",
+                tier=ProviderTier.UNSUPPORTED,
+                priority=100,
+                rationale=f"Route strategy {family} is catalog-visible but not yet mapped to an own-stack provider ladder.",
+            ),
+        )
 
     output_schema: dict[str, Any] = {}
     if family == ActorBaseFamily.JOB_BOARD_SCHEMA:

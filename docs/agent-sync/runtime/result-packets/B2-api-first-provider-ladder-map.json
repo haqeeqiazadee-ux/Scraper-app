@@ -1,0 +1,77 @@
+{
+  "packet_id": "B2-api-first-provider-ladder-map",
+  "lane_id": "codex-core-b2-provider-ladder",
+  "lane_type": "codex_core",
+  "agent": "codex",
+  "role": "execution_owner",
+  "phase": "Phase B",
+  "lock_group": "api-first-provider-ladder",
+  "files_read": [
+    "docs/agent-sync/OWN_STACK_RND_V2/actor_base_family_matrix.json",
+    "docs/agent-sync/OWN_STACK_RND_V2/actor_base_family_summary.json",
+    "packages/core/actor_runtime/families.py",
+    "packages/core/actor_runtime/models.py",
+    "packages/connectors",
+    "services/control-plane/routers"
+  ],
+  "files_changed": [
+    "packages/core/actor_runtime/models.py",
+    "packages/core/actor_runtime/families.py",
+    "packages/core/actor_runtime/__init__.py",
+    "tests/unit/test_actor_provider_ladder.py",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_API_FIRST_PROVIDER_LADDER_2026-06-27.md",
+    "docs/agent-sync/runtime/result-packets/B2-api-first-provider-ladder-map.json",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_TASK_DAG_2026-06-27.json",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_LOCKS_2026-06-27.json",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_QA_QUEUE.jsonl",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_DECISION_LEDGER.jsonl",
+    "docs/agent-sync/IMPLEMENTATION_LEDGER.md"
+  ],
+  "parallel_safe": true,
+  "lock_conflicts_checked": true,
+  "reuse_decision": "extend_existing",
+  "implementation_summary": "Extended existing ProviderStep and build_actor_spec provider chains with API-first/provider-first tier metadata, connector references, rationales, and explicit unsupported route ladders. Added provider ladder documentation and tests.",
+  "knowledge_decision": null,
+  "freshness_policy_version": null,
+  "graph_nodes_changed": [],
+  "graph_edges_changed": [],
+  "vector_records_changed": [],
+  "cache_modes_tested": [],
+  "tenant_isolation_checked": false,
+  "external_rnd_sources_checked": [
+    "docs/agent-sync/SCRAPER_APP_APIFY_COMPETITOR_EXTERNAL_RND_2026-06-27.md"
+  ],
+  "apify_parity_gates_checked": [
+    "api_first_provider_ladder",
+    "unsupported_route_machine_readable"
+  ],
+  "better_than_apify_gates_checked": [
+    "cost_aware_provider_ordering_basis",
+    "future_provider_ladder_contract"
+  ],
+  "mcp_parity_checked": false,
+  "observability_eval_checked": false,
+  "ai_security_checked": false,
+  "pricing_cost_checked": false,
+  "customer_value_proof_checked": false,
+  "tests_run": [
+    "python -m pytest tests/unit/test_actor_provider_ladder.py tests/unit/test_actor_runtime.py tests/unit/test_actor_families.py tests/unit/test_actor_runs_api.py -q",
+    "python -m compileall -q packages/core/actor_runtime tests/unit/test_actor_provider_ladder.py",
+    "catalog provider ladder recompute from packages.core.actor_catalog.registry"
+  ],
+  "tests_passed": [
+    "35 focused actor provider/runtime/family/API tests passed with pre-existing warnings",
+    "compileall passed",
+    "catalog provider ladder recompute loaded 27,753 actors"
+  ],
+  "tests_failed": [],
+  "known_limitations": [
+    "Several families are explicitly partial and still use HTTP fallback until future provider/API connectors are mapped",
+    "yt_dlp remains explicit unsupported own-stack route strategy until social/media provider ladders are implemented",
+    "B3 extensible workflow substrate remains pending"
+  ],
+  "secrets_touched": false,
+  "provider_or_live_claims": [],
+  "qa_status": "accepted_local_validation_passed",
+  "next_recommended_packet": "B3-extensible-workflow-substrate-contract"
+}
