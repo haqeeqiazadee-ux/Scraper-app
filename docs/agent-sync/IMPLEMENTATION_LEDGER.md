@@ -1180,3 +1180,36 @@ This file is the mandatory proof trail for the pre-code reuse gate.
   - `npm.cmd run build`
   - Claude read-only validation returned `PASS`, no blockers, no fixbacks.
 - Status: Hosted fixture proof substrate is local and build-verified. Next step is deploy Railway + Netlify and run a production fixture-promotion sample.
+
+## Mainline Loop - Family Classifier Word-Boundary Fix
+
+- Task: Stop accidental lead-generation routing from substring matches such as `leading`.
+- Phase: P1/P2 proof-factory promotion substrate
+- Existing files inspected:
+  - `packages/core/actor_runtime/families.py`
+  - `packages/core/actor_runtime/proof.py`
+  - `tests/unit/test_actor_families.py`
+  - `tests/unit/test_actor_proof_factory.py`
+  - `docs/agent-sync/runtime/actor-proof-ledger.production-verification.jsonl`
+- Reuse decision: `extend_existing`
+- Reason: A production fixture proof sample showed a generic vehicle-listing actor running through `lead_generation_generic` because `lead` matched `leading`. The classifier needed a narrow word-boundary fix, not a new family system.
+- Files modified:
+  - `packages/core/actor_runtime/families.py`
+  - `packages/core/actor_runtime/proof.py`
+  - `tests/unit/test_actor_families.py`
+  - `tests/unit/test_actor_proof_factory.py`
+  - `apps/web/public/fixtures/actor-proof/generic.html`
+  - `.gitignore`
+  - `docs/agent-sync/runtime/actor-proof-ledger.jsonl`
+  - `docs/agent-sync/runtime/result-packets/P1-actor-proof-factory-27753.json`
+- Evidence:
+  - Lead-generation family detection now uses word-boundary matching for lead terms.
+  - `generate_actor_test_input(...)` now uses `determine_actor_family(...)` as the single runtime/proof routing source.
+  - Generic fixture gained minimal product-like fields so generic HTTP extraction can survive normalization.
+  - Full offline proof ledger regenerated with 27,753 `api_mapped` rows and updated fixture distribution: jobs 2,483; real-estate 1,691; external 3,734; products 3,589; reviews 2,768; generic 4,910; news 1,447; contacts 7,131.
+- Tests/gates:
+  - `python -m compileall -q packages services scripts tests/unit/test_actor_proof_factory.py tests/unit/test_actor_families.py`
+  - `python -m pytest tests/unit/test_actor_proof_factory.py tests/unit/test_actor_families.py tests/unit/test_actor_runs_api.py tests/unit/test_actor_value_metrics.py -q`
+  - `python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 0 --write-ledger --concurrency 8 --ledger docs/agent-sync/runtime/actor-proof-ledger.jsonl`
+  - Claude read-only validation returned `PASS`, no blockers, no fixbacks.
+- Status: Classifier and proof-input routing are corrected locally. Next step is deploy and resample production fixture proof.

@@ -144,4 +144,5 @@ Phase 5 can be committed only after:
 - [x] Proof-factory generated inputs are URL-safe across the full ledger: 27,753 rows regenerated with 0 invalid generated targets, 27,753 `api_mapped`, and 0 `live_e2e_passed`.
 - [x] Runtime smoke proof is stricter: completed zero-item runs remain `api_mapped` and cannot become `runtime_smoke_passed`.
 - [x] Hosted proof fixtures added for products, jobs, real estate, contacts, reviews, news, and generic extraction; offline ledger regenerated with fixture targets while keeping all 27,753 rows `api_mapped` until live fixture replay succeeds.
+- [x] Runtime family classifier now uses word-boundary lead matching, so text like `leading classifieds platform` no longer routes generic workflows into lead-generation proof lanes.
 - [ ] Full SaaS release candidate not claimed: 27,753 live E2E actor proof remains open; current full catalog ledger is 27,753 `api_mapped`, 0 `live_e2e_passed`.

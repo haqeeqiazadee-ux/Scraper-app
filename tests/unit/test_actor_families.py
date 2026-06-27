@@ -80,6 +80,21 @@ def test_build_actor_spec_maps_local_maps_family_with_optional_provider_keys() -
     ]
 
 
+def test_build_actor_spec_does_not_treat_leading_as_lead_generation() -> None:
+    from packages.core.actor_runtime.families import ActorBaseFamily, build_actor_spec
+
+    spec = build_actor_spec(
+        _entry(
+            name="avito-cars-details-scraper",
+            title="Avito Cars Details Scraper",
+            description="Extract vehicle listing data from Morocco's leading classifieds platform.",
+            categories=("AUTOMATION", "DEVELOPER_TOOLS", "OTHER"),
+        )
+    )
+
+    assert spec.base_family == ActorBaseFamily.GENERIC_WEB_PAGE_EXTRACTION
+
+
 def test_build_actor_spec_maps_job_board_strategy_to_schema_family() -> None:
     from packages.core.actor_runtime.families import ActorBaseFamily, build_actor_spec
 

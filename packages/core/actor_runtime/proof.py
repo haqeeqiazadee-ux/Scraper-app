@@ -128,7 +128,11 @@ def generate_actor_test_input(entry: Any) -> dict[str, Any]:
     description = str(getattr(entry, "description", "") or "")
     text = f"{name} {title} {description}".lower()
 
-    if "JOBS" in categories or route_strategy == "job_board_schema":
+    from packages.core.actor_runtime.families import ActorBaseFamily, determine_actor_family
+
+    family = str(determine_actor_family(entry))
+
+    if family == ActorBaseFamily.JOB_BOARD_SCHEMA.value:
         return _fixture_input(
             "jobs",
             name,
@@ -140,7 +144,7 @@ def generate_actor_test_input(entry: Any) -> dict[str, Any]:
                 "source": "[data-proof-source]",
             },
         )
-    if "REAL_ESTATE" in categories or route_strategy == "real_estate_schema":
+    if family == ActorBaseFamily.REAL_ESTATE_SCHEMA.value:
         return _fixture_input(
             "real-estate",
             name,
@@ -154,9 +158,17 @@ def generate_actor_test_input(entry: Any) -> dict[str, Any]:
         )
     if "VIDEOS" in categories or route_strategy == "yt_dlp":
         return {"target": "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "max_items": 5}
-    if any(term in text for term in ("google maps", "maps business", "local business", "places", "near me")):
-        return {"target": "coffee shops in Seattle", "query": "coffee shops in Seattle", "max_items": 5, "workflow_hint": name}
-    if "ECOMMERCE" in categories:
+    if family == ActorBaseFamily.LOCAL_MAPS_SERP.value:
+        return {
+            "target": "coffee shops in Seattle",
+            "query": "coffee shops in Seattle",
+            "max_items": 5,
+            "workflow_hint": name,
+        }
+    if family in {
+        ActorBaseFamily.COMMERCE_STOREFRONT_GENERIC.value,
+        ActorBaseFamily.MARKETPLACE_PRODUCT_CATALOG.value,
+    }:
         return _fixture_input(
             "products",
             name,
@@ -167,7 +179,7 @@ def generate_actor_test_input(entry: Any) -> dict[str, Any]:
                 "product_url": "[data-proof-product-url]",
             },
         )
-    if "LEAD_GENERATION" in categories or "BUSINESS" in categories:
+    if family == ActorBaseFamily.LEAD_GENERATION_GENERIC.value:
         return _fixture_input(
             "contacts",
             name,
@@ -178,7 +190,7 @@ def generate_actor_test_input(entry: Any) -> dict[str, Any]:
                 "source": "[data-proof-source]",
             },
         )
-    if "review" in text or "reviews" in text or any(term in text for term in ("trustpilot", "yelp", "ratings")):
+    if family == ActorBaseFamily.REVIEW_MONITORING_GENERIC.value:
         return _fixture_input(
             "reviews",
             name,
@@ -189,7 +201,7 @@ def generate_actor_test_input(entry: Any) -> dict[str, Any]:
                 "source": "[data-proof-source]",
             },
         )
-    if "NEWS" in categories or any(term in text for term in ("news", "article", "blog", "rss", "content monitor")):
+    if family == ActorBaseFamily.NEWS_CONTENT_MONITORING.value:
         return _fixture_input(
             "news",
             name,
@@ -200,7 +212,7 @@ def generate_actor_test_input(entry: Any) -> dict[str, Any]:
                 "source": "[data-proof-source]",
             },
         )
-    if "SOCIAL_MEDIA" in categories:
+    if "SOCIAL_MEDIA" in categories and any(term in text for term in ("email", "phone", "contact")):
         return _fixture_input(
             "contacts",
             name,

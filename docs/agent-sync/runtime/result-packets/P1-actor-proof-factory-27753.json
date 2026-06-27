@@ -38,7 +38,7 @@
     "docs/agent-sync/runtime/actor-proof-ledger.sample.jsonl",
     "docs/agent-sync/runtime/result-packets/P1-actor-proof-factory-27753.json"
   ],
-  "implementation_summary": "Added an actor proof-factory substrate that records explicit per-actor proof levels, failure classes, durable proof rows, proof summary/list/detail APIs, run-to-proof promotion, a resumable proof runner script, visible proof counters/status in the existing UI, and focused tests that prevent API-mapped actors from being claimed as live E2E proven. Added fixes preventing failed actor runs from being promoted to ui_route_passed, preventing zero-item completed runs from being promoted to runtime_smoke_passed, preventing the proof runner from asserting UI proof by default, and routing generated test inputs to hosted first-party fixtures for fixture replay proof instead of invalid or unrelated placeholder targets.",
+  "implementation_summary": "Added an actor proof-factory substrate that records explicit per-actor proof levels, failure classes, durable proof rows, proof summary/list/detail APIs, run-to-proof promotion, a resumable proof runner script, visible proof counters/status in the existing UI, and focused tests that prevent API-mapped actors from being claimed as live E2E proven. Added fixes preventing failed actor runs from being promoted to ui_route_passed, preventing zero-item completed runs from being promoted to runtime_smoke_passed, preventing the proof runner from asserting UI proof by default, routing generated test inputs to hosted first-party fixtures, and fixing the runtime family classifier so the word leading no longer triggers lead-generation routing.",
   "tenant_isolation_checked": true,
   "secrets_touched": false,
   "api_first_boundary_checked": true,
@@ -79,7 +79,10 @@
     "python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 0 --write-ledger --concurrency 8 --ledger docs/agent-sync/runtime/actor-proof-ledger.jsonl",
     "python scripts/run_actor_proof_factory.py --ledger docs/agent-sync/runtime/actor-proof-ledger.jsonl --status",
     "npm.cmd run build",
-    "C:\\Users\\PC\\.local\\bin\\claude.exe -p \"Read-only validation of current git diff hosted-fixture proof layer...\""
+    "C:\\Users\\PC\\.local\\bin\\claude.exe -p \"Read-only validation of current git diff hosted-fixture proof layer...\"",
+    "python -m pytest tests/unit/test_actor_proof_factory.py tests/unit/test_actor_families.py tests/unit/test_actor_runs_api.py tests/unit/test_actor_value_metrics.py -q",
+    "python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 0 --write-ledger --concurrency 8 --ledger docs/agent-sync/runtime/actor-proof-ledger.jsonl",
+    "C:\\Users\\PC\\.local\\bin\\claude.exe -p \"Read-only validation of current git diff family classifier word-boundary proof routing fix...\""
   ],
   "tests_passed": [
     "compileall passed",
@@ -104,10 +107,13 @@
     "Regression added: completed zero-item runs remain api_mapped instead of runtime_smoke_passed.",
     "Claude read-only validation of runtime_smoke proof gate tightening returned PASS with no fixbacks.",
     "19 focused actor proof/run/value tests passed after hosted fixture input generation and no-default-UI-proof runner changes.",
-    "Default proof ledger regenerated with hosted fixture input distribution: products 4,845; contacts 8,709; jobs 2,537; generic 4,055; real-estate 2,317; news 883; reviews 767; external 3,640.",
+    "Default proof ledger regenerated with hosted fixture input distribution: jobs 2,483; real-estate 1,691; external 3,734; products 3,589; reviews 2,768; generic 4,910; news 1,447; contacts 7,131.",
     "Offline proof ledger remains honest: 27,753 api_mapped rows, 0 live_e2e_passed true, 0 ui_route_passed true, 0 fixture_replay_passed true.",
     "Frontend build passed and copied hosted proof fixtures into apps/web/dist/fixtures/actor-proof.",
-    "Claude read-only validation of hosted-fixture proof layer returned PASS with no fixbacks."
+    "Claude read-only validation of hosted-fixture proof layer returned PASS with no fixbacks.",
+    "33 focused actor proof/family/run/value tests passed after fixing lead word-boundary classification.",
+    "Regression added: leading classifieds text stays generic and no longer routes to lead_generation_generic.",
+    "Claude read-only validation of family classifier/proof routing fix returned PASS with no fixbacks."
   ],
   "tests_failed": [
     "Initial broad Claude validation attempt timed out; narrow retry passed",
@@ -120,5 +126,5 @@
   ],
   "qa_status": "accepted_api_mapped_full_catalog_coverage_live_e2e_unproven",
   "next_recommended_packet": "deploy-hosted-fixtures-and-run-fixture-proof-promotion-sample",
-  "updated_at_utc": "2026-06-27T21:30:13+00:00"
+  "updated_at_utc": "2026-06-27T21:42:29+00:00"
 }

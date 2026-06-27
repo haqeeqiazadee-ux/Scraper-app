@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from enum import StrEnum
 from typing import Any, Callable
 from urllib.parse import urlparse
@@ -37,6 +38,10 @@ def _entry_categories(entry: Any) -> set[str]:
     return {str(value).upper() for value in (getattr(entry, "categories", ()) or ())}
 
 
+def _has_word(text: str, *terms: str) -> bool:
+    return any(re.search(rf"\b{re.escape(term)}\b", text) for term in terms)
+
+
 def _is_amazon_family(entry: Any) -> bool:
     text = _entry_text(entry)
     return "amazon" in text
@@ -61,9 +66,7 @@ def determine_actor_family(entry: Any) -> str:
         return ActorBaseFamily.NEWS_CONTENT_MONITORING.value
     if "review" in text or "reviews" in text or any(term in text for term in ("trustpilot", "yelp", "ratings")):
         return ActorBaseFamily.REVIEW_MONITORING_GENERIC.value
-    if "LEAD_GENERATION" in categories or any(
-        term in text for term in ("lead", "leads", "email", "phone", "contact", "prospecting")
-    ):
+    if "LEAD_GENERATION" in categories or _has_word(text, "lead", "leads", "email", "phone", "contact", "prospecting"):
         return ActorBaseFamily.LEAD_GENERATION_GENERIC.value
     if any(term in text for term in ("shopify", "woocommerce", "ecommerce", "product", "storefront", "catalog", "price")):
         return ActorBaseFamily.COMMERCE_STOREFRONT_GENERIC.value

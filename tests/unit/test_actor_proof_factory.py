@@ -99,6 +99,19 @@ def test_actor_proof_helpers_are_strict_about_live_e2e() -> None:
     assert generic_generated["workflow_hint"] == "generic"
     assert generic_generated["fixture_kind"] == "generic"
 
+    leading_generated = generate_actor_test_input(
+        SimpleNamespace(
+            actor_id="actor-leading",
+            name="avito-cars-details-scraper",
+            title="Avito Cars Details Scraper",
+            description="Extract vehicle listing data from Morocco's leading classifieds platform.",
+            categories=("AUTOMATION", "DEVELOPER_TOOLS", "OTHER"),
+            route_strategy="native_pipeline",
+        )
+    )
+    assert leading_generated["fixture_kind"] == "generic"
+    assert "price" in leading_generated["css_selectors"]
+
     assert classify_actor_proof_failure(
         run_status="failed",
         error="missing API key",
