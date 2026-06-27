@@ -15,3 +15,11 @@ def test_normalize_database_url_preserves_non_postgres_url() -> None:
     url = "sqlite+aiosqlite:///./scraper.db"
 
     assert _normalize_database_url(url) == url
+
+
+def test_normalize_database_url_strips_wrapping_quotes() -> None:
+    url = _normalize_database_url(
+        '"postgresql+asyncpg://postgres:pw@db.example.supabase.co:5432/postgres"'
+    )
+
+    assert url == "postgresql+asyncpg://postgres:pw@db.example.supabase.co:5432/postgres"
