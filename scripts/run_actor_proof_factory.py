@@ -161,7 +161,7 @@ def main() -> int:
         pending = pending[: args.sample]
 
     results: list[dict[str, Any]] = []
-    delay = 1.0 / max(args.rate_limit_per_second, 0.1)
+    delay = 1.0 / max(args.rate_limit_per_second, 0.1) if args.base_url else 0.0
     with ThreadPoolExecutor(max_workers=max(args.concurrency, 1)) as executor:
         futures = []
         for actor in pending:
@@ -174,7 +174,8 @@ def main() -> int:
                     timeout=args.timeout,
                 )
             )
-            time.sleep(delay)
+            if delay:
+                time.sleep(delay)
         for future in as_completed(futures):
             results.append(future.result())
 

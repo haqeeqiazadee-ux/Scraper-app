@@ -31,7 +31,7 @@
     "docs/agent-sync/runtime/actor-proof-ledger.sample.jsonl",
     "docs/agent-sync/runtime/result-packets/P1-actor-proof-factory-27753.json"
   ],
-  "implementation_summary": "Added an actor proof-factory substrate that records explicit per-actor proof levels, failure classes, durable proof rows, proof summary/list/detail APIs, run-to-proof promotion, a resumable proof runner script, visible proof counters/status in the existing UI, and focused tests that prevent API-mapped actors from being claimed as live E2E proven.",
+  "implementation_summary": "Added an actor proof-factory substrate that records explicit per-actor proof levels, failure classes, durable proof rows, proof summary/list/detail APIs, run-to-proof promotion, a resumable proof runner script, visible proof counters/status in the existing UI, and focused tests that prevent API-mapped actors from being claimed as live E2E proven. Added a fix preventing failed actor runs from being promoted to ui_route_passed proof level, optimized offline proof-runner throttling, and generated full catalog API-mapped proof coverage.",
   "tenant_isolation_checked": true,
   "secrets_touched": false,
   "api_first_boundary_checked": true,
@@ -42,13 +42,13 @@
   "ui_design_checked": true,
   "actor_proof_factory_checked": true,
   "catalog_actor_count": 27753,
-  "proof_ledger_count": 3,
+  "proof_ledger_count": 27753,
   "live_e2e_passed_count": 0,
   "fixture_replay_passed_count": 0,
   "runtime_smoke_passed_count": 0,
   "ui_route_passed_count": 0,
   "blocked_actor_count": 0,
-  "unverified_actor_count": 27750,
+  "unverified_actor_count": 0,
   "claude_design_review_status": "not_applicable_for_P1",
   "claude_validation_status": "PASS",
   "e2e_checked": false,
@@ -61,7 +61,10 @@
     "python scripts/run_actor_proof_factory.py --ledger docs/agent-sync/runtime/actor-proof-ledger.sample.jsonl --status",
     "npm.cmd run build",
     "git diff --check",
-    "C:\\Users\\PC\\.local\\bin\\claude.exe -p \"Read-only validation...\""
+    "C:\\Users\\PC\\.local\\bin\\claude.exe -p \"Read-only validation...\"",
+    "python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 25 --write-ledger --resume --concurrency 4 --ledger docs/agent-sync/runtime/actor-proof-ledger.jsonl",
+    "python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 0 --write-ledger --resume --concurrency 8 --ledger docs/agent-sync/runtime/actor-proof-ledger.jsonl",
+    "python scripts/run_actor_proof_factory.py --ledger docs/agent-sync/runtime/actor-proof-ledger.jsonl --status"
   ],
   "tests_passed": [
     "compileall passed",
@@ -71,16 +74,23 @@
     "proof runner status reported 3 api_mapped rows",
     "frontend build passed",
     "git diff --check passed with CRLF warnings only",
-    "Claude implementation validation returned PASS with no blockers or fixbacks"
+    "Claude implementation validation returned PASS with no blockers or fixbacks",
+    "4 actor proof-factory tests passed after failed-run promotion regression was added.",
+    "18 focused actor proof/run/value tests passed.",
+    "Default proof ledger now contains 27,753 api_mapped rows, matching current catalog count.",
+    "local ledger verification: 27,753 rows, 27,753 api_mapped, 0 live_e2e_passed true, 0 ui_route_passed true, 0 fixture_replay_passed true",
+    "Claude validation after proof promotion fix: PASS with no blockers or fixbacks"
   ],
   "tests_failed": [
     "Initial broad Claude validation attempt timed out; narrow retry passed"
   ],
   "known_limitations": [
-    "Full 27,753 live E2E proof execution was not run in this packet.",
     "Sample proof ledger intentionally records api_mapped rows only and must not be marketed as live E2E proof.",
-    "Deployment smoke for proof APIs/UI remains part of H2."
+    "Deployment smoke for proof APIs/UI remains part of H2.",
+    "Full 27,753 API-mapped proof coverage exists, but 0 actors are live_e2e_passed; this must not be marketed as live E2E proof.",
+    "The failed-run proof promotion fix is local until committed, pushed, and deployed."
   ],
-  "qa_status": "accepted_local_validation_passed",
-  "next_recommended_packet": "H1-full-e2e"
+  "qa_status": "accepted_api_mapped_full_catalog_coverage_live_e2e_unproven",
+  "next_recommended_packet": "deploy-proof-fix-and-H2-verification",
+  "updated_at_utc": "2026-06-27T20:48:56+00:00"
 }

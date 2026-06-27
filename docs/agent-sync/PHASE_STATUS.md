@@ -136,9 +136,9 @@ Phase 5 can be committed only after:
 - [x] Customer value dashboards local packet passed for tenant-scoped actor value metrics and actor detail dashboard build verification.
 - [x] Apify-grade UI/product design local packet passed for category rail, featured workflows, active filter chips, API-first run console, value trends, accessibility labels, responsive behavior, and Claude design validation.
 - [x] Actor proof-factory local packet passed for proof levels, durable proof rows, proof APIs, proof runner, proof UI status, sample ledger, and Claude validation.
-- [ ] Full 27,753 live E2E proof is not claimed: current sample ledger contains 3 `api_mapped` rows and 0 `live_e2e_passed` rows.
+- [ ] Full 27,753 live E2E proof is not claimed: current proof ledger contains 27,753 `api_mapped` rows and 0 `live_e2e_passed` rows.
 - [x] Full live E2E gate was run.
 - [x] Full live E2E local fixback passed for the 4 persistent scrape-execution cases: example.com, httpbin.org/html UI scrape path, Trustpilot smart scrape, and Trustpilot template execution.
-- [ ] Full live E2E production rerun is pending after deployment of the local fixback commit.
+- [x] Full live E2E production rerun passed: 56 passed, 1 warning in 220.62s.
 - [x] Deployment reachability check passed for frontend root and backend health; public API account endpoint correctly returned 401 without an API key.
-- [ ] Full SaaS release candidate not claimed: post-deploy latest-commit verification and live H1 rerun remain open.
+- [ ] Full SaaS release candidate not claimed: 27,753 live E2E proof remains open and the latest proof-factory promotion fix still needs post-commit deployment verification.

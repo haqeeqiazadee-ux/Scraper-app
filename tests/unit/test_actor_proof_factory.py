@@ -100,6 +100,16 @@ def test_actor_proof_helpers_are_strict_about_live_e2e() -> None:
         fixture_replay_passed=True,
     ) == ActorProofLevel.FIXTURE_REPLAY_PASSED
 
+    assert choose_proof_level(
+        run_status="failed",
+        has_result=False,
+        item_count=0,
+        export_json_passed=False,
+        export_csv_passed=False,
+        ui_route_passed=True,
+        fixture_replay_passed=False,
+    ) == ActorProofLevel.API_MAPPED
+
 
 def test_actor_proof_api_records_manual_ui_route_proof() -> None:
     actor_id = _first_native_actor()
@@ -186,5 +196,53 @@ def test_actor_run_can_be_promoted_to_live_e2e_proof(monkeypatch) -> None:  # no
         assert proof["export_json_passed"] is True
         assert proof["export_csv_passed"] is True
         assert proof["items_count"] == 1
+
+    asyncio.run(_with_client(scenario))
+
+
+def test_failed_actor_run_cannot_be_promoted_to_ui_route_proof(monkeypatch) -> None:  # noqa: ANN001
+    actor_id = _first_native_actor()
+
+    from services.control_plane.routers import actors as actors_router_module
+
+    class FailingRunner:
+        async def run(self, payload: dict[str, Any]) -> ActorRuntimeResult:  # noqa: ARG002
+            return ActorRuntimeResult(
+                actor_id=actor_id,
+                state=ActorRunState.FAILED,
+                error="synthetic proof failure",
+                provider="unit_fake",
+            )
+
+    def fake_create_actor_runner(*args, **kwargs):  # noqa: ANN002, ANN003, ARG001
+        return FailingRunner()
+
+    monkeypatch.setattr(actors_router_module, "create_actor_runner", fake_create_actor_runner)
+
+    async def scenario(client: AsyncClient) -> None:
+        run_response = await client.post(
+            f"/api/v1/actors/{actor_id}/runs",
+            headers=TENANT_HEADER,
+            json={"input": {"target": "https://example.com/products"}},
+        )
+        assert run_response.status_code == 200
+        run_id = run_response.json()["data"]["run"]["id"]
+
+        proof_response = await client.post(
+            f"/api/v1/actors/{actor_id}/runs/{run_id}/proof",
+            headers=TENANT_HEADER,
+            json={"ui_route_passed": True, "provenance": ["unit-test-failed-run-proof"]},
+        )
+        assert proof_response.status_code == 200
+        proof = proof_response.json()["data"]
+        assert proof["proof_level"] == "api_mapped"
+        assert proof["live_e2e_passed"] is False
+        assert proof["failure_class"] == "implementation_bug"
+        assert proof["claim_boundary"] == "not_live_e2e_proven"
+
+        summary = await client.get("/api/v1/actors/proof/summary", headers=TENANT_HEADER)
+        data = summary.json()["data"]
+        assert data["ui_route_passed_count"] == 0
+        assert data["live_e2e_passed_count"] == 0
 
     asyncio.run(_with_client(scenario))

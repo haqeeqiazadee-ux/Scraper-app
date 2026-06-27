@@ -1,6 +1,7 @@
-# Final Execution Prompt: Existing-State Scraper-App Apify Competitor Build
+# Final Execution Prompt: 27,753 Workflow SaaS Completion, Apify-Grade UI, Full E2E Proof
 
 Date: 2026-06-27
+Revision: drift-corrected 27,753 proof-factory edition
 Repo: `C:\Users\PC\Scraper-app-verified`
 Branch at prompt creation: `codex/own-stack-actors`
 Seed HEAD at prompt creation: `2461423885f348ffa21136e16502e5f6b8bb5ef3`
@@ -23,6 +24,47 @@ One-shot does not mean unsafe big-bang edits. It means one uninterrupted executi
 
 The SaaS must be built as an extensible workflow platform, not a fixed catalog of current actor categories. Future teams must be able to add new workflow categories, new platform types, new provider ladders, new schemas, and new UI/API surfaces without rewriting the core runtime, router, storage, or QA harness. Category-specific logic belongs in versioned workflow definitions, provider adapters, schemas, tests, and profiles; shared execution, memory, governance, billing, observability, and API contracts remain stable.
 
+## 0A. Drift Control And Return-To-Source Contract
+
+This file is the canonical execution source until Codex deliberately supersedes it with a new validated prompt and records that change in `docs/agent-sync/IMPLEMENTATION_LEDGER.md`.
+
+Do not drift from this prompt. If the user requests a side task, data inspection, catalog export, deployment check, or other detour:
+
+1. classify the request as `detour` or `mainline`;
+2. complete the detour narrowly;
+3. do not count detour artifacts as blocker closure unless they satisfy a named packet acceptance gate;
+4. return to this prompt immediately after the detour;
+5. re-open `docs/agent-sync/PHASE_STATUS.md`, `docs/agent-sync/IMPLEMENTATION_LEDGER.md`, and this prompt;
+6. resume the highest-priority open packet.
+
+Every detour result packet or ledger entry must include:
+
+```json
+{
+  "detour_id": "",
+  "detour_reason": "",
+  "return_source_path": "docs/agent-sync/SCRAPER_APP_FINAL_APIFY_COMPETITOR_EXECUTION_PROMPT_2026-06-27.md",
+  "mainline_resume_packet": "",
+  "counts_as_release_gate_progress": false
+}
+```
+
+Do not produce catalog-only lists, spreadsheets, screenshots, narrative plans, or prompt edits as substitutes for the actual 27,753 workflow implementation, proof factory, Apify-grade UI, full E2E validation, and deployment verification.
+
+## 0B. Current Reanalysis Baseline
+
+Before acting, recompute the current state from disk and git. The last observed state before this revision was:
+
+- Current branch: `main`
+- Current HEAD: `325defb Prefer fast Amazon fallbacks before Keepa`
+- Full local live E2E suite: `56 passed, 1 warning in 212.61s`
+- Railway deployment after local fixbacks: latest observed deployment success
+- Actor catalog total: `27,753`
+- Proof status: sample proof factory rows exist, but full 27,753 live E2E proof is not complete and must not be claimed
+- Open release gates in `PHASE_STATUS.md`: full 27,753 proof promotion, post-deploy/latest-commit verification, H1/H2 release-candidate verification
+
+Treat this list as a checkpoint, not authority. Recompute it before execution and record drift.
+
 ## 1. Source Files To Read First
 
 Read these before implementation:
@@ -36,6 +78,17 @@ Read these before implementation:
 - `docs/agent-sync/SCRAPER_APP_APIFY_WORKFLOWS_SELF_LEARNING_LOOP_PROMPT_2026-06-27.md`
 - `docs/agent-sync/SCRAPER_APP_APIFY_COMPETITOR_EXTERNAL_RND_2026-06-27.md`
 - `docs/agent-sync/SCRAPER_APP_APIFY_WORKFLOWS_SELF_LEARNING_LOOP_VALIDATION_2026-06-27.md`
+- `docs/agent-sync/SCRAPER_APP_BLOCKER_CLOSURE_ONE_SHOT_EXECUTION_PROMPT_2026-06-27.md`
+- `docs/agent-sync/SCRAPER_APP_BLOCKER_CLOSURE_ONE_SHOT_EXECUTION_PROMPT_VALIDATION_2026-06-27.md`
+- `docs/agent-sync/runtime/result-packets/P1-actor-proof-factory-27753.json`
+- `docs/agent-sync/runtime/result-packets/U1-apify-grade-ui-product-design.json`
+- `packages/core/actor_runtime/proof.py`
+- `scripts/run_actor_proof_factory.py`
+- `tests/unit/test_actor_proof_factory.py`
+- `apps/web/src/pages/ActorsPage.tsx`
+- `apps/web/src/pages/ActorDetailPage.tsx`
+- `apps/web/src/pages/ScraperPage.tsx`
+- `apps/web/src/pages/ResultsPage.tsx`
 
 These files are source context, not optional background. If any are missing, stop and report the exact missing path.
 
@@ -98,6 +151,11 @@ You must recompute this state from disk before changing code. If the state has d
 - Do not serve cached, graph, vector, or Obsidian-derived data as current fact unless the response includes provenance, freshness state, source timestamp, policy version, tenant scope, and the decision path that allowed reuse.
 - Do not use Obsidian/Graphify as the sole production source for customer-visible results. They are audit/navigation mirrors only.
 - Do not overwrite user changes. If the worktree is dirty, classify every dirty file before editing.
+- Do not treat a categorized workflow list as completed workflow implementation.
+- Do not treat catalog/UI/API mapping as individual end-to-end proof.
+- Do not claim "27,753 workflows completed", "27,753 individually proven", "full SaaS complete", "same level as Apify", or "better than Apify" unless the proof ledger, UI evidence, E2E tests, deployment checks, and Claude validations prove the exact claim.
+- Do not print unnecessary text during execution. Emit only required status changes, blockers, test results, validation outcomes, artifact paths, and final state.
+- If a detour completes, return to this prompt and resume the highest-priority open release packet before starting another detour.
 
 ## 4. Authority And Agent Roles
 
@@ -243,6 +301,94 @@ Can a new platform category be added by creating/registering a WorkflowSpec + ad
 ```
 
 If the answer is no, the SaaS is not structurally future-proof.
+
+## 9B. Apify-Grade UI Product Contract
+
+The product UI must be physically visible, usable, and competitive with an Apify-style actor marketplace and operator console. Do not satisfy this gate with docs, static screenshots, or disconnected mockups.
+
+Build on the existing React/Vite app and improve existing surfaces first:
+
+- actor store/catalog browsing with category sections, search, filters, active filter chips, featured workflows, saved/favorite state where supported, proof status, pricing/usage hints, and clear empty/loading/error states;
+- actor cards that show workflow purpose, developer/source metadata, proof level, route strategy, run count/value signals, and a direct run/API action;
+- actor detail pages with overview, input schema form, examples, API-first request snippets, provider ladder, proof/freshness/provenance status, run setup, schedules, webhooks, exports, logs, datasets, related actors, and customer value metrics;
+- run console with status timeline, retry/cancel/re-run, logs, artifacts, JSON/CSV exports, dataset preview, provenance, freshness, profile version, cost/usage, and blocked-policy explanations;
+- proof dashboard and actor proof status indicators for `Live verified`, `Fixture verified`, `Runtime smoke passed`, `UI route passed`, `Needs credentials`, `External blocked`, `Unsupported`, and `Unverified`;
+- responsive desktop, tablet, and mobile layouts with no overlapping text, broken cards, unreadable buttons, or hidden primary actions;
+- accessibility basics: semantic labels, keyboard navigation, visible focus, contrast, non-color-only status signals, and stable target sizes;
+- API-first developer experience: copyable curl/JSON examples, API endpoint links, webhook setup, schedule setup, SDK-ready response shapes, and public/internal API parity with UI actions.
+
+Claude design lane is mandatory for this gate:
+
+1. Claude performs a read-only design critique of the current UI against Apify-level SaaS expectations.
+2. Codex verifies Claude's critique against files/screenshots and accepts or rejects findings.
+3. Codex implements accepted changes in existing app surfaces.
+4. Codex runs frontend build and responsive visual checks.
+5. Claude performs a second read-only design validation.
+6. Codex fixes accepted blocking findings before closing the UI gate.
+
+Acceptance evidence must include frontend build output, desktop and mobile verification evidence, Claude design validation status, files changed, and a result packet.
+
+## 9C. 27,753 Workflow Proof Factory And Full E2E Contract
+
+The platform must convert cataloged workflows into individually measured proof states through an automated, resumable proof factory. Manual spot checks are not enough.
+
+Required proof levels are ordered and non-interchangeable:
+
+```text
+catalog_only
+api_mapped
+runtime_smoke_passed
+fixture_replay_passed
+ui_route_passed
+live_e2e_passed
+blocked_external
+blocked_missing_credentials
+unsupported
+failed_implementation
+```
+
+One proof row must exist for every current catalog actor before any full-catalog proof claim:
+
+```json
+{
+  "actor_id": "",
+  "catalog_version": "",
+  "proof_level": "",
+  "last_verified_at": "",
+  "test_input": {},
+  "run_id": "",
+  "result_id": "",
+  "items_count": 0,
+  "schema_passed": false,
+  "export_json_passed": false,
+  "export_csv_passed": false,
+  "ui_route_passed": false,
+  "fixture_replay_passed": false,
+  "live_e2e_passed": false,
+  "blocked_reason": "",
+  "failure_reason": "",
+  "failure_class": "",
+  "source_timestamp": "",
+  "policy_version": "",
+  "tenant_scope": "",
+  "provenance": {}
+}
+```
+
+The proof factory must:
+
+- recompute actor catalog count from disk before every run;
+- generate safe per-family test inputs from catalog metadata, examples, provider ladders, and family templates;
+- run through native own-stack APIs, never through Apify runtime;
+- verify run creation, run status, persisted results, JSON export, CSV export, and UI route availability separately;
+- support `--sample`, `--resume`, `--status`, bounded concurrency, bounded retries, rate limits, timeouts, and deterministic output locations;
+- separate live E2E proof from fixture replay proof;
+- classify failures as implementation bug, bad generated input, missing credentials, provider rate limit, platform instability, anti-bot block, unsupported family, external outage, empty dataset, or stale proof;
+- emit fixture candidates and learning events for failed/low-confidence runs;
+- promote strategy/profile changes only after deterministic replay passes;
+- expose aggregate proof counts through API/UI: catalog total, ledger rows, live E2E passed, fixture replay passed, runtime smoke passed, UI route passed, blocked, stale, and unverified.
+
+`full_27753_live_e2e_proven` is allowed only when the current recomputed catalog count equals proof ledger count and every actor row has `live_e2e_passed=true`. If even one actor is fixture-only, runtime-smoke-only, UI-route-only, blocked, unsupported, stale, or unverified, the correct state is not full live E2E proven.
 
 ## 10. Knowledge-Backed Runtime Trait
 
@@ -435,11 +581,31 @@ Phase G: observability, evals, security, pricing, value proof
 - Add cost/pricing transparency.
 - Add dashboards for customer value proof.
 
+Phase U: Apify-grade UI/product experience
+
+- Improve the existing actor catalog, actor detail, run console, result/export, schedule/webhook, proof status, and value dashboard UI.
+- Keep API-first developer actions visible and copyable.
+- Run frontend build and responsive visual verification.
+- Run Claude design critique before implementation and Claude design validation after implementation.
+- Do not close this phase with a mockup or static catalog-only page.
+
+Phase P: 27,753 actor proof factory
+
+- Implement or harden durable proof models, repositories, APIs, UI status, and resumable runner.
+- Generate safe per-family inputs for every current actor catalog row.
+- Record one proof row per actor and honest aggregate counts.
+- Use bounded samples before full catalog execution.
+- Do not count fixture replay as live E2E.
+- Feed failures into fixture, learning, and fixback queues.
+
 Phase H: final release gate
 
 - Run focused actor tests.
 - Run broader impacted backend tests.
 - Run frontend build if UI/data changed.
+- Run Apify-grade UI verification.
+- Run proof-factory sample, status, and full-catalog proof attempt where safe.
+- Run full E2E including actor catalog/detail/run/proof UI paths.
 - Run secret scan.
 - Run Claude validation.
 - Update ledgers, phase status, and validation report.
@@ -456,6 +622,10 @@ Required fields:
 ```json
 {
   "packet_id": "",
+  "detour_id": "",
+  "return_source_path": "docs/agent-sync/SCRAPER_APP_FINAL_APIFY_COMPETITOR_EXECUTION_PROMPT_2026-06-27.md",
+  "mainline_resume_packet": "",
+  "counts_as_release_gate_progress": false,
   "lane_id": "",
   "lane_type": "",
   "agent": "",
@@ -483,6 +653,20 @@ Required fields:
   "ai_security_checked": false,
   "pricing_cost_checked": false,
   "customer_value_proof_checked": false,
+  "apify_grade_ui_checked": false,
+  "claude_design_review_status": "",
+  "responsive_ui_evidence": [],
+  "actor_proof_factory_checked": false,
+  "catalog_actor_count": 0,
+  "proof_ledger_count": 0,
+  "live_e2e_passed_count": 0,
+  "fixture_replay_passed_count": 0,
+  "runtime_smoke_passed_count": 0,
+  "ui_route_passed_count": 0,
+  "blocked_actor_count": 0,
+  "unsupported_actor_count": 0,
+  "stale_proof_count": 0,
+  "unverified_actor_count": 0,
   "tests_run": [],
   "tests_passed": [],
   "tests_failed": [],
@@ -529,6 +713,33 @@ npm install
 npm run build
 ```
 
+Apify-grade UI gate:
+
+```powershell
+Set-Location apps/web
+npm.cmd run build
+```
+
+Run existing Playwright or browser screenshot checks when available. At minimum verify desktop and mobile render paths for actor catalog, actor detail, run console, proof dashboard/status, result export, schedules/webhooks, value metrics, API-first developer actions, and empty/loading/error/blocked states. Record artifact paths or exact verification notes in the result packet.
+
+Actor proof factory gate:
+
+```powershell
+python -m compileall -q packages services scripts tests
+python -m pytest tests/unit/test_actor_proof_factory.py tests/unit/test_actor_runs_api.py tests/unit/test_actor_value_metrics.py -q
+python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 25 --write-ledger --resume --concurrency 2 --rate-limit-per-second 1
+python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --status
+```
+
+Full catalog proof attempt gate:
+
+```powershell
+python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --write-ledger --resume --concurrency 2 --rate-limit-per-second 1
+python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --status
+```
+
+If the full catalog proof attempt is blocked by credentials, rate limits, provider outages, anti-bot controls, cost, or runtime limits, record exact blocker classes per actor. Do not convert blocked or fixture-only actors into `live_e2e_passed`.
+
 Secret scan:
 
 ```powershell
@@ -557,6 +768,10 @@ Do not claim complete until:
 - Extensible workflow substrate is implemented and tested: adding a new platform category must use registered specs/adapters/profiles/tests without rewriting shared runtime/router/storage contracts.
 - All 27,753 actors have native runtime classification or explicit unsupported state.
 - Runnable actors inherit the native actor runtime and knowledge-backed decision path.
+- Actor proof factory recomputes the current catalog count from disk, writes or updates one durable proof row per actor, and reports exact counts by proof level.
+- `full_27753_live_e2e_proven` is not claimed unless proof ledger count equals current catalog count and every actor row has `live_e2e_passed=true`.
+- Fixture replay, runtime smoke, API mapping, UI route proof, unsupported states, and external blockers are reported separately and never marketed as live E2E.
+- Apify-grade UI is physically implemented in the existing React app, build-verified, responsive-checked, and validated by Claude design review with no blocking findings.
 - Apify parity gates are implemented, tested, and accepted; incomplete/deferred parity gates force `partial_blocked_not_release_ready`.
 - Better-than-Apify superiority gates are implemented, tested, and accepted; incomplete/deferred superiority gates force `partial_blocked_not_release_ready`.
 - Cache, graph, vector, partial refresh, background refresh, run fresh, unsupported, stale, and missing-field paths are tested.
@@ -573,6 +788,23 @@ Do not claim complete until:
 - Secret scan passes.
 - Claude validation has no blocking findings or all accepted fixbacks are applied.
 - Codex final QA accepts the release candidate and records the decision.
+
+## 15A. Allowed And Forbidden Final States
+
+Allowed final states:
+
+- `full_saas_release_candidate_ready`: all mandatory parity, superiority, UI, proof-factory, E2E, deployment, secret-scan, and Claude validation gates are accepted by Codex final QA.
+- `full_27753_live_e2e_proven`: only when the current recomputed catalog count equals proof ledger count and every actor row has `live_e2e_passed=true`.
+- `partial_blocked_not_release_ready`: at least one mandatory gate is incomplete, untested, externally blocked, unavailable, or only documented.
+- `blocked`: the same external blocker persists after local fixback and Claude review, and no unrelated packet can progress.
+
+Forbidden final states:
+
+- "one-shot ready" when mandatory implementation, UI, proof, E2E, or deployment gates remain open.
+- "27,753 workflows complete" when any actor lacks an accepted proof row.
+- "27,753 individually proven E2E workflows" when any actor is catalog-only, API-mapped, runtime-smoked, fixture-replayed, UI-route-only, blocked, unsupported, stale, or unverified.
+- "Apify-grade UI" when the UI is a mockup, catalog-only artifact, not build-verified, not responsive-checked, or not Claude design-validated.
+- "complete" when only prompt/documentation/catalog work has been done.
 
 ## 16. Final Response Required From Executing Codex
 

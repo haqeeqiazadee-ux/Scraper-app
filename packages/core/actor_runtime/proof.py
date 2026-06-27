@@ -172,6 +172,6 @@ def choose_proof_level(
         return ActorProofLevel.FIXTURE_REPLAY_PASSED
     if run_status == "completed":
         return ActorProofLevel.RUNTIME_SMOKE_PASSED
-    if ui_route_passed:
+    if ui_route_passed and run_status in {"route_checked", "ui_route_passed"}:
         return ActorProofLevel.UI_ROUTE_PASSED
     return ActorProofLevel.API_MAPPED

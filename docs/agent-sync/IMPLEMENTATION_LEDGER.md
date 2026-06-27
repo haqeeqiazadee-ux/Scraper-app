@@ -996,3 +996,77 @@ This file is the mandatory proof trail for the pre-code reuse gate.
   - `git diff --check`
   - `C:\Users\PC\.local\bin\claude.exe -p "Read-only validation..."`
 - Status: P1 local validation passed. Current proof level is 3 sample `api_mapped` rows, 0 `live_e2e_passed`; full 27,753 live E2E proof remains unrun and must not be claimed.
+
+## Prompt Rebuild - Drift-Corrected 27,753 Full E2E And Apify-Grade UI
+
+- Task: Rebuild the canonical one-shot execution prompt so detours return to the main prompt and the remaining work explicitly targets 27,753 workflow proof, Apify-grade UI, and full E2E/deployment validation.
+- Phase: Prompt validation
+- Existing files inspected:
+  - `AGENTS.md`
+  - `docs/agent-sync/SCRAPER_APP_FINAL_APIFY_COMPETITOR_EXECUTION_PROMPT_2026-06-27.md`
+  - `docs/agent-sync/SCRAPER_APP_BLOCKER_CLOSURE_ONE_SHOT_EXECUTION_PROMPT_2026-06-27.md`
+  - `docs/agent-sync/PHASE_STATUS.md`
+  - `docs/agent-sync/IMPLEMENTATION_LEDGER.md`
+  - `scripts/run_actor_proof_factory.py`
+- Reuse decision: `extend_existing`
+- Reason: The canonical prompt already contained the SaaS completion loop, roles, API-first/provider-first boundary, extensible workflow substrate, and validation gates. It needed hard drift-control, explicit Apify-grade UI proof, and explicit full-catalog proof-factory/live-E2E acceptance rules.
+- Files modified:
+  - `docs/agent-sync/SCRAPER_APP_FINAL_APIFY_COMPETITOR_EXECUTION_PROMPT_2026-06-27.md`
+  - `docs/agent-sync/IMPLEMENTATION_LEDGER.md`
+- Evidence:
+  - Added `Drift Control And Return-To-Source Contract` requiring every detour to return to the canonical prompt and not count as release progress unless it satisfies a named gate.
+  - Added current reanalysis baseline requiring fresh recomputation before execution.
+  - Added guardrails against treating catalog/list artifacts as implementation or proof.
+  - Added `Apify-Grade UI Product Contract` with Claude design critique/validation, responsive verification, build evidence, and UI proof requirements.
+  - Added `27,753 Workflow Proof Factory And Full E2E Contract` with ordered proof levels, one proof row per actor, full-catalog runner requirements, failure classification, and exact `full_27753_live_e2e_proven` conditions.
+  - Added UI/proof fields to result packets, proof runner validation commands, and explicit allowed/forbidden final states.
+- Tests/gates:
+  - Project prompt validator unavailable: `scripts/oneshot/validate_prompt_contract.py` is absent in this repo.
+  - Local structural checklist passed for role assignment, task delegation, guardrails, code execution workflow, Python-first automation, performance rules, validation workflow, Codex final QA, drift control, Apify UI, 27,753 proof factory, no-overclaim states, and minimal printing.
+  - Claude prompt validation returned `PASS`, no blockers, no fixbacks.
+- Status: Prompt rebuild accepted as the canonical execution source. Remaining work is implementation/proof execution, not prompt drafting.
+
+## Mainline Loop - H1 Green And Proof Factory Promotion Fix
+
+- Task: Resume the canonical prompt mainline, run H1 production E2E, and fix proof-factory promotion semantics discovered by a bounded production proof sample.
+- Phase: H1/P1 fixback
+- Existing files inspected:
+  - `docs/agent-sync/SCRAPER_APP_FINAL_APIFY_COMPETITOR_EXECUTION_PROMPT_2026-06-27.md`
+  - `docs/agent-sync/PHASE_STATUS.md`
+  - `docs/agent-sync/runtime/result-packets/H1-full-e2e.json`
+  - `docs/agent-sync/runtime/result-packets/P1-actor-proof-factory-27753.json`
+  - `packages/core/actor_runtime/proof.py`
+  - `services/control-plane/routers/actors.py`
+  - `scripts/run_actor_proof_factory.py`
+  - `tests/unit/test_actor_proof_factory.py`
+- Reuse decision: `extend_existing`
+- Reason: H1 already had a live production E2E suite and P1 already had a proof factory. The right move was to rerun the existing live suite, then fix the narrow proof-level chooser and runner efficiency issue surfaced by proof sampling.
+- Files modified:
+  - `packages/core/actor_runtime/proof.py`
+  - `scripts/run_actor_proof_factory.py`
+  - `tests/unit/test_actor_proof_factory.py`
+  - `docs/agent-sync/runtime/actor-proof-ledger.jsonl`
+  - `docs/agent-sync/runtime/result-packets/H1-full-e2e.json`
+  - `docs/agent-sync/runtime/result-packets/P1-actor-proof-factory-27753.json`
+  - `docs/agent-sync/PHASE_STATUS.md`
+  - `docs/agent-sync/IMPLEMENTATION_LEDGER.md`
+- Evidence:
+  - Production H1 live rerun passed: `56 passed, 1 warning in 220.62s`.
+  - Bounded production proof sample showed failed actor runs could be recorded at `ui_route_passed` proof level when the run failed or was unsupported.
+  - Updated `choose_proof_level(...)` so `ui_route_passed` is only selected for explicit route-check statuses, not failed actor runs.
+  - Added a regression test proving failed actor runs with `ui_route_passed=true` remain `api_mapped`, carry `implementation_bug`, and do not increment `ui_route_passed_count`.
+  - Optimized the proof runner so offline catalog/API-mapped proof generation does not sleep for network rate limiting when no `--base-url` is supplied.
+  - Generated default proof ledger coverage for all 27,753 actors as `api_mapped`; this is full catalog proof-row coverage, not live E2E proof.
+- Tests/gates:
+  - `python C:\Users\PC\second-brain\tools\reuse_gate.py --project C:\Users\PC\Scraper-app-verified --task "H1 live production E2E rerun and release gate refresh" --terms "H1 full e2e production rerun actor proof deployment release gate"`
+  - `C:\Python314\python.exe -m pytest tests/e2e/test_all_workflows.py -v`
+  - `python C:\Users\PC\second-brain\tools\reuse_gate.py --project C:\Users\PC\Scraper-app-verified --task "Fix actor proof factory promotion so failed runs cannot become ui_route_passed" --terms "actor proof factory proof_level ui_route_passed failed run promotion failure_class"`
+  - `python -m compileall -q packages services scripts tests/unit/test_actor_proof_factory.py`
+  - `python -m pytest tests/unit/test_actor_proof_factory.py -q`
+  - `python -m pytest tests/unit/test_actor_proof_factory.py tests/unit/test_actor_runs_api.py tests/unit/test_actor_value_metrics.py -q`
+  - `python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 25 --write-ledger --resume --concurrency 4 --ledger docs/agent-sync/runtime/actor-proof-ledger.jsonl`
+  - `python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 0 --write-ledger --resume --concurrency 8 --ledger docs/agent-sync/runtime/actor-proof-ledger.jsonl`
+  - `python scripts/run_actor_proof_factory.py --ledger docs/agent-sync/runtime/actor-proof-ledger.jsonl --status`
+  - Local ledger verification: 27,753 rows, 27,753 `api_mapped`, 0 `live_e2e_passed=true`, 0 `ui_route_passed=true`, 0 `fixture_replay_passed=true`.
+  - Claude read-only validation returned `PASS`, no blockers, no fixbacks.
+- Status: H1 production E2E is green. P1 has full catalog API-mapped proof-row coverage and an improved proof-level guard. Full 27,753 live E2E proof remains open with 0 `live_e2e_passed` actors.

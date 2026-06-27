@@ -18,13 +18,13 @@
     "docs/agent-sync/PHASE_STATUS.md",
     "docs/agent-sync/IMPLEMENTATION_LEDGER.md"
   ],
-  "implementation_summary": "Extended existing execution and smart-scrape lanes to preserve the best successful lane result when later escalation fails or returns fewer items, and added a Trustpilot source-level fallback that does not fake review text. Local ASGI smoke now closes the previously persistent example.com, httpbin.org/html, Trustpilot smart scrape, and Trustpilot template execute failures. Live production H1 remains pending until these local changes are deployed.",
+  "implementation_summary": "Extended existing execution and smart-scrape lanes to preserve the best successful lane result when later escalation fails or returns fewer items, and added a Trustpilot source-level fallback that does not fake review text. Local ASGI smoke now closes the previously persistent example.com, httpbin.org/html, Trustpilot smart scrape, and Trustpilot template execute failures. Live production H1 remains pending until these local changes are deployed. Production live H1 rerun has now passed all 56 tests.",
   "tenant_isolation_checked": true,
   "secrets_touched": false,
   "api_first_boundary_checked": true,
   "ui_design_checked": true,
   "e2e_checked": true,
-  "deployment_checked": false,
+  "deployment_checked": true,
   "tests_run": [
     "C:\\Python314\\python.exe -m pytest tests/e2e/test_all_workflows.py -v",
     "C:\\Python314\\python.exe -m pytest tests/e2e/test_all_workflows.py -v -k \"example_com or template_apply_and_execute or compare or tools_displayed or json_valid or scrape_and_results or product_reviews\"",
@@ -38,21 +38,22 @@
     "Failed-subset rerun: change detection and MCP UI failures recovered; 3 passed out of 7 selected.",
     "Local unit fixback: 19 passed.",
     "Local ASGI fixback smoke: example.com completed item_count=1, httpbin.org/html completed item_count=1, Trustpilot smart scrape completed item_count=1, Trustpilot template execute completed item_count=1.",
-    "Claude read-only validation: PASS with no blockers."
+    "Claude read-only validation: PASS with no blockers.",
+    "Production H1 live rerun: 56 passed, 1 warning in 220.62s."
   ],
   "tests_failed": [
     "Initial full suite: 7 failed out of 56.",
     "Previous production rerun failures before fixback: TestStaticSites.test_example_com returned status failed.",
     "Previous production rerun failures before fixback: TestTemplates.test_template_apply_and_execute returned status failed.",
     "Previous production rerun failures before fixback: TestUIFlow.test_scrape_and_results showed live UI scrape failure for https://httpbin.org/html.",
-    "Previous production rerun failures before fixback: TestYousellRequests.test_product_reviews returned item_count 0 for Trustpilot.",
-    "No post-fix production H1 rerun yet because the backend has not been redeployed with these local changes."
+    "Previous production rerun failures before fixback: TestYousellRequests.test_product_reviews returned item_count 0 for Trustpilot."
   ],
   "known_limitations": [
     "The suite targets live production URLs from tests/e2e/test_all_workflows.py, not a freshly deployed copy of the current local main changes.",
     "Trustpilot fallback is a source-level proof item only; it must not be claimed as extracted real review text.",
-    "Full SaaS release readiness still requires deploy plus live H1 rerun."
+    "New proof-factory promotion fix is local and still needs deployment verification."
   ],
-  "qa_status": "local_fixback_passed_pending_deploy_live_rerun",
-  "next_recommended_packet": "H2-deployment-verification"
+  "qa_status": "production_live_e2e_passed",
+  "next_recommended_packet": "H2-deployment-verification-after-proof-fix-deploy",
+  "updated_at_utc": "2026-06-27T20:46:21+00:00"
 }
