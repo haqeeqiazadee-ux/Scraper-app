@@ -149,6 +149,124 @@ class ArtifactModel(Base):
     expires_at = Column(DateTime, nullable=True)
 
 
+class ActorStrategyProfileModel(Base):
+    __tablename__ = "actor_strategy_profiles"
+
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    tenant_id = Column(String(255), nullable=False, index=True)
+    actor_id = Column(String(255), nullable=False, index=True)
+    base_family = Column(String(100), nullable=False)
+    version = Column(String(50), nullable=False)
+    policy_version = Column(String(100), nullable=False, default="strategy-profile-v1")
+    promoted_by = Column(String(255), nullable=False, default="codex")
+    provider_order_json = Column(JSON, nullable=False, default=list)
+    schema_aliases_json = Column(JSON, nullable=False, default=dict)
+    freshness_overrides_json = Column(JSON, nullable=False, default=dict)
+    replay_fixture_ids_json = Column(JSON, nullable=False, default=list)
+    metrics_json = Column(JSON, nullable=False, default=dict)
+    active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    promoted_at = Column(DateTime, nullable=True)
+
+    __table_args__ = (
+        Index("ix_actor_profiles_tenant_actor", "tenant_id", "actor_id"),
+        Index("ix_actor_profiles_tenant_actor_active", "tenant_id", "actor_id", "active"),
+    )
+
+
+class ActorLearningEventModel(Base):
+    __tablename__ = "actor_learning_events"
+
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    tenant_id = Column(String(255), nullable=False, index=True)
+    actor_id = Column(String(255), nullable=False, index=True)
+    base_family = Column(String(100), nullable=False)
+    event_type = Column(String(100), nullable=False)
+    trigger_reason = Column(Text, nullable=False)
+    observed_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    profile_version = Column(String(50), nullable=False)
+    payload_fingerprint = Column(String(255), nullable=False)
+    redacted_payload_keys_json = Column(JSON, nullable=False, default=list)
+    metrics_json = Column(JSON, nullable=False, default=dict)
+    evidence_json = Column(JSON, nullable=False, default=list)
+
+    __table_args__ = (
+        Index("ix_actor_learning_events_tenant_actor", "tenant_id", "actor_id"),
+        Index("ix_actor_learning_events_observed", "tenant_id", "actor_id", "observed_at"),
+    )
+
+
+class StrategyPatchProposalModel(Base):
+    __tablename__ = "actor_strategy_patch_proposals"
+
+    proposal_id = Column(String(255), primary_key=True)
+    tenant_id = Column(String(255), nullable=False, index=True)
+    actor_id = Column(String(255), nullable=False, index=True)
+    base_family = Column(String(100), nullable=False)
+    current_profile_version = Column(String(50), nullable=False)
+    proposed_profile_version = Column(String(50), nullable=False)
+    patch_json = Column(JSON, nullable=False, default=dict)
+    rationale = Column(Text, nullable=False)
+    required_replay_fixture_ids_json = Column(JSON, nullable=False, default=list)
+    status = Column(String(50), nullable=False, default="proposed")
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index("ix_actor_patch_proposals_tenant_actor", "tenant_id", "actor_id"),
+        Index("ix_actor_patch_proposals_status", "tenant_id", "actor_id", "status"),
+    )
+
+
+class ReplayValidationResultModel(Base):
+    __tablename__ = "actor_replay_validation_results"
+
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    tenant_id = Column(String(255), nullable=False, index=True)
+    actor_id = Column(String(255), nullable=False, index=True)
+    proposal_id = Column(String(255), ForeignKey("actor_strategy_patch_proposals.proposal_id"), nullable=False, index=True)
+    passed = Column(Boolean, nullable=False, default=False)
+    fixtures_run_json = Column(JSON, nullable=False, default=list)
+    score_before = Column(Float, nullable=False, default=0.0)
+    score_after = Column(Float, nullable=False, default=0.0)
+    security_blockers_json = Column(JSON, nullable=False, default=list)
+    errors_json = Column(JSON, nullable=False, default=list)
+    validated_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index("ix_actor_replay_validations_tenant_actor", "tenant_id", "actor_id"),
+        Index("ix_actor_replay_validations_proposal", "tenant_id", "proposal_id"),
+    )
+
+
+class ActorRegressionFixtureCandidateModel(Base):
+    __tablename__ = "actor_regression_fixture_candidates"
+
+    fixture_id = Column(String(255), primary_key=True)
+    tenant_id = Column(String(255), nullable=False, index=True)
+    actor_id = Column(String(255), nullable=False, index=True)
+    base_family = Column(String(100), nullable=False)
+    status = Column(String(50), nullable=False, default="pending_review")
+    source_trace_id = Column(String(255), nullable=True)
+    state = Column(String(50), nullable=False)
+    provider = Column(String(255), nullable=True)
+    trigger_reasons_json = Column(JSON, nullable=False, default=list)
+    sanitized_input_json = Column(JSON, nullable=False, default=dict)
+    redacted_payload_keys_json = Column(JSON, nullable=False, default=list)
+    expected_assertions_json = Column(JSON, nullable=False, default=list)
+    tags_json = Column(JSON, nullable=False, default=list)
+    review_notes = Column(Text, nullable=True)
+    reviewed_by = Column(String(255), nullable=True)
+    reviewed_at = Column(DateTime, nullable=True)
+    materialized_fixture_json = Column(JSON, nullable=True)
+    materialized_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index("ix_actor_fixture_candidates_tenant_actor", "tenant_id", "actor_id"),
+        Index("ix_actor_fixture_candidates_status", "tenant_id", "actor_id", "status"),
+    )
+
+
 # Register Public API models so Base.metadata picks them up for auto-creation
 try:
     from packages.core.storage.models_public_api import (  # noqa: F401, E402

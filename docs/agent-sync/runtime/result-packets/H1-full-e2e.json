@@ -1,0 +1,46 @@
+{
+  "packet_id": "H1-full-e2e",
+  "priority": 6,
+  "agent": "codex",
+  "phase": "Phase H1",
+  "lock_group": "full-e2e",
+  "reuse_decision": "extend_existing",
+  "files_read": [
+    "tests/e2e/test_all_workflows.py"
+  ],
+  "files_changed": [
+    "docs/agent-sync/runtime/result-packets/H1-full-e2e.json",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_TASK_DAG_2026-06-27.json",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_LOCKS_2026-06-27.json",
+    "docs/agent-sync/PHASE_STATUS.md",
+    "docs/agent-sync/IMPLEMENTATION_LEDGER.md"
+  ],
+  "implementation_summary": "Ran the existing live full E2E suite against the configured production backend and frontend. The gate did not pass, so H1 remains a release blocker.",
+  "tenant_isolation_checked": true,
+  "secrets_touched": false,
+  "api_first_boundary_checked": true,
+  "ui_design_checked": true,
+  "e2e_checked": true,
+  "deployment_checked": false,
+  "tests_run": [
+    "C:\\Python314\\python.exe -m pytest tests/e2e/test_all_workflows.py -v",
+    "C:\\Python314\\python.exe -m pytest tests/e2e/test_all_workflows.py -v -k \"example_com or template_apply_and_execute or compare or tools_displayed or json_valid or scrape_and_results or product_reviews\""
+  ],
+  "tests_passed": [
+    "Initial full suite: 49 passed out of 56.",
+    "Failed-subset rerun: change detection and MCP UI failures recovered; 3 passed out of 7 selected."
+  ],
+  "tests_failed": [
+    "Initial full suite: 7 failed out of 56.",
+    "Persistent rerun failures: TestStaticSites.test_example_com returned status failed.",
+    "Persistent rerun failures: TestTemplates.test_template_apply_and_execute returned status failed.",
+    "Persistent rerun failures: TestUIFlow.test_scrape_and_results showed live UI scrape failure for https://httpbin.org/html.",
+    "Persistent rerun failures: TestYousellRequests.test_product_reviews returned item_count 0 for Trustpilot."
+  ],
+  "known_limitations": [
+    "The suite targets live production URLs from tests/e2e/test_all_workflows.py, not a freshly deployed copy of the current local main changes.",
+    "The persistent failures are live scrape execution/parity failures outside the U1 UI changes and must be closed before claiming full SaaS release readiness."
+  ],
+  "qa_status": "blocked_live_e2e_failed",
+  "next_recommended_packet": "fix_live_scrape_execution_failures_then_rerun_H1"
+}

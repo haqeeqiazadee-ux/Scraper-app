@@ -1,0 +1,54 @@
+{
+  "packet_id": "F2-workflow-ops-parity",
+  "priority": 1,
+  "agent": "codex",
+  "phase": "Phase F2",
+  "lock_group": "workflow-ops-parity",
+  "reuse_decision": "extend_existing",
+  "files_read": [
+    "services/control-plane/routers/actors.py",
+    "services/control-plane/routers/results.py",
+    "packages/core/storage/models.py",
+    "packages/core/storage/repositories.py",
+    "tests/unit/test_actor_runs_api.py",
+    "docs/agent-sync/runtime/result-packets/E2-self-learning-strategy-profiles.json"
+  ],
+  "files_changed": [
+    "services/control-plane/routers/actors.py",
+    "tests/unit/test_actor_runs_api.py",
+    "docs/agent-sync/runtime/result-packets/F2-workflow-ops-parity.json",
+    "docs/agent-sync/IMPLEMENTATION_LEDGER.md",
+    "docs/agent-sync/PHASE_STATUS.md",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_TASK_DAG_2026-06-27.json",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_LOCKS_2026-06-27.json"
+  ],
+  "implementation_summary": "Extended the existing actor run API with tenant-scoped lifecycle operations and operator surfaces: status history, logs, usage counters, cancel, retry, rerun, and per-run JSON/CSV export.",
+  "tenant_isolation_checked": true,
+  "secrets_touched": false,
+  "api_first_boundary_checked": true,
+  "profile_persistence_checked": false,
+  "fixture_materialization_checked": false,
+  "workflow_ops_checked": true,
+  "dashboard_value_checked": false,
+  "ui_design_checked": false,
+  "claude_design_review_status": "not_applicable_for_F2",
+  "e2e_checked": false,
+  "deployment_checked": false,
+  "tests_run": [
+    "python C:\\Users\\PC\\second-brain\\tools\\reuse_gate.py --project C:\\Users\\PC\\Scraper-app-verified --task \"F2-workflow-ops-parity\" --terms \"actor run lifecycle retry cancel rerun schedules webhooks exports pagination usage quota\"",
+    "python -m compileall -q packages services tests",
+    "python -m pytest tests/unit/test_actor_runs_api.py -q"
+  ],
+  "tests_passed": [
+    "reuse_gate returned extend_existing",
+    "compileall passed",
+    "13 actor run API tests passed"
+  ],
+  "tests_failed": [],
+  "known_limitations": [
+    "F2 closes actor-native lifecycle/export/log/usage parity only; persisted strategy profile APIs, fixture review materialization, dashboard UI, full E2E, and deployment verification remain downstream packets.",
+    "Actor schedules and webhooks continue to use existing platform schedule/webhook routers until actor-specific UI wiring is completed."
+  ],
+  "qa_status": "accepted_local_validation_passed",
+  "next_recommended_packet": "E3-persisted-profile-apis"
+}

@@ -1,0 +1,58 @@
+{
+  "packet_id": "G3-fixture-review-materialization",
+  "priority": 3,
+  "agent": "codex",
+  "phase": "Phase G3",
+  "lock_group": "fixture-review-materialization",
+  "reuse_decision": "extend_existing",
+  "files_read": [
+    "packages/core/actor_runtime/fixtures.py",
+    "packages/core/storage/models.py",
+    "packages/core/storage/repositories.py",
+    "services/control-plane/routers/actors.py",
+    "tests/unit/test_actor_trace_to_fixture.py"
+  ],
+  "files_changed": [
+    "packages/core/actor_runtime/fixtures.py",
+    "packages/core/actor_runtime/__init__.py",
+    "packages/core/storage/models.py",
+    "packages/core/storage/repositories.py",
+    "services/control-plane/routers/actors.py",
+    "tests/unit/test_actor_trace_to_fixture.py",
+    "tests/unit/test_actor_fixture_api.py",
+    "docs/agent-sync/runtime/result-packets/G3-fixture-review-materialization.json",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_TASK_DAG_2026-06-27.json",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_LOCKS_2026-06-27.json",
+    "docs/agent-sync/PHASE_STATUS.md",
+    "docs/agent-sync/IMPLEMENTATION_LEDGER.md"
+  ],
+  "implementation_summary": "Added fixture review statuses, materialized fixture payloads, persisted fixture candidate queue, approve/reject/materialize APIs, and tenant-scoped tests proving rejected candidates do not materialize.",
+  "tenant_isolation_checked": true,
+  "secrets_touched": false,
+  "api_first_boundary_checked": true,
+  "profile_persistence_checked": true,
+  "fixture_materialization_checked": true,
+  "workflow_ops_checked": true,
+  "dashboard_value_checked": false,
+  "ui_design_checked": false,
+  "claude_design_review_status": "not_applicable_for_G3",
+  "e2e_checked": false,
+  "deployment_checked": false,
+  "tests_run": [
+    "python C:\\Users\\PC\\second-brain\\tools\\reuse_gate.py --project C:\\Users\\PC\\Scraper-app-verified --task \"G3-fixture-review-materialization\" --terms \"fixture candidate review approve reject materialize sanitized regression replay queue\"",
+    "python -m compileall -q packages services tests",
+    "python -m pytest tests/unit/test_actor_fixture_api.py tests/unit/test_actor_trace_to_fixture.py tests/unit/test_actor_profile_api.py tests/unit/test_actor_strategy_profiles.py -q"
+  ],
+  "tests_passed": [
+    "reuse_gate returned extend_existing",
+    "compileall passed",
+    "12 fixture/profile tests passed"
+  ],
+  "tests_failed": [],
+  "known_limitations": [
+    "Fixture materialization currently persists replay payload JSON in the metadata database; file-based fixture export for CI can be added as a follow-up.",
+    "Full frontend review queue UI is deferred to the Apify-grade UI/product-design packet."
+  ],
+  "qa_status": "accepted_local_validation_passed",
+  "next_recommended_packet": "G4-customer-value-dashboards"
+}

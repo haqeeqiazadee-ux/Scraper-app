@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 from datetime import UTC, datetime
+from enum import StrEnum
 from typing import Any, Mapping
 
 from pydantic import BaseModel, Field, field_validator
@@ -68,6 +69,52 @@ class RegressionFixtureCandidate(BaseModel):
     @classmethod
     def _normalize_tuple_fields(cls, value: Any) -> tuple[str, ...]:
         return _normalize_tuple(value)
+
+
+class FixtureReviewStatus(StrEnum):
+    PENDING_REVIEW = "pending_review"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    MATERIALIZED = "materialized"
+
+
+class MaterializedRegressionFixture(BaseModel):
+    fixture_id: str
+    actor_id: str
+    base_family: str
+    tenant_scope: str
+    input: dict[str, Any] = Field(default_factory=dict)
+    expected_assertions: tuple[str, ...] = Field(default_factory=tuple)
+    tags: tuple[str, ...] = Field(default_factory=tuple)
+    provenance: dict[str, Any] = Field(default_factory=dict)
+    materialized_at: datetime = Field(default_factory=_utc_now)
+
+    @field_validator("expected_assertions", "tags", mode="before")
+    @classmethod
+    def _normalize_tuple_fields(cls, value: Any) -> tuple[str, ...]:
+        return _normalize_tuple(value)
+
+
+def materialize_regression_fixture(
+    candidate: RegressionFixtureCandidate,
+    *,
+    reviewed_by: str = "codex",
+) -> MaterializedRegressionFixture:
+    return MaterializedRegressionFixture(
+        fixture_id=candidate.fixture_id,
+        actor_id=candidate.actor_id,
+        base_family=candidate.base_family,
+        tenant_scope=candidate.tenant_id,
+        input=dict(candidate.sanitized_input),
+        expected_assertions=candidate.expected_assertions,
+        tags=tuple(dict.fromkeys((*candidate.tags, "approved-fixture"))),
+        provenance={
+            "source_trace_id": candidate.source_trace_id,
+            "trigger_reasons": list(candidate.trigger_reasons),
+            "reviewed_by": reviewed_by,
+            "redacted_payload_keys": list(candidate.redacted_payload_keys),
+        },
+    )
 
 
 def _fixture_reasons(result: ActorRuntimeResult, *, score_threshold: float) -> tuple[str, ...]:

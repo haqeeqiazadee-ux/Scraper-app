@@ -99,3 +99,34 @@ def test_failed_trace_fixture_id_is_deterministic() -> None:
     assert first.fixture_id == second.fixture_id
     assert first.trigger_reasons == ("run_failed", "low_confidence")
     assert "run_should_not_fail_after_fix" in first.expected_assertions
+
+
+def test_approved_candidate_materializes_sanitized_fixture() -> None:
+    from packages.core.actor_runtime import (
+        RegressionFixtureCandidate,
+        materialize_regression_fixture,
+    )
+
+    candidate = RegressionFixtureCandidate(
+        fixture_id="fixture-approved",
+        actor_id="actor-fixture-1",
+        base_family="generic_web_page_extraction",
+        tenant_id="tenant-a",
+        trigger_reasons=("missing_required_fields",),
+        source_trace_id="trace-approved",
+        state="succeeded",
+        provider="http_worker",
+        sanitized_input={"target": "https://example.com", "token": "[redacted]"},
+        redacted_payload_keys=("token",),
+        expected_assertions=("required_fields_should_be_present",),
+        tags=("actor-regression",),
+    )
+
+    fixture = materialize_regression_fixture(candidate, reviewed_by="codex-test")
+
+    assert fixture.fixture_id == "fixture-approved"
+    assert fixture.input["token"] == "[redacted]"
+    assert fixture.provenance["reviewed_by"] == "codex-test"
+    assert fixture.provenance["redacted_payload_keys"] == ["token"]
+    assert "approved-fixture" in fixture.tags
+    assert "secret" not in fixture.model_dump_json()

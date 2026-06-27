@@ -118,9 +118,70 @@
         "docs/agent-sync/runtime/result-packets/G2-trace-to-fixture-promotion.json"
       ],
       "status": "completed_validation_passed"
+    },
+    {
+      "lock_group": "workflow-ops-parity",
+      "packet_id": "F2-workflow-ops-parity",
+      "files": [
+        "services/control-plane/routers/actors.py",
+        "tests/unit/test_actor_runs_api.py",
+        "docs/agent-sync/runtime/result-packets/F2-workflow-ops-parity.json"
+      ],
+      "status": "completed_validation_passed"
+    },
+    {
+      "lock_group": "persisted-profile-apis",
+      "packet_id": "E3-persisted-profile-apis",
+      "files": [
+        "packages/core/storage/models.py",
+        "packages/core/storage/repositories.py",
+        "services/control-plane/routers/actors.py",
+        "tests/unit/test_actor_profile_api.py",
+        "docs/agent-sync/runtime/result-packets/E3-persisted-profile-apis.json"
+      ],
+      "status": "completed_validation_passed"
+    },
+    {
+      "lock_group": "fixture-review-materialization",
+      "packet_id": "G3-fixture-review-materialization",
+      "files": [
+        "packages/core/actor_runtime/fixtures.py",
+        "packages/core/actor_runtime/__init__.py",
+        "packages/core/storage/models.py",
+        "packages/core/storage/repositories.py",
+        "services/control-plane/routers/actors.py",
+        "tests/unit/test_actor_fixture_api.py",
+        "tests/unit/test_actor_trace_to_fixture.py",
+        "docs/agent-sync/runtime/result-packets/G3-fixture-review-materialization.json"
+      ],
+      "status": "completed_validation_passed"
+    },
+    {
+      "lock_group": "customer-value-dashboards",
+      "packet_id": "G4-customer-value-dashboards",
+      "files": [
+        "services/control-plane/routers/actors.py",
+        "apps/web/src/pages/ActorDetailPage.tsx",
+        "tests/unit/test_actor_value_metrics.py",
+        "docs/agent-sync/runtime/result-packets/G4-customer-value-dashboards.json"
+      ],
+      "status": "completed_validation_passed"
+    },
+    {
+      "lock_group": "apify-grade-ui-product-design",
+      "packet_id": "U1-apify-grade-ui-product-design",
+      "files": [
+        "apps/web/src/pages/ActorsPage.tsx",
+        "apps/web/src/pages/ActorDetailPage.tsx",
+        "docs/agent-sync/runtime/result-packets/U1-apify-grade-ui-product-design.json"
+      ],
+      "status": "completed_validation_passed"
     }
   ],
-  "pending_lock_groups": [],
+  "pending_lock_groups": [
+    "full-e2e",
+    "deployment-verification"
+  ],
   "queue_cap": 6,
   "reserved_fixback_slots": 1
 }

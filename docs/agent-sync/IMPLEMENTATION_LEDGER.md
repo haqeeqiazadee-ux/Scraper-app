@@ -715,3 +715,227 @@ This file is the mandatory proof trail for the pre-code reuse gate.
   - `python -m pytest tests/unit/test_actor_traces.py tests/unit/test_actor_evals.py tests/unit/test_actor_strategy_profiles.py tests/unit/test_actor_runtime.py -q`
   - `python -m compileall -q packages/core/actor_runtime tests/unit/test_actor_trace_to_fixture.py`
 - Status: G2 local validation passed; next implementation packet should add fixture review/persistence or workflow operations parity.
+
+## Phase F2 - Workflow Operations Parity
+
+- Task: Close actor-native workflow operations parity for run lifecycle, logs, usage, retry, rerun, cancel, and dataset export surfaces.
+- Phase: F2
+- Existing files inspected:
+  - `services/control-plane/routers/actors.py`
+  - `services/control-plane/routers/results.py`
+  - `packages/core/storage/models.py`
+  - `packages/core/storage/repositories.py`
+  - `tests/unit/test_actor_runs_api.py`
+  - `docs/agent-sync/runtime/result-packets/E2-self-learning-strategy-profiles.json`
+- Reuse decision: `extend_existing`
+- Reason: Existing actor task/run/result persistence already supports tenant-scoped run records and result datasets. F2 extends those surfaces rather than adding a separate workflow engine.
+- Files modified:
+  - `services/control-plane/routers/actors.py`
+  - `tests/unit/test_actor_runs_api.py`
+  - `docs/agent-sync/runtime/result-packets/F2-workflow-ops-parity.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_TASK_DAG_2026-06-27.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_LOCKS_2026-06-27.json`
+  - `docs/agent-sync/PHASE_STATUS.md`
+  - `docs/agent-sync/IMPLEMENTATION_LEDGER.md`
+- Evidence:
+  - Actor run responses now include `status_history`, `logs`, and `usage`.
+  - Added tenant-scoped `GET /actors/{actor_id}/runs/{run_id}/logs`.
+  - Added tenant-scoped `GET /actors/{actor_id}/runs/{run_id}/usage`.
+  - Added tenant-scoped `POST /actors/{actor_id}/runs/{run_id}/cancel`.
+  - Added tenant-scoped `POST /actors/{actor_id}/runs/{run_id}/retry`.
+  - Added tenant-scoped `POST /actors/{actor_id}/runs/{run_id}/rerun`.
+  - Added tenant-scoped `GET /actors/{actor_id}/runs/{run_id}/export?format=json|csv`.
+  - Retry/rerun create fresh native actor runs from original input/options; they do not delegate to Apify.
+  - Terminal run cancellation is explicit and non-destructive.
+- Tests/gates:
+  - `python C:\Users\PC\second-brain\tools\reuse_gate.py --project C:\Users\PC\Scraper-app-verified --task "F2-workflow-ops-parity" --terms "actor run lifecycle retry cancel rerun schedules webhooks exports pagination usage quota"`
+  - `python -m compileall -q packages services tests`
+  - `python -m pytest tests/unit/test_actor_runs_api.py -q`
+- Status: F2 local validation passed; next implementation packet is `E3-persisted-profile-apis`.
+
+## Phase E3 - Persisted Profile APIs
+
+- Task: Persist self-learning strategy profiles, learning events, patch proposals, replay validations, and promotion history behind tenant-scoped actor APIs.
+- Phase: E3
+- Existing files inspected:
+  - `packages/core/actor_runtime/profiles.py`
+  - `packages/core/storage/models.py`
+  - `packages/core/storage/repositories.py`
+  - `services/control-plane/routers/actors.py`
+  - `tests/unit/test_actor_strategy_profiles.py`
+  - `tests/unit/test_actor_runs_api.py`
+- Reuse decision: `extend_existing`
+- Reason: E2 already defined safe profile/event/proposal/replay models. E3 persists those existing contracts through the current SQLAlchemy metadata store and actor router.
+- Files modified:
+  - `packages/core/storage/models.py`
+  - `packages/core/storage/repositories.py`
+  - `services/control-plane/routers/actors.py`
+  - `tests/unit/test_actor_profile_api.py`
+  - `docs/agent-sync/runtime/result-packets/E3-persisted-profile-apis.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_TASK_DAG_2026-06-27.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_LOCKS_2026-06-27.json`
+  - `docs/agent-sync/PHASE_STATUS.md`
+  - `docs/agent-sync/IMPLEMENTATION_LEDGER.md`
+- Evidence:
+  - Added persisted profile, learning-event, patch-proposal, and replay-validation tables.
+  - Added `ActorStrategyProfileRepository`.
+  - Added active profile, profile history, learning event, proposal, replay validation, and promotion endpoints under the actor API.
+  - Profile promotion is blocked until replay validation passes.
+  - Actor runs load the active tenant-scoped profile and expose the active version in runtime metadata.
+  - Learning event APIs persist redacted payload key lists and payload fingerprints, not raw secrets.
+- Tests/gates:
+  - `python C:\Users\PC\second-brain\tools\reuse_gate.py --project C:\Users\PC\Scraper-app-verified --task "E3-persisted-profile-apis" --terms "strategy profile API persistence learning events patch proposals replay validation promotion history"`
+  - `python -m compileall -q packages services tests`
+  - `python -m pytest tests/unit/test_actor_profile_api.py tests/unit/test_actor_runs_api.py tests/unit/test_actor_strategy_profiles.py -q`
+- Status: E3 local validation passed; next implementation packet is `G3-fixture-review-materialization`.
+
+## Phase G3 - Fixture Review Materialization
+
+- Task: Persist trace-to-fixture candidates, expose review queue APIs, and materialize only approved sanitized fixtures.
+- Phase: G3
+- Existing files inspected:
+  - `packages/core/actor_runtime/fixtures.py`
+  - `packages/core/storage/models.py`
+  - `packages/core/storage/repositories.py`
+  - `services/control-plane/routers/actors.py`
+  - `tests/unit/test_actor_trace_to_fixture.py`
+- Reuse decision: `extend_existing`
+- Reason: G2 already generated sanitized fixture candidates. G3 extends that candidate substrate into a persisted review and materialization workflow.
+- Files modified:
+  - `packages/core/actor_runtime/fixtures.py`
+  - `packages/core/actor_runtime/__init__.py`
+  - `packages/core/storage/models.py`
+  - `packages/core/storage/repositories.py`
+  - `services/control-plane/routers/actors.py`
+  - `tests/unit/test_actor_trace_to_fixture.py`
+  - `tests/unit/test_actor_fixture_api.py`
+  - `docs/agent-sync/runtime/result-packets/G3-fixture-review-materialization.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_TASK_DAG_2026-06-27.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_LOCKS_2026-06-27.json`
+  - `docs/agent-sync/PHASE_STATUS.md`
+  - `docs/agent-sync/IMPLEMENTATION_LEDGER.md`
+- Evidence:
+  - Added `FixtureReviewStatus` and `MaterializedRegressionFixture`.
+  - Added persisted fixture candidate table and `ActorFixtureRepository`.
+  - Added candidate create/list, approve, reject, and materialize endpoints under actor API.
+  - Materialization is blocked until approval.
+  - Rejected candidates remain non-materialized.
+  - Materialized fixtures preserve redaction/provenance metadata.
+- Tests/gates:
+  - `python C:\Users\PC\second-brain\tools\reuse_gate.py --project C:\Users\PC\Scraper-app-verified --task "G3-fixture-review-materialization" --terms "fixture candidate review approve reject materialize sanitized regression replay queue"`
+  - `python -m compileall -q packages services tests`
+  - `python -m pytest tests/unit/test_actor_fixture_api.py tests/unit/test_actor_trace_to_fixture.py tests/unit/test_actor_profile_api.py tests/unit/test_actor_strategy_profiles.py -q`
+- Status: G3 local validation passed; next implementation packet is `G4-customer-value-dashboards`.
+
+## Phase G4 - Customer Value Dashboards
+
+- Task: Add tenant-scoped customer value metrics and expose them in the existing actor detail UI.
+- Phase: G4
+- Existing files inspected:
+  - `services/control-plane/routers/actors.py`
+  - `packages/core/storage/models.py`
+  - `packages/core/storage/repositories.py`
+  - `apps/web/src/pages/ActorDetailPage.tsx`
+  - `tests/unit/test_actor_value_metrics.py`
+- Reuse decision: `extend_existing`
+- Reason: Actor runs, results, profiles, learning events, proposals, and fixture candidates are already persisted. G4 aggregates those existing surfaces instead of creating a separate analytics subsystem.
+- Files modified:
+  - `services/control-plane/routers/actors.py`
+  - `apps/web/src/pages/ActorDetailPage.tsx`
+  - `tests/unit/test_actor_value_metrics.py`
+  - `docs/agent-sync/runtime/result-packets/G4-customer-value-dashboards.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_TASK_DAG_2026-06-27.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_LOCKS_2026-06-27.json`
+  - `docs/agent-sync/PHASE_STATUS.md`
+  - `docs/agent-sync/IMPLEMENTATION_LEDGER.md`
+- Evidence:
+  - Added `GET /actors/{actor_id}/value-metrics`.
+  - Metrics aggregate total runs, success rate, cache hit rate, freshness signals, time/cost saved estimates, total items, average quality, learning events, patch proposals, active profile version, and fixture status counts.
+  - Actor detail page now renders a customer value dashboard from the metrics endpoint.
+  - Metrics are tenant-scoped.
+- Tests/gates:
+  - `python C:\Users\PC\second-brain\tools\reuse_gate.py --project C:\Users\PC\Scraper-app-verified --task "G4-customer-value-dashboards" --terms "actor value metrics dashboard cost savings cache hit freshness success rate quality tenant aggregate"`
+  - `python -m compileall -q packages services tests`
+  - `python -m pytest tests/unit/test_actor_value_metrics.py tests/unit/test_actor_fixture_api.py tests/unit/test_actor_profile_api.py tests/unit/test_actor_runs_api.py -q`
+  - `npm.cmd run build`
+- Status: G4 local validation passed; next implementation packet is `U1-apify-grade-ui-product-design`.
+
+## Phase U1 - Apify-Grade UI Product Design
+
+- Task: Upgrade the existing actor catalog and actor detail screens to an Apify-grade, API-first product experience without replacing the current React/Vite app.
+- Phase: U1
+- Existing files inspected:
+  - `apps/web/src/pages/ActorsPage.tsx`
+  - `apps/web/src/pages/ActorDetailPage.tsx`
+  - `docs/agent-sync/runtime/result-packets/G4-customer-value-dashboards.json`
+- Reuse decision: `extend_existing`
+- Reason: The existing catalog/detail pages already load the local 27,753 actor catalog and G4 value metrics. U1 improves hierarchy, navigation, filtering, execution ergonomics, and accessibility in those pages instead of introducing a separate storefront.
+- Files modified:
+  - `apps/web/src/pages/ActorsPage.tsx`
+  - `apps/web/src/pages/ActorDetailPage.tsx`
+  - `docs/agent-sync/runtime/result-packets/U1-apify-grade-ui-product-design.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_TASK_DAG_2026-06-27.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_LOCKS_2026-06-27.json`
+  - `docs/agent-sync/PHASE_STATUS.md`
+  - `docs/agent-sync/IMPLEMENTATION_LEDGER.md`
+- Evidence:
+  - Actor catalog now has a category rail, API-first value banner, featured runnable workflow section, active filter chips, clear-all control, labeled filters, and live result counts.
+  - Actor detail now uses the same deterministic avatar color as list cards.
+  - Actor detail now includes an API-first run console that posts to `/api/v1/actors/{actor_id}/runs`, shows run status, result preview, and JSON/CSV export links.
+  - Customer value tiles now include sparkline-style trend indicators.
+  - Layout switches to a compact single-column catalog navigation below 900px.
+  - Claude design validation returned `PASS`.
+- Tests/gates:
+  - `python C:\Users\PC\second-brain\tools\reuse_gate.py --project C:\Users\PC\Scraper-app-verified --task "U1-apify-grade-ui-product-design" --terms "actor catalog UI Apify store design run console filters value dashboard responsive accessibility"`
+  - `npm.cmd run build`
+  - `python -m pytest tests/unit/test_actor_value_metrics.py tests/unit/test_actor_fixture_api.py tests/unit/test_actor_profile_api.py tests/unit/test_actor_runs_api.py -q`
+  - `C:\Users\PC\.local\bin\claude.exe -p "Read-only validation..."`
+- Status: U1 local validation passed; remaining release-candidate gates are full E2E and deployment verification.
+
+## Phase H1 - Full E2E
+
+- Task: Run the existing full live E2E suite and determine whether the current SaaS release gate can be accepted.
+- Phase: H1
+- Existing files inspected:
+  - `tests/e2e/test_all_workflows.py`
+- Reuse decision: `extend_existing`
+- Reason: The repo already has the canonical 56-test live workflow suite. H1 uses it as the release gate instead of inventing a new smoke harness.
+- Files modified:
+  - `docs/agent-sync/runtime/result-packets/H1-full-e2e.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_TASK_DAG_2026-06-27.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_LOCKS_2026-06-27.json`
+  - `docs/agent-sync/PHASE_STATUS.md`
+  - `docs/agent-sync/IMPLEMENTATION_LEDGER.md`
+- Evidence:
+  - Initial full live suite result: 49 passed, 7 failed.
+  - Failed-subset rerun recovered the frontend DNS/UI route failures for change detection and MCP pages.
+  - Persistent failures remain in live scrape execution for `https://example.com`, `https://httpbin.org/html` through UI, and Trustpilot review extraction/template execution.
+- Tests/gates:
+  - `C:\Python314\python.exe -m pytest tests/e2e/test_all_workflows.py -v`
+  - `C:\Python314\python.exe -m pytest tests/e2e/test_all_workflows.py -v -k "example_com or template_apply_and_execute or compare or tools_displayed or json_valid or scrape_and_results or product_reviews"`
+- Status: H1 blocked; full SaaS release candidate is not claimable until these live E2E failures are fixed and rerun green.
+
+## Phase H2 - Deployment Verification
+
+- Task: Verify production endpoint reachability for the configured frontend, backend health endpoint, and public API boundary.
+- Phase: H2
+- Existing files inspected:
+  - `tests/e2e/test_all_workflows.py`
+  - `services/control-plane/routers/health.py`
+- Reuse decision: `extend_existing`
+- Reason: Deployment verification should use the repo's configured production URLs and existing health/public API surfaces.
+- Files modified:
+  - `docs/agent-sync/runtime/result-packets/H2-deployment-verification.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_TASK_DAG_2026-06-27.json`
+  - `docs/agent-sync/runtime/APIFY_WORKFLOWS_LOCKS_2026-06-27.json`
+  - `docs/agent-sync/PHASE_STATUS.md`
+  - `docs/agent-sync/IMPLEMENTATION_LEDGER.md`
+- Evidence:
+  - `https://myscraper.netlify.app` returned HTTP 200.
+  - `https://scraper-platform-production-17cb.up.railway.app/api/v1/health` returned HTTP 200.
+  - `https://scraper-platform-production-17cb.up.railway.app/v1/account` returned HTTP 401 without an API key, confirming the public API auth boundary.
+- Tests/gates:
+  - `Invoke-WebRequest https://myscraper.netlify.app`
+  - `Invoke-WebRequest https://scraper-platform-production-17cb.up.railway.app/api/v1/health`
+  - `Invoke-WebRequest https://scraper-platform-production-17cb.up.railway.app/v1/account`
+- Status: H2 reachability is partially verified, but final deployment verification remains blocked by H1 full E2E failures and by the need to verify the latest pushed commit after deployment.

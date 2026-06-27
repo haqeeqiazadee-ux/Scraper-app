@@ -545,3 +545,111 @@ def test_actor_run_direct_phase5_family_strategy_is_native_runnable(monkeypatch:
         assert data["task"]["status"] == "completed"
 
     asyncio.run(_with_client(scenario))
+
+
+def test_actor_run_lifecycle_logs_usage_and_exports(monkeypatch: pytest.MonkeyPatch) -> None:
+    actor_id = _first_actor_with_strategy("native_pipeline")
+
+    from packages.core.actor_runtime import ActorRuntimeResult, ActorRunState, BaseActorRunner
+    from services.control_plane.routers import actors as actors_router_module
+
+    class SuccessfulRunner(BaseActorRunner):
+        async def run(self, payload: dict) -> Any:
+            return ActorRuntimeResult(
+                actor_id=self.spec.actor_id,
+                state=ActorRunState.SUCCEEDED,
+                provider="test-provider",
+                output={
+                    "extracted_data": [{"name": "Item A", "price": "$10"}],
+                    "item_count": 1,
+                    "confidence": 0.91,
+                    "status_code": 200,
+                    "extraction_method": "unit_test_native_runner",
+                    "duration_ms": 12,
+                    "bytes_downloaded": 1234,
+                },
+            )
+
+    def fake_create_runner(spec: ActorSpec, entry: Any, *, task_id: str, tenant_id: str) -> SuccessfulRunner:
+        return SuccessfulRunner(spec)
+
+    monkeypatch.setattr(actors_router_module, "create_actor_runner", fake_create_runner)
+
+    async def scenario(client: AsyncClient) -> None:
+        created = await client.post(
+            f"/api/v1/actors/{actor_id}/runs",
+            json={"input": {"target": "https://example.com/products"}},
+            headers=TENANT_HEADER,
+        )
+        assert created.status_code == 200
+        run_id = created.json()["data"]["run"]["id"]
+
+        logs = await client.get(f"/api/v1/actors/{actor_id}/runs/{run_id}/logs", headers=TENANT_HEADER)
+        assert logs.status_code == 200
+        assert [event["state"] for event in logs.json()["data"]["status_history"]] == ["running", "completed"]
+        assert logs.json()["data"]["logs"]
+
+        usage = await client.get(f"/api/v1/actors/{actor_id}/runs/{run_id}/usage", headers=TENANT_HEADER)
+        assert usage.status_code == 200
+        assert usage.json()["data"]["usage"]["bytes_downloaded"] == 1234
+        assert usage.json()["data"]["usage"]["estimated_credits"] == 1
+
+        exported_json = await client.get(
+            f"/api/v1/actors/{actor_id}/runs/{run_id}/export?format=json",
+            headers=TENANT_HEADER,
+        )
+        assert exported_json.status_code == 200
+        assert exported_json.json()[0]["name"] == "Item A"
+
+        exported_csv = await client.get(
+            f"/api/v1/actors/{actor_id}/runs/{run_id}/export?format=csv",
+            headers=TENANT_HEADER,
+        )
+        assert exported_csv.status_code == 200
+        assert "Item A" in exported_csv.text
+
+    asyncio.run(_with_client(scenario))
+
+
+def test_actor_run_retry_rerun_and_cancel_are_tenant_scoped() -> None:
+    actor_id = _first_actor_with_strategy("yt_dlp")
+
+    async def scenario(client: AsyncClient) -> None:
+        created = await client.post(
+            f"/api/v1/actors/{actor_id}/runs",
+            json={"input": {"target": "https://example.com/video"}},
+            headers=TENANT_HEADER,
+        )
+        assert created.status_code == 200
+        run_id = created.json()["data"]["run"]["id"]
+
+        cancel_other_tenant = await client.post(
+            f"/api/v1/actors/{actor_id}/runs/{run_id}/cancel",
+            headers={"X-Tenant-ID": "other-tenant"},
+        )
+        assert cancel_other_tenant.status_code == 404
+
+        cancel_terminal = await client.post(
+            f"/api/v1/actors/{actor_id}/runs/{run_id}/cancel",
+            headers=TENANT_HEADER,
+        )
+        assert cancel_terminal.status_code == 200
+        assert cancel_terminal.json()["data"]["cancelled"] is False
+
+        retried = await client.post(
+            f"/api/v1/actors/{actor_id}/runs/{run_id}/retry",
+            headers=TENANT_HEADER,
+        )
+        assert retried.status_code == 200
+        assert retried.json()["data"]["retry_of_run_id"] == run_id
+        assert retried.json()["data"]["run"]["id"] != run_id
+
+        rerun = await client.post(
+            f"/api/v1/actors/{actor_id}/runs/{run_id}/rerun",
+            headers=TENANT_HEADER,
+        )
+        assert rerun.status_code == 200
+        assert rerun.json()["data"]["rerun_of_run_id"] == run_id
+        assert rerun.json()["data"]["run"]["id"] != run_id
+
+    asyncio.run(_with_client(scenario))

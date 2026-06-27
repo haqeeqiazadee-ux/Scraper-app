@@ -1,6 +1,10 @@
 """Actor catalog API — serves the hard-coded 27,753 actor catalog."""
 from __future__ import annotations
 
+import csv
+import hashlib
+import io
+import json
 import logging
 from dataclasses import asdict
 from datetime import UTC, datetime
@@ -8,14 +12,36 @@ from typing import Any
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from packages.core.actor_catalog.registry import actor_catalog
-from packages.core.actor_runtime import ActorRunState, ActorRuntimeResult, build_actor_spec, create_actor_runner
+from packages.core.actor_runtime import (
+    ActorLearningEvent,
+    ActorRuntimeResult,
+    ActorRunState,
+    FixtureReviewStatus,
+    LearningEventType,
+    RegressionFixtureCandidate,
+    ReplayValidationResult,
+    StrategyPatchProposal,
+    StrategyPatchStatus,
+    StrategyProfile,
+    StrategyProfileEngine,
+    build_actor_spec,
+    build_default_strategy_profile,
+    create_actor_runner,
+)
 from packages.core.storage.models import ResultModel, RunModel, TaskModel
-from packages.core.storage.repositories import ResultRepository, RunRepository, TaskRepository
+from packages.core.storage.repositories import (
+    ActorFixtureRepository,
+    ActorStrategyProfileRepository,
+    ResultRepository,
+    RunRepository,
+    TaskRepository,
+)
 from services.control_plane.dependencies import get_session, get_tenant_id
 
 logger = logging.getLogger(__name__)
@@ -41,6 +67,65 @@ class ActorRunRequest(BaseModel):
     options: dict[str, Any] = Field(default_factory=dict)
 
 
+class StrategyProfileUpsertRequest(BaseModel):
+    version: str = "1.0.0"
+    policy_version: str = "strategy-profile-v1"
+    promoted_by: str = "codex"
+    provider_order: list[str] = Field(default_factory=list)
+    schema_aliases: dict[str, list[str]] = Field(default_factory=dict)
+    freshness_overrides: dict[str, Any] = Field(default_factory=dict)
+    replay_fixture_ids: list[str] = Field(default_factory=list)
+    metrics: dict[str, Any] = Field(default_factory=dict)
+
+
+class LearningEventCreateRequest(BaseModel):
+    event_type: LearningEventType = LearningEventType.RUN_SUCCEEDED
+    trigger_reason: str = "manual_observation"
+    profile_version: str = "1.0.0"
+    payload_fingerprint: str
+    redacted_payload_keys: list[str] = Field(default_factory=list)
+    metrics: dict[str, Any] = Field(default_factory=dict)
+    evidence: list[str] = Field(default_factory=list)
+
+
+class StrategyPatchProposalCreateRequest(BaseModel):
+    current_profile_version: str = "1.0.0"
+    proposed_profile_version: str = "1.0.1"
+    patch: dict[str, Any] = Field(default_factory=dict)
+    rationale: str = "manual_patch_proposal"
+    required_replay_fixture_ids: list[str] = Field(default_factory=list)
+
+
+class ReplayValidationCreateRequest(BaseModel):
+    passed: bool = False
+    fixtures_run: list[str] = Field(default_factory=list)
+    score_before: float = 0.0
+    score_after: float = 0.0
+    security_blockers: list[str] = Field(default_factory=list)
+    errors: list[str] = Field(default_factory=list)
+
+
+class PromoteProfileRequest(BaseModel):
+    promoted_by: str = "codex"
+
+
+class FixtureCandidateCreateRequest(BaseModel):
+    fixture_id: str | None = None
+    trigger_reasons: list[str] = Field(default_factory=list)
+    source_trace_id: str | None = None
+    state: str = "failed"
+    provider: str | None = None
+    sanitized_input: dict[str, Any] = Field(default_factory=dict)
+    redacted_payload_keys: list[str] = Field(default_factory=list)
+    expected_assertions: list[str] = Field(default_factory=lambda: ["fixture_replay_is_deterministic"])
+    tags: list[str] = Field(default_factory=lambda: ["actor-regression", "manual-review"])
+
+
+class FixtureReviewRequest(BaseModel):
+    reviewed_by: str = "codex"
+    notes: str = ""
+
+
 def _terminal_status_for_state(state: ActorRunState) -> tuple[str, str]:
     if state == ActorRunState.SUCCEEDED:
         return "completed", "completed"
@@ -56,6 +141,35 @@ def _result_items(output: dict[str, Any]) -> list[dict[str, Any]]:
     if isinstance(data, list):
         return [item for item in data if isinstance(item, dict)]
     return []
+
+
+def _status_event(state: str, message: str, **extra: Any) -> dict[str, Any]:
+    event = {
+        "state": state,
+        "message": message,
+        "at": _utcnow().isoformat(),
+    }
+    event.update({key: value for key, value in extra.items() if value is not None})
+    return event
+
+
+def _append_status_history(metadata: dict[str, Any], state: str, message: str, **extra: Any) -> None:
+    history = metadata.get("status_history")
+    if not isinstance(history, list):
+        history = []
+    history.append(_status_event(state, message, **extra))
+    metadata["status_history"] = history
+    logs = metadata.get("logs")
+    if not isinstance(logs, list):
+        logs = []
+    logs.append(
+        {
+            "level": "info" if state not in {"failed", "blocked", "cancelled"} else "warning",
+            "message": message,
+            "at": history[-1]["at"],
+        }
+    )
+    metadata["logs"] = logs
 
 
 def _actor_run_base_query(actor_id: str, tenant_id: str):
@@ -92,6 +206,7 @@ def _serialize_result(result: ResultModel | None) -> dict[str, Any] | None:
 
 def _serialize_actor_run(task: TaskModel, run: RunModel, result: ResultModel | None = None) -> dict[str, Any]:
     metadata = task.metadata_json or {}
+    item_count = result.item_count if result is not None else int(metadata.get("actor_output", {}).get("item_count", 0) or 0)
     return {
         "actor_id": metadata.get("actor_id", ""),
         "state": metadata.get("actor_state", run.status),
@@ -100,6 +215,15 @@ def _serialize_actor_run(task: TaskModel, run: RunModel, result: ResultModel | N
         "knowledge": metadata.get("knowledge", {}),
         "runtime_metadata": metadata.get("runtime_metadata", {}),
         "output": metadata.get("actor_output", {}),
+        "status_history": metadata.get("status_history", []),
+        "logs": metadata.get("logs", []),
+        "usage": {
+            "duration_ms": run.duration_ms,
+            "bytes_downloaded": run.bytes_downloaded,
+            "ai_tokens_used": run.ai_tokens_used,
+            "item_count": item_count,
+            "estimated_credits": max(1, item_count) if run.status == "completed" else 0,
+        },
         "error": run.error,
         "task": {
             "id": task.id,
@@ -122,6 +246,47 @@ def _serialize_actor_run(task: TaskModel, run: RunModel, result: ResultModel | N
         },
         "result": _serialize_result(result),
     }
+
+
+def _serialize_profile(profile: StrategyProfile, *, persisted: bool = True) -> dict[str, Any]:
+    data = profile.model_dump(mode="json")
+    data["persisted"] = persisted
+    return data
+
+
+def _serialize_learning_event(row: Any) -> dict[str, Any]:
+    return {
+        "id": row.id,
+        "actor_id": row.actor_id,
+        "tenant_id": row.tenant_id,
+        "base_family": row.base_family,
+        "event_type": row.event_type,
+        "trigger_reason": row.trigger_reason,
+        "observed_at": row.observed_at.isoformat() if row.observed_at else None,
+        "profile_version": row.profile_version,
+        "payload_fingerprint": row.payload_fingerprint,
+        "redacted_payload_keys": row.redacted_payload_keys_json or [],
+        "metrics": row.metrics_json or {},
+        "evidence": row.evidence_json or [],
+    }
+
+
+async def _load_actor_run_row(
+    *,
+    session: AsyncSession,
+    actor_id: str,
+    run_id: str,
+    tenant_id: str,
+) -> tuple[TaskModel, RunModel, ResultModel | None]:
+    if actor_catalog.get(actor_id) is None:
+        raise HTTPException(status_code=404, detail=f"Actor {actor_id} not found")
+    stmt = _actor_run_base_query(actor_id, tenant_id).where(RunModel.id == run_id)
+    row = (await session.execute(stmt)).first()
+    if row is None:
+        raise HTTPException(status_code=404, detail="Actor run not found")
+    task, run = row
+    result = await _get_result_for_run(session, run.id, tenant_id)
+    return task, run, result
 
 
 async def _persist_actor_run_result(
@@ -222,6 +387,14 @@ async def create_actor_run(
             "runnable_status": entry.runnable_status,
             "input": body.input,
             "options": body.options,
+            "status_history": [_status_event("running", "Actor run accepted", connector="actor_runtime")],
+            "logs": [
+                {
+                    "level": "info",
+                    "message": "Actor run accepted",
+                    "at": now.isoformat(),
+                }
+            ],
         },
     )
     run = await run_repo.create(
@@ -244,7 +417,12 @@ async def create_actor_run(
         )
     else:
         spec = build_actor_spec(entry)
+        profile_repo = ActorStrategyProfileRepository(session)
+        active_profile = await profile_repo.get_active_profile(actor_id, tenant_id)
+        if active_profile is None:
+            active_profile = build_default_strategy_profile(spec)
         runner = create_actor_runner(spec, entry, task_id=task_id, tenant_id=tenant_id)
+        runner.strategy_profile = active_profile
         runtime_payload = dict(body.input)
         knowledge_context = body.options.get("knowledge_context")
         if isinstance(knowledge_context, dict):
@@ -254,6 +432,12 @@ async def create_actor_run(
     task_status, run_status = _terminal_status_for_state(runtime_result.state)
     output = runtime_result.output if runtime_result.state == ActorRunState.SUCCEEDED else {}
     task_metadata = dict(task.metadata_json or {})
+    _append_status_history(
+        task_metadata,
+        task_status,
+        runtime_result.error or f"Actor run {runtime_result.state.value}",
+        provider=runtime_result.provider,
+    )
     task_metadata.update(
         {
             "actor_state": runtime_result.state.value,
@@ -367,19 +551,655 @@ async def get_actor_run(
     tenant_id: str = Depends(get_tenant_id),
 ) -> dict[str, Any]:
     """Get one persisted actor run, scoped by tenant and actor."""
-    if actor_catalog.get(actor_id) is None:
-        raise HTTPException(status_code=404, detail=f"Actor {actor_id} not found")
-
-    stmt = _actor_run_base_query(actor_id, tenant_id).where(RunModel.id == run_id)
-    row = (await session.execute(stmt)).first()
-    if row is None:
-        raise HTTPException(status_code=404, detail="Actor run not found")
-    task, run = row
-    result = await _get_result_for_run(session, run.id, tenant_id)
+    task, run, result = await _load_actor_run_row(
+        session=session,
+        actor_id=actor_id,
+        run_id=run_id,
+        tenant_id=tenant_id,
+    )
     return {
         "success": True,
         "data": _serialize_actor_run(task, run, result),
     }
+
+
+@actors_router.get("/{actor_id}/profiles/active")
+async def get_active_actor_strategy_profile(
+    actor_id: str,
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
+) -> dict[str, Any]:
+    """Return the active tenant-scoped strategy profile or the computed default profile."""
+    entry = actor_catalog.get(actor_id)
+    if entry is None:
+        raise HTTPException(status_code=404, detail=f"Actor {actor_id} not found")
+    repo = ActorStrategyProfileRepository(session)
+    profile = await repo.get_active_profile(actor_id, tenant_id)
+    if profile is None:
+        profile = build_default_strategy_profile(build_actor_spec(entry))
+        return {"success": True, "data": _serialize_profile(profile, persisted=False)}
+    return {"success": True, "data": _serialize_profile(profile, persisted=True)}
+
+
+@actors_router.post("/{actor_id}/profiles")
+async def upsert_actor_strategy_profile(
+    actor_id: str,
+    body: StrategyProfileUpsertRequest,
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
+) -> dict[str, Any]:
+    """Persist a tenant-scoped active strategy profile for an actor."""
+    entry = actor_catalog.get(actor_id)
+    if entry is None:
+        raise HTTPException(status_code=404, detail=f"Actor {actor_id} not found")
+    spec = build_actor_spec(entry)
+    profile = StrategyProfile(
+        actor_id=actor_id,
+        base_family=spec.base_family,
+        version=body.version,
+        policy_version=body.policy_version,
+        promoted_by=body.promoted_by,
+        provider_order=tuple(body.provider_order),
+        schema_aliases={key: tuple(value) for key, value in body.schema_aliases.items()},
+        freshness_overrides=body.freshness_overrides,
+        replay_fixture_ids=tuple(body.replay_fixture_ids),
+        metrics=body.metrics,
+    )
+    repo = ActorStrategyProfileRepository(session)
+    saved = await repo.save_profile(profile, tenant_id, active=True)
+    await session.flush()
+    return {"success": True, "data": _serialize_profile(saved, persisted=True)}
+
+
+@actors_router.get("/{actor_id}/profiles/history")
+async def list_actor_strategy_profiles(
+    actor_id: str,
+    limit: int = Query(25, ge=1, le=100),
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
+) -> dict[str, Any]:
+    """List tenant-scoped profile promotion history for an actor."""
+    if actor_catalog.get(actor_id) is None:
+        raise HTTPException(status_code=404, detail=f"Actor {actor_id} not found")
+    repo = ActorStrategyProfileRepository(session)
+    profiles = await repo.list_profiles(actor_id, tenant_id, limit=limit)
+    return {
+        "success": True,
+        "data": {
+            "items": [_serialize_profile(profile, persisted=True) for profile in profiles],
+            "total": len(profiles),
+        },
+    }
+
+
+@actors_router.post("/{actor_id}/profiles/learning-events")
+async def record_actor_learning_event(
+    actor_id: str,
+    body: LearningEventCreateRequest,
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
+) -> dict[str, Any]:
+    """Persist a sanitized learning event for an actor profile."""
+    entry = actor_catalog.get(actor_id)
+    if entry is None:
+        raise HTTPException(status_code=404, detail=f"Actor {actor_id} not found")
+    spec = build_actor_spec(entry)
+    event = ActorLearningEvent(
+        actor_id=actor_id,
+        tenant_id=tenant_id,
+        base_family=spec.base_family,
+        event_type=body.event_type,
+        trigger_reason=body.trigger_reason,
+        profile_version=body.profile_version,
+        payload_fingerprint=body.payload_fingerprint,
+        redacted_payload_keys=tuple(body.redacted_payload_keys),
+        metrics=body.metrics,
+        evidence=tuple(body.evidence),
+    )
+    repo = ActorStrategyProfileRepository(session)
+    event_id = await repo.record_learning_event(event)
+    await session.flush()
+    return {"success": True, "data": {"id": event_id, **event.model_dump(mode="json")}}
+
+
+@actors_router.get("/{actor_id}/profiles/learning-events")
+async def list_actor_learning_events(
+    actor_id: str,
+    limit: int = Query(50, ge=1, le=200),
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
+) -> dict[str, Any]:
+    """List sanitized tenant-scoped learning events for an actor."""
+    if actor_catalog.get(actor_id) is None:
+        raise HTTPException(status_code=404, detail=f"Actor {actor_id} not found")
+    repo = ActorStrategyProfileRepository(session)
+    rows = await repo.list_learning_events(actor_id, tenant_id, limit=limit)
+    return {"success": True, "data": {"items": [_serialize_learning_event(row) for row in rows], "total": len(rows)}}
+
+
+@actors_router.post("/{actor_id}/profiles/proposals")
+async def create_actor_strategy_proposal(
+    actor_id: str,
+    body: StrategyPatchProposalCreateRequest,
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
+) -> dict[str, Any]:
+    """Persist a replay-gated strategy patch proposal."""
+    entry = actor_catalog.get(actor_id)
+    if entry is None:
+        raise HTTPException(status_code=404, detail=f"Actor {actor_id} not found")
+    spec = build_actor_spec(entry)
+    basis = f"{tenant_id}:{actor_id}:{body.current_profile_version}:{body.proposed_profile_version}:{json.dumps(body.patch, sort_keys=True, default=str)}"
+    proposal = StrategyPatchProposal(
+        proposal_id=str(uuid4()) if not body.patch else hashlib.sha256(basis.encode("utf-8")).hexdigest()[:24],
+        actor_id=actor_id,
+        base_family=spec.base_family,
+        current_profile_version=body.current_profile_version,
+        proposed_profile_version=body.proposed_profile_version,
+        patch=body.patch,
+        rationale=body.rationale,
+        required_replay_fixture_ids=tuple(body.required_replay_fixture_ids),
+    )
+    repo = ActorStrategyProfileRepository(session)
+    saved = await repo.create_proposal(proposal, tenant_id)
+    await session.flush()
+    return {"success": True, "data": saved.model_dump(mode="json")}
+
+
+@actors_router.get("/{actor_id}/profiles/proposals")
+async def list_actor_strategy_proposals(
+    actor_id: str,
+    limit: int = Query(50, ge=1, le=200),
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
+) -> dict[str, Any]:
+    """List tenant-scoped strategy proposals."""
+    if actor_catalog.get(actor_id) is None:
+        raise HTTPException(status_code=404, detail=f"Actor {actor_id} not found")
+    repo = ActorStrategyProfileRepository(session)
+    proposals = await repo.list_proposals(actor_id, tenant_id, limit=limit)
+    return {"success": True, "data": {"items": [p.model_dump(mode="json") for p in proposals], "total": len(proposals)}}
+
+
+@actors_router.post("/{actor_id}/profiles/proposals/{proposal_id}/replay-validations")
+async def record_actor_replay_validation(
+    actor_id: str,
+    proposal_id: str,
+    body: ReplayValidationCreateRequest,
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
+) -> dict[str, Any]:
+    """Persist replay validation for a strategy proposal."""
+    repo = ActorStrategyProfileRepository(session)
+    proposal = await repo.get_proposal(proposal_id, actor_id, tenant_id)
+    if proposal is None:
+        raise HTTPException(status_code=404, detail="Strategy proposal not found")
+    validation = ReplayValidationResult(
+        proposal_id=proposal_id,
+        passed=body.passed,
+        fixtures_run=tuple(body.fixtures_run),
+        score_before=body.score_before,
+        score_after=body.score_after,
+        security_blockers=tuple(body.security_blockers),
+        errors=tuple(body.errors),
+    )
+    saved = await repo.record_replay_validation(actor_id, tenant_id, validation)
+    await repo.set_proposal_status(
+        proposal_id,
+        actor_id,
+        tenant_id,
+        StrategyPatchStatus.REPLAY_PASSED if saved.passed else StrategyPatchStatus.REPLAY_FAILED,
+    )
+    await session.flush()
+    return {"success": True, "data": saved.model_dump(mode="json")}
+
+
+@actors_router.post("/{actor_id}/profiles/proposals/{proposal_id}/promote")
+async def promote_actor_strategy_profile(
+    actor_id: str,
+    proposal_id: str,
+    body: PromoteProfileRequest,
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
+) -> dict[str, Any]:
+    """Promote a strategy proposal after replay validation has passed."""
+    entry = actor_catalog.get(actor_id)
+    if entry is None:
+        raise HTTPException(status_code=404, detail=f"Actor {actor_id} not found")
+    repo = ActorStrategyProfileRepository(session)
+    proposal = await repo.get_proposal(proposal_id, actor_id, tenant_id)
+    if proposal is None:
+        raise HTTPException(status_code=404, detail="Strategy proposal not found")
+    validation = await repo.latest_replay_validation(proposal_id, actor_id, tenant_id)
+    if validation is None or not validation.passed:
+        raise HTTPException(status_code=409, detail="Replay validation must pass before profile promotion")
+    active_profile = await repo.get_active_profile(actor_id, tenant_id)
+    if active_profile is None:
+        active_profile = build_default_strategy_profile(build_actor_spec(entry))
+    try:
+        promoted = StrategyProfileEngine().promote_profile(
+            active_profile,
+            proposal,
+            validation,
+            promoted_by=body.promoted_by,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    saved = await repo.save_profile(promoted, tenant_id, active=True)
+    await repo.set_proposal_status(proposal_id, actor_id, tenant_id, StrategyPatchStatus.PROMOTED)
+    await session.flush()
+    return {"success": True, "data": _serialize_profile(saved, persisted=True)}
+
+
+@actors_router.post("/{actor_id}/fixtures/candidates")
+async def create_actor_fixture_candidate(
+    actor_id: str,
+    body: FixtureCandidateCreateRequest,
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
+) -> dict[str, Any]:
+    """Persist a sanitized fixture candidate for review."""
+    entry = actor_catalog.get(actor_id)
+    if entry is None:
+        raise HTTPException(status_code=404, detail=f"Actor {actor_id} not found")
+    spec = build_actor_spec(entry)
+    fixture_id = body.fixture_id
+    if not fixture_id:
+        basis = {
+            "tenant_id": tenant_id,
+            "actor_id": actor_id,
+            "trace": body.source_trace_id,
+            "state": body.state,
+            "input": body.sanitized_input,
+            "reasons": body.trigger_reasons,
+        }
+        fixture_id = "fixture-" + hashlib.sha256(json.dumps(basis, sort_keys=True, default=str).encode()).hexdigest()[:24]
+    candidate = RegressionFixtureCandidate(
+        fixture_id=fixture_id,
+        actor_id=actor_id,
+        base_family=spec.base_family,
+        tenant_id=tenant_id,
+        trigger_reasons=tuple(body.trigger_reasons),
+        source_trace_id=body.source_trace_id,
+        state=body.state,
+        provider=body.provider,
+        sanitized_input=body.sanitized_input,
+        redacted_payload_keys=tuple(body.redacted_payload_keys),
+        expected_assertions=tuple(body.expected_assertions),
+        tags=tuple(body.tags),
+    )
+    repo = ActorFixtureRepository(session)
+    saved = await repo.create_candidate(candidate)
+    await session.flush()
+    row = await repo.get_candidate(saved.fixture_id, actor_id, tenant_id)
+    return {"success": True, "data": repo.serialize_row(row)}
+
+
+@actors_router.get("/{actor_id}/fixtures/candidates")
+async def list_actor_fixture_candidates(
+    actor_id: str,
+    status: str = Query("", description="Optional candidate status filter"),
+    limit: int = Query(50, ge=1, le=200),
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
+) -> dict[str, Any]:
+    """List tenant-scoped fixture review candidates for an actor."""
+    if actor_catalog.get(actor_id) is None:
+        raise HTTPException(status_code=404, detail=f"Actor {actor_id} not found")
+    repo = ActorFixtureRepository(session)
+    rows = await repo.list_candidates(actor_id, tenant_id, status=status or None, limit=limit)
+    return {"success": True, "data": {"items": [repo.serialize_row(row) for row in rows], "total": len(rows)}}
+
+
+@actors_router.post("/{actor_id}/fixtures/candidates/{fixture_id}/approve")
+async def approve_actor_fixture_candidate(
+    actor_id: str,
+    fixture_id: str,
+    body: FixtureReviewRequest,
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
+) -> dict[str, Any]:
+    """Approve a sanitized fixture candidate for materialization."""
+    repo = ActorFixtureRepository(session)
+    row = await repo.review_candidate(
+        fixture_id,
+        actor_id,
+        tenant_id,
+        status=FixtureReviewStatus.APPROVED,
+        reviewed_by=body.reviewed_by,
+        notes=body.notes,
+    )
+    if row is None:
+        raise HTTPException(status_code=404, detail="Fixture candidate not found")
+    await session.flush()
+    return {"success": True, "data": repo.serialize_row(row)}
+
+
+@actors_router.post("/{actor_id}/fixtures/candidates/{fixture_id}/reject")
+async def reject_actor_fixture_candidate(
+    actor_id: str,
+    fixture_id: str,
+    body: FixtureReviewRequest,
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
+) -> dict[str, Any]:
+    """Reject a fixture candidate without materializing it."""
+    repo = ActorFixtureRepository(session)
+    row = await repo.review_candidate(
+        fixture_id,
+        actor_id,
+        tenant_id,
+        status=FixtureReviewStatus.REJECTED,
+        reviewed_by=body.reviewed_by,
+        notes=body.notes,
+    )
+    if row is None:
+        raise HTTPException(status_code=404, detail="Fixture candidate not found")
+    await session.flush()
+    return {"success": True, "data": repo.serialize_row(row)}
+
+
+@actors_router.post("/{actor_id}/fixtures/candidates/{fixture_id}/materialize")
+async def materialize_actor_fixture_candidate(
+    actor_id: str,
+    fixture_id: str,
+    body: FixtureReviewRequest,
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
+) -> dict[str, Any]:
+    """Materialize an approved sanitized candidate into a replay fixture payload."""
+    repo = ActorFixtureRepository(session)
+    try:
+        fixture = await repo.materialize_candidate(
+            fixture_id,
+            actor_id,
+            tenant_id,
+            reviewed_by=body.reviewed_by,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    if fixture is None:
+        raise HTTPException(status_code=404, detail="Fixture candidate not found")
+    await session.flush()
+    return {"success": True, "data": fixture.model_dump(mode="json")}
+
+
+@actors_router.get("/{actor_id}/value-metrics")
+async def get_actor_value_metrics(
+    actor_id: str,
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
+) -> dict[str, Any]:
+    """Return tenant-scoped customer value metrics for one actor."""
+    if actor_catalog.get(actor_id) is None:
+        raise HTTPException(status_code=404, detail=f"Actor {actor_id} not found")
+
+    rows = (await session.execute(_actor_run_base_query(actor_id, tenant_id))).all()
+    total_runs = len(rows)
+    status_counts: dict[str, int] = {}
+    cache_hits = 0
+    fresh_runs = 0
+    stale_runs = 0
+    blocked_runs = 0
+    total_duration_ms = 0
+    total_bytes = 0
+    total_items = 0
+    quality_scores: list[float] = []
+
+    for task, run in rows:
+        status_counts[run.status] = status_counts.get(run.status, 0) + 1
+        if run.status in {"blocked_policy", "failed", "skipped_missing_key"}:
+            blocked_runs += 1
+        total_duration_ms += int(run.duration_ms or 0)
+        total_bytes += int(run.bytes_downloaded or 0)
+        metadata = task.metadata_json or {}
+        knowledge = metadata.get("knowledge", {}) if isinstance(metadata.get("knowledge"), dict) else {}
+        if knowledge.get("decision") in {"serve_cached", "serve_cached_and_refresh"}:
+            cache_hits += 1
+        if knowledge.get("freshness_state") == "fresh":
+            fresh_runs += 1
+        if knowledge.get("freshness_state") in {"stale", "expired"}:
+            stale_runs += 1
+        result = await _get_result_for_run(session, run.id, tenant_id)
+        if result is not None:
+            total_items += int(result.item_count or 0)
+            quality_scores.append(float(result.confidence or 0.0))
+
+    fixture_repo = ActorFixtureRepository(session)
+    fixture_rows = await fixture_repo.list_candidates(actor_id, tenant_id, limit=200)
+    fixture_status_counts: dict[str, int] = {}
+    for row in fixture_rows:
+        fixture_status_counts[row.status] = fixture_status_counts.get(row.status, 0) + 1
+
+    profile_repo = ActorStrategyProfileRepository(session)
+    learning_events = await profile_repo.list_learning_events(actor_id, tenant_id, limit=200)
+    proposals = await profile_repo.list_proposals(actor_id, tenant_id, limit=200)
+    active_profile = await profile_repo.get_active_profile(actor_id, tenant_id)
+
+    successful_runs = status_counts.get("completed", 0)
+    success_rate = (successful_runs / total_runs) if total_runs else 0.0
+    cache_hit_rate = (cache_hits / total_runs) if total_runs else 0.0
+    average_quality = (sum(quality_scores) / len(quality_scores)) if quality_scores else 0.0
+    estimated_fresh_run_seconds = 30
+    saved_seconds = cache_hits * estimated_fresh_run_seconds
+    saved_usd = round(cache_hits * 0.02, 4)
+
+    return {
+        "success": True,
+        "data": {
+            "actor_id": actor_id,
+            "tenant_id": tenant_id,
+            "total_runs": total_runs,
+            "successful_runs": successful_runs,
+            "failed_or_blocked_runs": blocked_runs,
+            "status_counts": status_counts,
+            "success_rate": round(success_rate, 4),
+            "cache_hits": cache_hits,
+            "cache_hit_rate": round(cache_hit_rate, 4),
+            "fresh_runs": fresh_runs,
+            "stale_runs": stale_runs,
+            "estimated_time_saved_seconds": saved_seconds,
+            "estimated_cost_saved_usd": saved_usd,
+            "total_duration_ms": total_duration_ms,
+            "total_bytes_downloaded": total_bytes,
+            "total_items": total_items,
+            "average_quality_score": round(average_quality, 4),
+            "learning_event_count": len(learning_events),
+            "patch_proposal_count": len(proposals),
+            "active_profile_version": active_profile.version if active_profile else None,
+            "fixture_status_counts": fixture_status_counts,
+            "value_signals": {
+                "avoided_reruns": cache_hits,
+                "quality_improvement_candidates": len(learning_events),
+                "accepted_fixtures": fixture_status_counts.get("materialized", 0),
+            },
+        },
+    }
+
+
+@actors_router.get("/{actor_id}/runs/{run_id}/logs")
+async def get_actor_run_logs(
+    actor_id: str,
+    run_id: str,
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
+) -> dict[str, Any]:
+    """Return status history and operator logs for a tenant-scoped actor run."""
+    task, run, result = await _load_actor_run_row(
+        session=session,
+        actor_id=actor_id,
+        run_id=run_id,
+        tenant_id=tenant_id,
+    )
+    serialized = _serialize_actor_run(task, run, result)
+    return {
+        "success": True,
+        "data": {
+            "run_id": run.id,
+            "status_history": serialized["status_history"],
+            "logs": serialized["logs"],
+        },
+    }
+
+
+@actors_router.get("/{actor_id}/runs/{run_id}/usage")
+async def get_actor_run_usage(
+    actor_id: str,
+    run_id: str,
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
+) -> dict[str, Any]:
+    """Return tenant-scoped usage and quota-facing counters for one actor run."""
+    task, run, result = await _load_actor_run_row(
+        session=session,
+        actor_id=actor_id,
+        run_id=run_id,
+        tenant_id=tenant_id,
+    )
+    return {
+        "success": True,
+        "data": {
+            "run_id": run.id,
+            "task_id": task.id,
+            "usage": _serialize_actor_run(task, run, result)["usage"],
+        },
+    }
+
+
+@actors_router.post("/{actor_id}/runs/{run_id}/cancel")
+async def cancel_actor_run(
+    actor_id: str,
+    run_id: str,
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
+) -> dict[str, Any]:
+    """Cancel a non-terminal actor run without touching other tenants."""
+    task, run, result = await _load_actor_run_row(
+        session=session,
+        actor_id=actor_id,
+        run_id=run_id,
+        tenant_id=tenant_id,
+    )
+    if run.status in {"completed", "failed", "blocked_policy", "skipped_missing_key", "cancelled"}:
+        return {
+            "success": True,
+            "data": {
+                **_serialize_actor_run(task, run, result),
+                "cancelled": False,
+                "reason": "run_already_terminal",
+            },
+        }
+
+    metadata = dict(task.metadata_json or {})
+    _append_status_history(metadata, "cancelled", "Actor run cancelled by tenant request")
+    task_repo = TaskRepository(session)
+    run_repo = RunRepository(session)
+    task = await task_repo.update(task.id, tenant_id, status="cancelled", metadata_json=metadata) or task
+    run = await run_repo.update(
+        run.id,
+        tenant_id,
+        status="cancelled",
+        error="cancelled_by_tenant",
+        completed_at=_utcnow(),
+    ) or run
+    await session.flush()
+    return {
+        "success": True,
+        "data": {
+            **_serialize_actor_run(task, run, result),
+            "cancelled": True,
+        },
+    }
+
+
+@actors_router.post("/{actor_id}/runs/{run_id}/rerun")
+async def rerun_actor_run(
+    actor_id: str,
+    run_id: str,
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
+) -> dict[str, Any]:
+    """Create a new actor run from the original input/options."""
+    task, _, _ = await _load_actor_run_row(
+        session=session,
+        actor_id=actor_id,
+        run_id=run_id,
+        tenant_id=tenant_id,
+    )
+    metadata = task.metadata_json or {}
+    request = ActorRunRequest(
+        input=dict(metadata.get("input") or {}),
+        options={**dict(metadata.get("options") or {}), "rerun_of_run_id": run_id},
+    )
+    response = await create_actor_run(actor_id, request, session, tenant_id)
+    response["data"]["rerun_of_run_id"] = run_id
+    return response
+
+
+@actors_router.post("/{actor_id}/runs/{run_id}/retry")
+async def retry_actor_run(
+    actor_id: str,
+    run_id: str,
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
+) -> dict[str, Any]:
+    """Retry a failed or blocked actor run by creating a fresh native run."""
+    task, run, _ = await _load_actor_run_row(
+        session=session,
+        actor_id=actor_id,
+        run_id=run_id,
+        tenant_id=tenant_id,
+    )
+    metadata = task.metadata_json or {}
+    request = ActorRunRequest(
+        input=dict(metadata.get("input") or {}),
+        options={
+            **dict(metadata.get("options") or {}),
+            "retry_of_run_id": run_id,
+            "retry_of_status": run.status,
+        },
+    )
+    response = await create_actor_run(actor_id, request, session, tenant_id)
+    response["data"]["retry_of_run_id"] = run_id
+    return response
+
+
+@actors_router.get("/{actor_id}/runs/{run_id}/export")
+async def export_actor_run(
+    actor_id: str,
+    run_id: str,
+    format: str = Query("json", pattern="^(json|csv)$"),
+    session: AsyncSession = Depends(get_session),
+    tenant_id: str = Depends(get_tenant_id),
+) -> Response:
+    """Export one actor run's dataset as JSON or CSV."""
+    _, run, result = await _load_actor_run_row(
+        session=session,
+        actor_id=actor_id,
+        run_id=run_id,
+        tenant_id=tenant_id,
+    )
+    if result is None:
+        raise HTTPException(status_code=404, detail="No result dataset for this actor run")
+    items = result.extracted_data if isinstance(result.extracted_data, list) else []
+    if format == "csv":
+        headers = list(dict.fromkeys(key for item in items if isinstance(item, dict) for key in item.keys()))
+        output = io.StringIO()
+        writer = csv.DictWriter(output, fieldnames=headers, extrasaction="ignore")
+        writer.writeheader()
+        for item in items:
+            if isinstance(item, dict):
+                writer.writerow({key: str(value)[:500] if value is not None else "" for key, value in item.items()})
+        return Response(
+            content=output.getvalue(),
+            media_type="text/csv",
+            headers={"Content-Disposition": f'attachment; filename="actor_run_{run.id}.csv"'},
+        )
+    return Response(
+        content=json.dumps(items, indent=2, default=str),
+        media_type="application/json",
+        headers={"Content-Disposition": f'attachment; filename="actor_run_{run.id}.json"'},
+    )
 
 
 @actors_router.get("/stats")

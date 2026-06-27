@@ -130,4 +130,12 @@ Phase 5 can be committed only after:
 - [x] Frontend build passed.
 - [x] Runtime JSON/result packet validation passed.
 - [x] Claude read-only validation passed with no blocking findings.
-- [ ] Full SaaS release candidate not claimed: persisted profile APIs, fixture review queues, workflow operations parity, customer value dashboards, full E2E, and deployment verification remain open.
+- [x] Workflow operations parity local packet passed for actor-native lifecycle logs, usage, retry, rerun, cancel, and per-run export.
+- [x] Persisted profile APIs local packet passed for active profiles, learning events, patch proposals, replay validation, promotion history, and actor-run profile metadata.
+- [x] Fixture review materialization local packet passed for candidate queues, approve/reject, materialization, tenant isolation, and redaction preservation.
+- [x] Customer value dashboards local packet passed for tenant-scoped actor value metrics and actor detail dashboard build verification.
+- [x] Apify-grade UI/product design local packet passed for category rail, featured workflows, active filter chips, API-first run console, value trends, accessibility labels, responsive behavior, and Claude design validation.
+- [x] Full live E2E gate was run.
+- [ ] Full live E2E gate is blocked: initial suite passed 49/56; failed-subset rerun recovered 3 transient UI/DNS cases but still failed 4 scrape-execution cases.
+- [x] Deployment reachability check passed for frontend root and backend health; public API account endpoint correctly returned 401 without an API key.
+- [ ] Full SaaS release candidate not claimed: live scrape E2E failures and post-deploy latest-commit verification remain open.

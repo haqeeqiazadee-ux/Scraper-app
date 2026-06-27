@@ -7,6 +7,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import type { CSSProperties } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 /* ── Types ── */
@@ -73,6 +74,10 @@ function formatCompact(value: number): string {
   return String(value);
 }
 
+function formatLabel(value: string): string {
+  return value.replace(/_/g, " ");
+}
+
 /* ── Page Size ── */
 
 const PAGE_SIZE = 48;
@@ -89,6 +94,7 @@ export function ActorsPage() {
   const [totalChunks, setTotalChunks] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isCompact, setIsCompact] = useState(false);
 
   // Filters from URL params
   const query = searchParams.get("q") || "";
@@ -124,6 +130,13 @@ export function ActorsPage() {
       .then((r) => r.json())
       .then((idx) => setTotalChunks(idx.chunk_count))
       .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const updateLayout = () => setIsCompact(window.innerWidth < 900);
+    updateLayout();
+    window.addEventListener("resize", updateLayout);
+    return () => window.removeEventListener("resize", updateLayout);
   }, []);
 
   // Load all chunks progressively
@@ -208,6 +221,38 @@ export function ActorsPage() {
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const page = Math.max(1, Math.min(pageParam, totalPages || 1));
   const pageActors = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const topCategories = useMemo(
+    () =>
+      Object.entries(stats?.by_category || {})
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 12),
+    [stats],
+  );
+  const featuredActors = useMemo(
+    () =>
+      filtered
+        .filter((a) => a.runnable_status === "runnable")
+        .slice()
+        .sort(
+          (a, b) =>
+            (b.total_users - a.total_users) ||
+            (b.total_runs - a.total_runs) ||
+            ((b.rating || 0) - (a.rating || 0)),
+        )
+        .slice(0, 4),
+    [filtered],
+  );
+  const activeFilters = [
+    query && { key: "q", label: `Search: ${query}` },
+    category && { key: "category", label: `Category: ${formatLabel(category)}` },
+    developer && { key: "developer", label: `Developer: ${developer}` },
+    pricing && { key: "pricing", label: `Pricing: ${formatLabel(pricing)}` },
+    strategy && {
+      key: "strategy",
+      label: `Strategy: ${STRATEGY_COLORS[strategy]?.label || strategy}`,
+    },
+  ].filter(Boolean) as Array<{ key: string; label: string }>;
+  const clearFilters = useCallback(() => setSearchParams({}, { replace: true }), [setSearchParams]);
 
   // Search input ref
   const searchRef = useRef<HTMLInputElement>(null);
@@ -225,20 +270,27 @@ export function ActorsPage() {
   }
 
   return (
-    <div style={{ padding: "24px 32px", maxWidth: 1400, margin: "0 auto" }}>
+    <main
+      style={{
+        padding: "24px 32px",
+        maxWidth: 1480,
+        margin: "0 auto",
+        color: "var(--text-primary, #f1f5f9)",
+      }}
+    >
       {/* Header */}
-      <div style={{ marginBottom: 24 }}>
+      <header style={{ marginBottom: 24 }}>
         <h1
           style={{
-            fontSize: 24,
+            fontSize: 30,
             fontWeight: 700,
-            color: "#f1f5f9",
+            color: "var(--text-primary, #f1f5f9)",
             margin: 0,
           }}
         >
-          Actor Catalog
+          Actor Store
         </h1>
-        <p style={{ color: "#94a3b8", fontSize: 14, margin: "4px 0 0" }}>
+        <p style={{ color: "var(--text-secondary, #94a3b8)", fontSize: 14, margin: "6px 0 0" }}>
           {stats
             ? `${stats.total.toLocaleString()} actors available`
             : "Loading catalog..."}
@@ -246,7 +298,121 @@ export function ActorsPage() {
             ? ` (${allActors.length.toLocaleString()} loaded...)`
             : ""}
         </p>
-      </div>
+      </header>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: isCompact ? "1fr" : "minmax(190px, 220px) minmax(0, 1fr)",
+          gap: 24,
+          alignItems: "start",
+        }}
+      >
+        <aside
+          aria-label="Actor categories"
+          style={{
+            position: isCompact ? "static" : "sticky",
+            top: 16,
+            background: "var(--panel-bg, #111827)",
+            border: "1px solid var(--border-muted, #334155)",
+            borderRadius: 8,
+            padding: 14,
+          }}
+        >
+          <div style={{ fontSize: 12, color: "var(--text-muted, #64748b)", marginBottom: 10 }}>
+            Categories
+          </div>
+          <button
+            onClick={() => setFilter("category", "")}
+            aria-pressed={!category}
+            style={categoryNavStyle(!category)}
+          >
+            All actors
+            <span>{stats?.total.toLocaleString() || "..."}</span>
+          </button>
+          {topCategories.map(([name, count]) => (
+            <button
+              key={name}
+              onClick={() => setFilter("category", category === name ? "" : name)}
+              aria-pressed={category === name}
+              style={categoryNavStyle(category === name)}
+            >
+              {formatLabel(name)}
+              <span>{formatCompact(count)}</span>
+            </button>
+          ))}
+        </aside>
+
+        <section aria-label="Actor catalog results" style={{ minWidth: 0 }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: isCompact ? "1fr" : "minmax(0, 1.25fr) minmax(220px, 0.75fr)",
+              gap: 14,
+              marginBottom: 20,
+              background: "var(--panel-bg, #111827)",
+              border: "1px solid var(--border-muted, #334155)",
+              borderRadius: 8,
+              padding: 18,
+            }}
+          >
+            <div>
+              <div style={{ color: "var(--text-primary, #f8fafc)", fontSize: 18, fontWeight: 700 }}>
+                API-first workflows with native execution
+              </div>
+              <p style={{ color: "var(--text-secondary, #94a3b8)", fontSize: 13, lineHeight: 1.5, margin: "8px 0 0" }}>
+                Browse Apify-compatible workflow metadata, then run supported actors through this platform's provider ladder, profiles, fixtures, and value metrics.
+              </p>
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(3, 1fr)",
+                gap: 8,
+              }}
+            >
+              <CatalogStat label="Native" value={formatCompact(stats?.by_strategy.native_pipeline || 0)} />
+              <CatalogStat label="Profiles" value="Live" />
+              <CatalogStat label="API" value="/v1" />
+            </div>
+          </div>
+
+          {featuredActors.length > 0 && (
+            <section aria-label="Featured runnable actors" style={{ marginBottom: 20 }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 12,
+                  marginBottom: 10,
+                }}
+              >
+                <h2 style={{ color: "var(--text-primary, #f8fafc)", fontSize: 16, margin: 0 }}>
+                  Featured runnable workflows
+                </h2>
+                <span style={{ color: "var(--text-muted, #64748b)", fontSize: 12 }}>
+                  Ranked by users, runs, and rating
+                </span>
+              </div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+                  gap: 12,
+                }}
+              >
+                {featuredActors.map((actor) => (
+                  <ActorCard
+                    key={actor.id}
+                    actor={actor}
+                    featured
+                    onClick={() => navigate(`/actors/${actor.id}`)}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
 
       {/* Stats Cards */}
       {stats && (
@@ -297,10 +463,12 @@ export function ActorsPage() {
 
       {/* Search + Filters Bar */}
       <div
+        role="search"
+        aria-label="Search and filter actors"
         style={{
           display: "flex",
           gap: 10,
-          marginBottom: 20,
+          marginBottom: activeFilters.length > 0 ? 10 : 20,
           flexWrap: "wrap",
           alignItems: "center",
         }}
@@ -311,6 +479,7 @@ export function ActorsPage() {
             ref={searchRef}
             type="text"
             placeholder="Search actors..."
+            aria-label="Search actors"
             value={query}
             onChange={(e) => setFilter("q", e.target.value)}
             style={{
@@ -342,6 +511,7 @@ export function ActorsPage() {
         <select
           value={category}
           onChange={(e) => setFilter("category", e.target.value)}
+          aria-label="Filter by category"
           style={{
             padding: "9px 12px",
             background: "#1e293b",
@@ -364,6 +534,7 @@ export function ActorsPage() {
         <select
           value={pricing}
           onChange={(e) => setFilter("pricing", e.target.value)}
+          aria-label="Filter by pricing model"
           style={{
             padding: "9px 12px",
             background: "#1e293b",
@@ -386,6 +557,7 @@ export function ActorsPage() {
         <select
           value={developer}
           onChange={(e) => setFilter("developer", e.target.value)}
+          aria-label="Filter by developer"
           style={{
             padding: "9px 12px",
             background: "#1e293b",
@@ -409,6 +581,7 @@ export function ActorsPage() {
         <select
           value={strategy}
           onChange={(e) => setFilter("strategy", e.target.value)}
+          aria-label="Filter by route strategy"
           style={{
             padding: "9px 12px",
             background: "#1e293b",
@@ -431,6 +604,7 @@ export function ActorsPage() {
         <select
           value={sort}
           onChange={(e) => setFilter("sort", e.target.value)}
+          aria-label="Sort actors"
           style={{
             padding: "9px 12px",
             background: "#1e293b",
@@ -449,8 +623,54 @@ export function ActorsPage() {
         </select>
       </div>
 
+      {activeFilters.length > 0 && (
+        <div
+          aria-label="Active filters"
+          style={{
+            display: "flex",
+            gap: 8,
+            flexWrap: "wrap",
+            alignItems: "center",
+            marginBottom: 18,
+          }}
+        >
+          {activeFilters.map((filter) => (
+            <button
+              key={filter.key}
+              onClick={() => setFilter(filter.key, "")}
+              style={{
+                border: "1px solid var(--border-muted, #334155)",
+                background: "var(--panel-bg, #111827)",
+                borderRadius: 999,
+                color: "var(--text-secondary, #94a3b8)",
+                cursor: "pointer",
+                fontSize: 12,
+                padding: "5px 10px",
+              }}
+              title={`Remove ${filter.label}`}
+            >
+              {filter.label} x
+            </button>
+          ))}
+          <button
+            onClick={clearFilters}
+            style={{
+              background: "transparent",
+              border: "none",
+              color: "var(--accent, #93c5fd)",
+              cursor: "pointer",
+              fontSize: 12,
+              padding: "5px 8px",
+            }}
+          >
+            Clear all
+          </button>
+        </div>
+      )}
+
       {/* Results count */}
       <div
+        aria-live="polite"
         style={{
           fontSize: 13,
           color: "#64748b",
@@ -534,18 +754,61 @@ export function ActorsPage() {
           />
         </div>
       )}
-    </div>
+        </section>
+      </div>
+    </main>
   );
 }
 
 /* ── Actor Card ── */
 
+function categoryNavStyle(active: boolean): CSSProperties {
+  return {
+    alignItems: "center",
+    background: active ? "var(--accent-bg, #1e3a5f)" : "transparent",
+    border: active ? "1px solid var(--accent, #93c5fd)" : "1px solid transparent",
+    borderRadius: 6,
+    color: active ? "var(--text-primary, #f8fafc)" : "var(--text-secondary, #94a3b8)",
+    cursor: "pointer",
+    display: "flex",
+    fontSize: 12,
+    justifyContent: "space-between",
+    marginBottom: 4,
+    padding: "8px 9px",
+    textAlign: "left",
+    width: "100%",
+  };
+}
+
+function CatalogStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div
+      style={{
+        background: "var(--panel-strong, #0f172a)",
+        border: "1px solid var(--border-subtle, #1f2937)",
+        borderRadius: 8,
+        padding: 10,
+        minHeight: 64,
+      }}
+    >
+      <div style={{ color: "var(--text-muted, #64748b)", fontSize: 11, marginBottom: 8 }}>
+        {label}
+      </div>
+      <div style={{ color: "var(--text-primary, #f8fafc)", fontSize: 18, fontWeight: 700 }}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
 function ActorCard({
   actor,
   onClick,
+  featured = false,
 }: {
   actor: Actor;
   onClick: () => void;
+  featured?: boolean;
 }) {
   const stratInfo = STRATEGY_COLORS[actor.route_strategy] || {
     bg: "#1f2937",
@@ -560,22 +823,22 @@ function ActorCard({
       style={{
         display: "flex",
         flexDirection: "column",
-        background: "#1e293b",
-        border: "1px solid #334155",
-        borderRadius: 12,
-        padding: 16,
+        background: featured ? "var(--panel-bg, #111827)" : "var(--panel-strong, #1e293b)",
+        border: featured ? "1px solid var(--accent, #93c5fd)" : "1px solid var(--border-muted, #334155)",
+        borderRadius: 8,
+        padding: featured ? 18 : 16,
         cursor: "pointer",
         textAlign: "left",
         transition: "border-color 0.15s, background 0.15s",
-        minHeight: 160,
+        minHeight: featured ? 184 : 160,
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = "#475569";
-        e.currentTarget.style.background = "#1e293b";
+        e.currentTarget.style.borderColor = featured ? "#bfdbfe" : "#475569";
+        e.currentTarget.style.background = "#172033";
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = "#334155";
-        e.currentTarget.style.background = "#1e293b";
+        e.currentTarget.style.borderColor = featured ? "#93c5fd" : "#334155";
+        e.currentTarget.style.background = featured ? "#111827" : "#1e293b";
       }}
     >
       {/* Top row: initials + title */}

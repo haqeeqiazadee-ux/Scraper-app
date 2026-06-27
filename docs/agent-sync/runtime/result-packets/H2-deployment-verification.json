@@ -1,0 +1,43 @@
+{
+  "packet_id": "H2-deployment-verification",
+  "priority": 7,
+  "agent": "codex",
+  "phase": "Phase H2",
+  "lock_group": "deployment-verification",
+  "reuse_decision": "extend_existing",
+  "files_read": [
+    "tests/e2e/test_all_workflows.py",
+    "services/control-plane/routers/health.py"
+  ],
+  "files_changed": [
+    "docs/agent-sync/runtime/result-packets/H2-deployment-verification.json",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_TASK_DAG_2026-06-27.json",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_LOCKS_2026-06-27.json",
+    "docs/agent-sync/PHASE_STATUS.md",
+    "docs/agent-sync/IMPLEMENTATION_LEDGER.md"
+  ],
+  "implementation_summary": "Checked production reachability for the configured frontend, backend health endpoint, and public API account endpoint. Basic reachability passed for frontend and backend; unauthenticated public API returned the expected 401-style protection boundary.",
+  "tenant_isolation_checked": true,
+  "secrets_touched": false,
+  "api_first_boundary_checked": true,
+  "ui_design_checked": true,
+  "e2e_checked": true,
+  "deployment_checked": true,
+  "tests_run": [
+    "Invoke-WebRequest https://myscraper.netlify.app",
+    "Invoke-WebRequest https://scraper-platform-production-17cb.up.railway.app/api/v1/health",
+    "Invoke-WebRequest https://scraper-platform-production-17cb.up.railway.app/v1/account"
+  ],
+  "tests_passed": [
+    "Frontend root returned HTTP 200.",
+    "Backend /api/v1/health returned HTTP 200.",
+    "Public API /v1/account returned HTTP 401 without an API key, confirming auth protection instead of an open endpoint."
+  ],
+  "tests_failed": [],
+  "known_limitations": [
+    "This verifies reachability only; it does not prove that the latest local commit has been deployed.",
+    "H2 cannot be accepted as full release verification until H1 full E2E passes against the deployed target."
+  ],
+  "qa_status": "partial_reachability_passed_release_blocked_by_H1",
+  "next_recommended_packet": "post_deploy_full_e2e_verification"
+}

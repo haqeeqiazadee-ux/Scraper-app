@@ -1,0 +1,56 @@
+{
+  "packet_id": "E3-persisted-profile-apis",
+  "priority": 2,
+  "agent": "codex",
+  "phase": "Phase E3",
+  "lock_group": "persisted-profile-apis",
+  "reuse_decision": "extend_existing",
+  "files_read": [
+    "packages/core/actor_runtime/profiles.py",
+    "packages/core/storage/models.py",
+    "packages/core/storage/repositories.py",
+    "services/control-plane/routers/actors.py",
+    "tests/unit/test_actor_strategy_profiles.py",
+    "tests/unit/test_actor_runs_api.py"
+  ],
+  "files_changed": [
+    "packages/core/storage/models.py",
+    "packages/core/storage/repositories.py",
+    "services/control-plane/routers/actors.py",
+    "tests/unit/test_actor_profile_api.py",
+    "docs/agent-sync/runtime/result-packets/E3-persisted-profile-apis.json",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_TASK_DAG_2026-06-27.json",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_LOCKS_2026-06-27.json",
+    "docs/agent-sync/PHASE_STATUS.md",
+    "docs/agent-sync/IMPLEMENTATION_LEDGER.md"
+  ],
+  "implementation_summary": "Added DB-backed strategy profile, learning event, patch proposal, replay validation, and profile promotion history storage plus tenant-scoped actor profile APIs. Actor runs now load and expose the active persisted profile version.",
+  "tenant_isolation_checked": true,
+  "secrets_touched": false,
+  "api_first_boundary_checked": true,
+  "profile_persistence_checked": true,
+  "fixture_materialization_checked": false,
+  "workflow_ops_checked": true,
+  "dashboard_value_checked": false,
+  "ui_design_checked": false,
+  "claude_design_review_status": "not_applicable_for_E3",
+  "e2e_checked": false,
+  "deployment_checked": false,
+  "tests_run": [
+    "python C:\\Users\\PC\\second-brain\\tools\\reuse_gate.py --project C:\\Users\\PC\\Scraper-app-verified --task \"E3-persisted-profile-apis\" --terms \"strategy profile API persistence learning events patch proposals replay validation promotion history\"",
+    "python -m compileall -q packages services tests",
+    "python -m pytest tests/unit/test_actor_profile_api.py tests/unit/test_actor_runs_api.py tests/unit/test_actor_strategy_profiles.py -q"
+  ],
+  "tests_passed": [
+    "reuse_gate returned extend_existing",
+    "compileall passed",
+    "20 profile/API/runtime tests passed"
+  ],
+  "tests_failed": [],
+  "known_limitations": [
+    "Profile persistence is available through actor APIs, but automated profile patch generation from live learning events remains intentionally review-gated.",
+    "Full frontend profile-management UI is deferred to the Apify-grade UI packet."
+  ],
+  "qa_status": "accepted_local_validation_passed",
+  "next_recommended_packet": "G3-fixture-review-materialization"
+}

@@ -1,0 +1,53 @@
+{
+  "packet_id": "U1-apify-grade-ui-product-design",
+  "priority": 5,
+  "agent": "codex",
+  "phase": "Phase U1",
+  "lock_group": "apify-grade-ui-product-design",
+  "reuse_decision": "extend_existing",
+  "files_read": [
+    "apps/web/src/pages/ActorsPage.tsx",
+    "apps/web/src/pages/ActorDetailPage.tsx",
+    "docs/agent-sync/runtime/result-packets/G4-customer-value-dashboards.json"
+  ],
+  "files_changed": [
+    "apps/web/src/pages/ActorsPage.tsx",
+    "apps/web/src/pages/ActorDetailPage.tsx",
+    "docs/agent-sync/runtime/result-packets/U1-apify-grade-ui-product-design.json",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_TASK_DAG_2026-06-27.json",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_LOCKS_2026-06-27.json",
+    "docs/agent-sync/PHASE_STATUS.md",
+    "docs/agent-sync/IMPLEMENTATION_LEDGER.md"
+  ],
+  "implementation_summary": "Upgraded the actor catalog and actor detail surfaces toward Apify-grade product UX by extending existing pages with a category rail, featured runnable actors, active filter chips, API-first run console, value metric sparklines, responsive layout behavior, and accessibility labels/live regions.",
+  "tenant_isolation_checked": true,
+  "secrets_touched": false,
+  "api_first_boundary_checked": true,
+  "profile_persistence_checked": true,
+  "fixture_materialization_checked": true,
+  "workflow_ops_checked": true,
+  "dashboard_value_checked": true,
+  "ui_design_checked": true,
+  "claude_design_review_status": "PASS",
+  "e2e_checked": false,
+  "deployment_checked": false,
+  "tests_run": [
+    "python C:\\Users\\PC\\second-brain\\tools\\reuse_gate.py --project C:\\Users\\PC\\Scraper-app-verified --task \"U1-apify-grade-ui-product-design\" --terms \"actor catalog UI Apify store design run console filters value dashboard responsive accessibility\"",
+    "npm.cmd run build",
+    "python -m pytest tests/unit/test_actor_value_metrics.py tests/unit/test_actor_fixture_api.py tests/unit/test_actor_profile_api.py tests/unit/test_actor_runs_api.py -q",
+    "C:\\Users\\PC\\.local\\bin\\claude.exe -p \"Read-only validation...\""
+  ],
+  "tests_passed": [
+    "reuse_gate returned extend_existing",
+    "frontend build passed",
+    "17 backend value/profile/fixture/run tests passed",
+    "Claude U1 design validation returned PASS"
+  ],
+  "tests_failed": [],
+  "known_limitations": [
+    "Sparkline shapes are generated from current aggregate values, not historical time-series samples.",
+    "Some legacy inline color literals remain in untouched page areas; new U1 surfaces use CSS variable fallbacks where introduced."
+  ],
+  "qa_status": "accepted_local_validation_passed",
+  "next_recommended_packet": "H1-full-e2e"
+}

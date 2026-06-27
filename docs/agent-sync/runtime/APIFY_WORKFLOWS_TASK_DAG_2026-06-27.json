@@ -276,6 +276,223 @@
       ],
       "rollback_plan": "Revert only trace-to-fixture candidate substrate, tests, and documentation.",
       "result_packet_path": "docs/agent-sync/runtime/result-packets/G2-trace-to-fixture-promotion.json"
+    },
+    {
+      "packet_id": "F2-workflow-ops-parity",
+      "phase": "Phase F2",
+      "status": "completed",
+      "lock_group": "workflow-ops-parity",
+      "reuse_decision": "extend_existing",
+      "files_allowed": [
+        "services/control-plane/routers/actors.py",
+        "services/control-plane/routers/results.py",
+        "services/control-plane/routers/schedules.py",
+        "services/control-plane/routers/webhooks.py",
+        "services/control-plane/routers/billing.py",
+        "packages/core/storage/*",
+        "tests/unit/test_actor_runs_api.py",
+        "docs/agent-sync/runtime/*",
+        "docs/agent-sync/IMPLEMENTATION_LEDGER.md"
+      ],
+      "dependencies": [
+        "B1-knowledge-runtime-contract-tests",
+        "B2-api-first-provider-ladder-map",
+        "B3-extensible-workflow-substrate-contract",
+        "C1-actor-run-api-knowledge-metadata",
+        "D1-observability-security-cost-tests",
+        "E1-mcp-parity-gap-and-routing"
+      ],
+      "files_locked": [
+        "services/control-plane/routers/actors.py",
+        "tests/unit/test_actor_runs_api.py",
+        "docs/agent-sync/runtime/result-packets/F2-workflow-ops-parity.json"
+      ],
+      "acceptance_tests": [
+        "python -m compileall -q packages services tests",
+        "python -m pytest tests/unit/test_actor_runs_api.py -q"
+      ],
+      "rollback_plan": "Revert only actor lifecycle/log/export/usage endpoint additions and focused tests.",
+      "result_packet_path": "docs/agent-sync/runtime/result-packets/F2-workflow-ops-parity.json"
+    },
+    {
+      "packet_id": "E3-persisted-profile-apis",
+      "phase": "Phase E3",
+      "status": "completed",
+      "lock_group": "persisted-profile-apis",
+      "reuse_decision": "extend_existing",
+      "files_allowed": [
+        "packages/core/actor_runtime/*",
+        "packages/core/storage/*",
+        "services/control-plane/routers/actors.py",
+        "tests/unit/test_actor_profile_api.py",
+        "tests/unit/test_actor_strategy_profiles.py",
+        "docs/agent-sync/runtime/*",
+        "docs/agent-sync/IMPLEMENTATION_LEDGER.md"
+      ],
+      "dependencies": [
+        "E2-self-learning-strategy-profiles",
+        "F2-workflow-ops-parity"
+      ],
+      "files_locked": [
+        "packages/core/storage/models.py",
+        "packages/core/storage/repositories.py",
+        "services/control-plane/routers/actors.py",
+        "tests/unit/test_actor_profile_api.py",
+        "docs/agent-sync/runtime/result-packets/E3-persisted-profile-apis.json"
+      ],
+      "acceptance_tests": [
+        "python -m compileall -q packages services tests",
+        "python -m pytest tests/unit/test_actor_profile_api.py tests/unit/test_actor_runs_api.py tests/unit/test_actor_strategy_profiles.py -q"
+      ],
+      "rollback_plan": "Revert only persisted profile tables, repository helpers, profile API endpoints, and focused tests.",
+      "result_packet_path": "docs/agent-sync/runtime/result-packets/E3-persisted-profile-apis.json"
+    },
+    {
+      "packet_id": "G3-fixture-review-materialization",
+      "phase": "Phase G3",
+      "status": "completed",
+      "lock_group": "fixture-review-materialization",
+      "reuse_decision": "extend_existing",
+      "files_allowed": [
+        "packages/core/actor_runtime/*",
+        "packages/core/storage/*",
+        "services/control-plane/routers/actors.py",
+        "tests/unit/test_actor_fixture_api.py",
+        "tests/unit/test_actor_trace_to_fixture.py",
+        "docs/agent-sync/runtime/*",
+        "docs/agent-sync/IMPLEMENTATION_LEDGER.md"
+      ],
+      "dependencies": [
+        "G2-trace-to-fixture-promotion",
+        "E3-persisted-profile-apis"
+      ],
+      "files_locked": [
+        "packages/core/actor_runtime/fixtures.py",
+        "packages/core/actor_runtime/__init__.py",
+        "packages/core/storage/models.py",
+        "packages/core/storage/repositories.py",
+        "services/control-plane/routers/actors.py",
+        "tests/unit/test_actor_fixture_api.py",
+        "tests/unit/test_actor_trace_to_fixture.py",
+        "docs/agent-sync/runtime/result-packets/G3-fixture-review-materialization.json"
+      ],
+      "acceptance_tests": [
+        "python -m compileall -q packages services tests",
+        "python -m pytest tests/unit/test_actor_fixture_api.py tests/unit/test_actor_trace_to_fixture.py tests/unit/test_actor_profile_api.py tests/unit/test_actor_strategy_profiles.py -q"
+      ],
+      "rollback_plan": "Revert only fixture review/materialization models, APIs, tests, and docs.",
+      "result_packet_path": "docs/agent-sync/runtime/result-packets/G3-fixture-review-materialization.json"
+    },
+    {
+      "packet_id": "G4-customer-value-dashboards",
+      "phase": "Phase G4",
+      "status": "completed",
+      "lock_group": "customer-value-dashboards",
+      "reuse_decision": "extend_existing",
+      "files_allowed": [
+        "services/control-plane/routers/actors.py",
+        "apps/web/src/pages/ActorDetailPage.tsx",
+        "tests/unit/test_actor_value_metrics.py",
+        "docs/agent-sync/runtime/*",
+        "docs/agent-sync/IMPLEMENTATION_LEDGER.md"
+      ],
+      "dependencies": [
+        "F2-workflow-ops-parity",
+        "E3-persisted-profile-apis",
+        "G3-fixture-review-materialization"
+      ],
+      "files_locked": [
+        "services/control-plane/routers/actors.py",
+        "apps/web/src/pages/ActorDetailPage.tsx",
+        "tests/unit/test_actor_value_metrics.py",
+        "docs/agent-sync/runtime/result-packets/G4-customer-value-dashboards.json"
+      ],
+      "acceptance_tests": [
+        "python -m compileall -q packages services tests",
+        "python -m pytest tests/unit/test_actor_value_metrics.py tests/unit/test_actor_fixture_api.py tests/unit/test_actor_profile_api.py tests/unit/test_actor_runs_api.py -q",
+        "npm.cmd run build"
+      ],
+      "rollback_plan": "Revert only actor value metrics endpoint, detail-page value dashboard, tests, and docs.",
+      "result_packet_path": "docs/agent-sync/runtime/result-packets/G4-customer-value-dashboards.json"
+    },
+    {
+      "packet_id": "U1-apify-grade-ui-product-design",
+      "phase": "Phase U1",
+      "status": "completed",
+      "lock_group": "apify-grade-ui-product-design",
+      "reuse_decision": "extend_existing",
+      "files_allowed": [
+        "apps/web/src/pages/ActorsPage.tsx",
+        "apps/web/src/pages/ActorDetailPage.tsx",
+        "docs/agent-sync/runtime/*",
+        "docs/agent-sync/IMPLEMENTATION_LEDGER.md"
+      ],
+      "dependencies": [
+        "G4-customer-value-dashboards",
+        "F2-workflow-ops-parity"
+      ],
+      "files_locked": [
+        "apps/web/src/pages/ActorsPage.tsx",
+        "apps/web/src/pages/ActorDetailPage.tsx",
+        "docs/agent-sync/runtime/result-packets/U1-apify-grade-ui-product-design.json"
+      ],
+      "acceptance_tests": [
+        "npm.cmd run build",
+        "python -m pytest tests/unit/test_actor_value_metrics.py tests/unit/test_actor_fixture_api.py tests/unit/test_actor_profile_api.py tests/unit/test_actor_runs_api.py -q",
+        "Claude U1 design validation PASS"
+      ],
+      "rollback_plan": "Revert only actor catalog/detail UI uplift and U1 documentation packet.",
+      "result_packet_path": "docs/agent-sync/runtime/result-packets/U1-apify-grade-ui-product-design.json"
+    },
+    {
+      "packet_id": "H1-full-e2e",
+      "phase": "Phase H1",
+      "status": "blocked",
+      "lock_group": "full-e2e",
+      "reuse_decision": "extend_existing",
+      "files_allowed": [
+        "tests/e2e/*",
+        "docs/agent-sync/runtime/*",
+        "docs/agent-sync/IMPLEMENTATION_LEDGER.md"
+      ],
+      "dependencies": [
+        "U1-apify-grade-ui-product-design",
+        "G4-customer-value-dashboards",
+        "F2-workflow-ops-parity"
+      ],
+      "files_locked": [
+        "docs/agent-sync/runtime/result-packets/H1-full-e2e.json"
+      ],
+      "acceptance_tests": [
+        "C:\\Python314\\python.exe -m pytest tests/e2e/test_all_workflows.py -v"
+      ],
+      "rollback_plan": "No code rollback; H1 is a verification packet. Fix live scrape execution failures and rerun.",
+      "result_packet_path": "docs/agent-sync/runtime/result-packets/H1-full-e2e.json"
+    },
+    {
+      "packet_id": "H2-deployment-verification",
+      "phase": "Phase H2",
+      "status": "partial",
+      "lock_group": "deployment-verification",
+      "reuse_decision": "extend_existing",
+      "files_allowed": [
+        "docs/agent-sync/runtime/*",
+        "docs/agent-sync/IMPLEMENTATION_LEDGER.md"
+      ],
+      "dependencies": [
+        "H1-full-e2e"
+      ],
+      "files_locked": [
+        "docs/agent-sync/runtime/result-packets/H2-deployment-verification.json"
+      ],
+      "acceptance_tests": [
+        "production frontend reachability",
+        "production backend health reachability",
+        "production public API auth-boundary check",
+        "full E2E pass against deployed target"
+      ],
+      "rollback_plan": "No code rollback; H2 is a verification packet. Re-run after deployment and H1 fixback.",
+      "result_packet_path": "docs/agent-sync/runtime/result-packets/H2-deployment-verification.json"
     }
   ]
 }

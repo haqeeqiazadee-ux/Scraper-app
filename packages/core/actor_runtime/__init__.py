@@ -26,9 +26,12 @@ from packages.core.actor_runtime.governance import (
     evaluate_actor_output,
 )
 from packages.core.actor_runtime.fixtures import (
+    FixtureReviewStatus,
+    MaterializedRegressionFixture,
     RegressionFixtureCandidate,
     TraceToFixturePromoter,
     build_regression_fixture_candidate,
+    materialize_regression_fixture,
 )
 from packages.core.actor_runtime.knowledge import (
     KnowledgeFreshnessEvaluator,
@@ -110,6 +113,8 @@ __all__ = [
     "ProviderChain",
     "ProviderStep",
     "ProviderTier",
+    "FixtureReviewStatus",
+    "MaterializedRegressionFixture",
     "RegressionFixtureCandidate",
     "ReplayValidationResult",
     "RequirementCheck",
@@ -134,6 +139,7 @@ __all__ = [
     "build_default_strategy_profile",
     "build_knowledge_context",
     "build_regression_fixture_candidate",
+    "materialize_regression_fixture",
     "build_query_fingerprint",
     "create_actor_runner",
     "determine_actor_family",

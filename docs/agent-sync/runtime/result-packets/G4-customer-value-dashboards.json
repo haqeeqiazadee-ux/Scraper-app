@@ -1,0 +1,56 @@
+{
+  "packet_id": "G4-customer-value-dashboards",
+  "priority": 4,
+  "agent": "codex",
+  "phase": "Phase G4",
+  "lock_group": "customer-value-dashboards",
+  "reuse_decision": "extend_existing",
+  "files_read": [
+    "services/control-plane/routers/actors.py",
+    "packages/core/storage/models.py",
+    "packages/core/storage/repositories.py",
+    "apps/web/src/pages/ActorDetailPage.tsx",
+    "tests/unit/test_actor_value_metrics.py"
+  ],
+  "files_changed": [
+    "services/control-plane/routers/actors.py",
+    "apps/web/src/pages/ActorDetailPage.tsx",
+    "tests/unit/test_actor_value_metrics.py",
+    "docs/agent-sync/runtime/result-packets/G4-customer-value-dashboards.json",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_TASK_DAG_2026-06-27.json",
+    "docs/agent-sync/runtime/APIFY_WORKFLOWS_LOCKS_2026-06-27.json",
+    "docs/agent-sync/PHASE_STATUS.md",
+    "docs/agent-sync/IMPLEMENTATION_LEDGER.md"
+  ],
+  "implementation_summary": "Added tenant-scoped actor value metrics API and actor detail dashboard cards for success rate, cache hit rate, time/cost saved, quality score, active profile, learning signals, and accepted fixtures.",
+  "tenant_isolation_checked": true,
+  "secrets_touched": false,
+  "api_first_boundary_checked": true,
+  "profile_persistence_checked": true,
+  "fixture_materialization_checked": true,
+  "workflow_ops_checked": true,
+  "dashboard_value_checked": true,
+  "ui_design_checked": false,
+  "claude_design_review_status": "pending_U1_design_packet",
+  "e2e_checked": false,
+  "deployment_checked": false,
+  "tests_run": [
+    "python C:\\Users\\PC\\second-brain\\tools\\reuse_gate.py --project C:\\Users\\PC\\Scraper-app-verified --task \"G4-customer-value-dashboards\" --terms \"actor value metrics dashboard cost savings cache hit freshness success rate quality tenant aggregate\"",
+    "python -m compileall -q packages services tests",
+    "python -m pytest tests/unit/test_actor_value_metrics.py tests/unit/test_actor_fixture_api.py tests/unit/test_actor_profile_api.py tests/unit/test_actor_runs_api.py -q",
+    "npm.cmd run build"
+  ],
+  "tests_passed": [
+    "reuse_gate returned extend_existing",
+    "compileall passed",
+    "17 backend value/profile/fixture/run tests passed",
+    "frontend build passed"
+  ],
+  "tests_failed": [],
+  "known_limitations": [
+    "Dashboard UI is functional and build-verified, but Apify-grade Claude design review and broader visual uplift are deferred to U1.",
+    "Metrics are deterministic estimates from persisted tenant data, not billing-provider-settled revenue."
+  ],
+  "qa_status": "accepted_local_validation_passed",
+  "next_recommended_packet": "U1-apify-grade-ui-product-design"
+}
