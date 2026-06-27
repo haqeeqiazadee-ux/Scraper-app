@@ -31,7 +31,7 @@
     "docs/agent-sync/runtime/actor-proof-ledger.sample.jsonl",
     "docs/agent-sync/runtime/result-packets/P1-actor-proof-factory-27753.json"
   ],
-  "implementation_summary": "Added an actor proof-factory substrate that records explicit per-actor proof levels, failure classes, durable proof rows, proof summary/list/detail APIs, run-to-proof promotion, a resumable proof runner script, visible proof counters/status in the existing UI, and focused tests that prevent API-mapped actors from being claimed as live E2E proven. Added a fix preventing failed actor runs from being promoted to ui_route_passed proof level, optimized offline proof-runner throttling, and generated full catalog API-mapped proof coverage.",
+  "implementation_summary": "Added an actor proof-factory substrate that records explicit per-actor proof levels, failure classes, durable proof rows, proof summary/list/detail APIs, run-to-proof promotion, a resumable proof runner script, visible proof counters/status in the existing UI, and focused tests that prevent API-mapped actors from being claimed as live E2E proven. Added a fix preventing failed actor runs from being promoted to ui_route_passed proof level, optimized offline proof-runner throttling, and generated full catalog API-mapped proof coverage. Tightened run-derived proof rows so failed runs also store ui_route_passed=false even if the verifier request includes ui_route_passed=true.",
   "tenant_isolation_checked": true,
   "secrets_touched": false,
   "api_first_boundary_checked": true,
@@ -79,7 +79,9 @@
     "18 focused actor proof/run/value tests passed.",
     "Default proof ledger now contains 27,753 api_mapped rows, matching current catalog count.",
     "local ledger verification: 27,753 rows, 27,753 api_mapped, 0 live_e2e_passed true, 0 ui_route_passed true, 0 fixture_replay_passed true",
-    "Claude validation after proof promotion fix: PASS with no blockers or fixbacks"
+    "Claude validation after proof promotion fix: PASS with no blockers or fixbacks",
+    "Failed run proof regression now asserts proof_level api_mapped, live_e2e_passed false, ui_route_passed false, and implementation_bug failure class.",
+    "18 focused actor proof/run/value tests passed after stricter ui_route boolean guard."
   ],
   "tests_failed": [
     "Initial broad Claude validation attempt timed out; narrow retry passed"
@@ -92,5 +94,5 @@
   ],
   "qa_status": "accepted_api_mapped_full_catalog_coverage_live_e2e_unproven",
   "next_recommended_packet": "deploy-proof-fix-and-H2-verification",
-  "updated_at_utc": "2026-06-27T20:48:56+00:00"
+  "updated_at_utc": "2026-06-27T20:56:13+00:00"
 }

@@ -1054,7 +1054,8 @@ This file is the mandatory proof trail for the pre-code reuse gate.
   - Production H1 live rerun passed: `56 passed, 1 warning in 220.62s`.
   - Bounded production proof sample showed failed actor runs could be recorded at `ui_route_passed` proof level when the run failed or was unsupported.
   - Updated `choose_proof_level(...)` so `ui_route_passed` is only selected for explicit route-check statuses, not failed actor runs.
-  - Added a regression test proving failed actor runs with `ui_route_passed=true` remain `api_mapped`, carry `implementation_bug`, and do not increment `ui_route_passed_count`.
+  - Added a regression test proving failed actor runs with `ui_route_passed=true` remain `api_mapped`, store `ui_route_passed=false`, carry `implementation_bug`, and do not increment `ui_route_passed_count`.
+  - Tightened run-derived proof rows so a failed run cannot retain `ui_route_passed=true` as a boolean side channel.
   - Optimized the proof runner so offline catalog/API-mapped proof generation does not sleep for network rate limiting when no `--base-url` is supplied.
   - Generated default proof ledger coverage for all 27,753 actors as `api_mapped`; this is full catalog proof-row coverage, not live E2E proof.
 - Tests/gates:

@@ -237,6 +237,7 @@ def test_failed_actor_run_cannot_be_promoted_to_ui_route_proof(monkeypatch) -> N
         proof = proof_response.json()["data"]
         assert proof["proof_level"] == "api_mapped"
         assert proof["live_e2e_passed"] is False
+        assert proof["ui_route_passed"] is False
         assert proof["failure_class"] == "implementation_bug"
         assert proof["claim_boundary"] == "not_live_e2e_proven"
 

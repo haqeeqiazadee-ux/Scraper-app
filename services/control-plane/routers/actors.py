@@ -1146,6 +1146,10 @@ async def record_actor_proof_from_run(
         ui_route_passed=body.ui_route_passed,
         fixture_replay_passed=body.fixture_replay_passed,
     )
+    effective_ui_route_passed = proof_level in {
+        ActorProofLevel.UI_ROUTE_PASSED,
+        ActorProofLevel.LIVE_E2E_PASSED,
+    }
     proof = ActorProofRecord(
         actor_id=actor_id,
         tenant_id=tenant_id,
@@ -1159,7 +1163,7 @@ async def record_actor_proof_from_run(
         schema_passed=has_result,
         export_json_passed=export_json_passed,
         export_csv_passed=export_csv_passed,
-        ui_route_passed=body.ui_route_passed,
+        ui_route_passed=effective_ui_route_passed,
         live_e2e_passed=proof_level == ActorProofLevel.LIVE_E2E_PASSED,
         fixture_replay_passed=body.fixture_replay_passed,
         blocked_reason=run.error if failure_class != ActorProofFailureClass.NONE else None,
