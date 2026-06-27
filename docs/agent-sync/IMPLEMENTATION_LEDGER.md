@@ -1135,4 +1135,6 @@ This file is the mandatory proof trail for the pre-code reuse gate.
   - `python -m compileall -q packages services scripts tests/unit/test_actor_proof_factory.py`
   - `python -m pytest tests/unit/test_actor_proof_factory.py tests/unit/test_actor_runs_api.py tests/unit/test_actor_value_metrics.py -q`
   - Claude read-only validation returned `PASS`, no blockers, no fixbacks.
-- Status: Local proof-level semantics are stricter and green. Deployment and post-deploy production proof resample are required next.
+  - Railway deployment `b90de75c-6409-4bde-b47a-5e09bfd3d7d6` succeeded.
+  - Post-deploy production proof sample against `https://scraper.exsel.ai` produced 3 `api_mapped` rows; two completed zero-item rows stayed `api_mapped` with `failure_class=no_result_dataset`, not `runtime_smoke_passed`.
+- Status: Proof-level semantics are stricter in production. Full 27,753 live E2E proof remains open with 0 `live_e2e_passed` actors.

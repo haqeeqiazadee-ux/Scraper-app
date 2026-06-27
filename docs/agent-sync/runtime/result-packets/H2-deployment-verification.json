@@ -16,7 +16,7 @@
     "docs/agent-sync/PHASE_STATUS.md",
     "docs/agent-sync/IMPLEMENTATION_LEDGER.md"
   ],
-  "implementation_summary": "Checked production reachability for the configured frontend, backend health endpoint, and public API account endpoint. Basic reachability passed for frontend and backend; unauthenticated public API returned the expected 401-style protection boundary. Latest Railway deployment 00af0cd7-3504-4d09-bae0-48507f50cace succeeded for commit fe40d3a; post-deploy proof sample and H1 live suite passed.",
+  "implementation_summary": "Checked production reachability for the configured frontend, backend health endpoint, and public API account endpoint. Basic reachability passed for frontend and backend; unauthenticated public API returned the expected 401-style protection boundary. Latest Railway deployment b90de75c-6409-4bde-b47a-5e09bfd3d7d6 succeeded after proof-factory tightening; post-deploy proof sample stayed within api_mapped proof boundaries.",
   "tenant_isolation_checked": true,
   "secrets_touched": false,
   "api_first_boundary_checked": true,
@@ -32,7 +32,10 @@
     "Invoke-WebRequest https://scraper.exsel.ai/api/v1/health -> 200",
     "Invoke-WebRequest https://scraper.exsel.ai/v1/account -> 401 without API key",
     "python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 3 --write-ledger --resume --ledger docs/agent-sync/runtime/actor-proof-ledger.production-verification.jsonl --base-url https://scraper.exsel.ai --concurrency 1 --rate-limit-per-second 0.5 --timeout 45",
-    "C:\\Python314\\python.exe -m pytest tests/e2e/test_all_workflows.py -v"
+    "C:\\Python314\\python.exe -m pytest tests/e2e/test_all_workflows.py -v",
+    "railway.cmd deployment list: b90de75c-6409-4bde-b47a-5e09bfd3d7d6 SUCCESS",
+    "python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 3 --write-ledger --ledger docs/agent-sync/runtime/actor-proof-ledger.production-verification.jsonl --base-url https://scraper.exsel.ai --concurrency 1 --rate-limit-per-second 0.5 --timeout 45",
+    "python scripts/run_actor_proof_factory.py --ledger docs/agent-sync/runtime/actor-proof-ledger.production-verification.jsonl --status"
   ],
   "tests_passed": [
     "Frontend root returned HTTP 200.",
@@ -41,15 +44,17 @@
     "Latest Railway deployment 00af0cd7-3504-4d09-bae0-48507f50cace succeeded.",
     "Production proof sample: 3 rows, all api_mapped, all live_e2e_passed=false, all ui_route_passed=false.",
     "Latest post-deploy H1 live suite: 56 passed, 1 warning in 214.94s.",
-    "Claude final post-deploy validation: PASS with no blockers or fixbacks."
+    "Claude final post-deploy validation: PASS with no blockers or fixbacks.",
+    "Latest Railway deployment b90de75c-6409-4bde-b47a-5e09bfd3d7d6 succeeded.",
+    "Post-runtime-smoke-tightening production proof sample: 3 rows, all api_mapped, all live_e2e_passed=false, all ui_route_passed=false; zero-item completed runs remained api_mapped."
   ],
   "tests_failed": [],
   "known_limitations": [
-    "This verifies reachability only; it does not prove that the latest local commit has been deployed.",
+    "This verifies latest backend deployment reachability and a bounded proof sample; it is not full 27,753 live E2E proof.",
     "Full 27,753 live E2E actor proof remains open; current full catalog ledger is api_mapped, not live_e2e_passed."
   ],
   "qa_status": "deployment_verified_release_blocked_only_by_full_27753_live_e2e_proof",
   "next_recommended_packet": "scale-live-e2e-proof-beyond-api-mapped-ledger",
-  "updated_at_utc": "2026-06-27T21:05:01+00:00",
+  "updated_at_utc": "2026-06-27T21:21:33+00:00",
   "claude_validation_status": "PASS"
 }
