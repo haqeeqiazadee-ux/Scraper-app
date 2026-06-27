@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import re
+import time
 from enum import StrEnum
 from typing import Any, Callable
 from urllib.parse import urlparse
@@ -22,6 +24,7 @@ class ActorBaseFamily(StrEnum):
     LEAD_GENERATION_GENERIC = "lead_generation_generic"
     REVIEW_MONITORING_GENERIC = "review_monitoring_generic"
     NEWS_CONTENT_MONITORING = "news_content_monitoring"
+    VIDEO_METADATA = "yt_dlp"
 
 
 def _entry_text(entry: Any) -> str:
@@ -53,11 +56,15 @@ def determine_actor_family(entry: Any) -> str:
         return ActorBaseFamily.JOB_BOARD_SCHEMA.value
     if route_strategy == "real_estate_schema":
         return ActorBaseFamily.REAL_ESTATE_SCHEMA.value
+    if route_strategy == "yt_dlp":
+        return ActorBaseFamily.VIDEO_METADATA.value
     if route_strategy != "native_pipeline":
         return route_strategy
 
     text = _entry_text(entry)
     categories = _entry_categories(entry)
+    if "VIDEOS" in categories or _has_word(text, "youtube", "video", "videos", "shorts", "transcript"):
+        return ActorBaseFamily.VIDEO_METADATA.value
     if any(term in text for term in ("google maps", "maps business", "local business", "places", "near me")):
         return ActorBaseFamily.LOCAL_MAPS_SERP.value
     if any(term in text for term in ("amazon", "ebay", "walmart", "marketplace")):
@@ -194,6 +201,16 @@ def build_actor_spec(entry: Any) -> ActorSpec:
                 connector="services.worker_http.worker.HttpWorker",
                 priority=1,
                 rationale="News/content monitoring uses native HTTP content extraction until feed/API connectors are mapped.",
+            ),
+        )
+    elif family == ActorBaseFamily.VIDEO_METADATA:
+        provider_chain = (
+            ProviderStep(
+                name="yt_dlp_metadata",
+                tier=ProviderTier.PROVIDER_SDK,
+                connector="packages.connectors.youtube_dlp_connector.YoutubeDlpConnector",
+                priority=1,
+                rationale="Video workflows use yt-dlp metadata extraction through the native connector without external actor delegation.",
             ),
         )
     elif not provider_chain:
@@ -660,6 +677,80 @@ class LocalMapsSerpRunner(BaseActorRunner):
         return GoogleMapsConnector()
 
 
+class VideoMetadataRunner(BaseActorRunner):
+    def __init__(
+        self,
+        spec: ActorSpec,
+        *,
+        task_id: str,
+        tenant_id: str,
+        secrets_manager: SecretsManager | None = None,
+        youtube_factory: Callable[[], Any] | None = None,
+    ) -> None:
+        super().__init__(spec, secrets_manager=secrets_manager)
+        self.task_id = task_id
+        self.tenant_id = tenant_id
+        self._youtube_factory = youtube_factory
+
+    async def execute(self, payload: dict[str, Any]) -> dict[str, Any]:
+        target = _target_from_payload(payload)
+        started = time.perf_counter()
+        connector = self._create_youtube_connector()
+        metadata = await asyncio.to_thread(connector.extract_metadata, target)
+        if metadata.get("error"):
+            raise RuntimeError(str(metadata["error"]))
+        if not metadata:
+            raise RuntimeError("yt-dlp returned no video metadata")
+
+        item = {
+            key: value
+            for key, value in {
+                "video_id": metadata.get("id"),
+                "title": metadata.get("title"),
+                "description": metadata.get("description"),
+                "uploader": metadata.get("uploader"),
+                "uploader_id": metadata.get("uploader_id"),
+                "view_count": metadata.get("view_count"),
+                "like_count": metadata.get("like_count"),
+                "duration": metadata.get("duration"),
+                "upload_date": metadata.get("upload_date"),
+                "channel_url": metadata.get("channel_url"),
+                "thumbnail": metadata.get("thumbnail"),
+                "tags": metadata.get("tags", []),
+                "source_url": target,
+                "source": urlparse(target).netloc or "video",
+            }.items()
+            if value not in (None, "", [], {})
+        }
+        if payload.get("include_transcript") or payload.get("include_transcripts"):
+            transcript = await asyncio.to_thread(connector.extract_transcript, target)
+            if transcript.get("error"):
+                item["transcript_error"] = transcript["error"]
+            else:
+                item["subtitles"] = transcript.get("subtitles", {})
+                item["automatic_captions"] = transcript.get("automatic_captions", {})
+
+        duration_ms = int((time.perf_counter() - started) * 1000)
+        confidence = 0.9 if item.get("video_id") and item.get("title") else 0.65
+        return {
+            "extracted_data": [item],
+            "item_count": 1,
+            "confidence": confidence,
+            "status_code": 200,
+            "extraction_method": "yt_dlp_metadata",
+            "bytes_downloaded": 0,
+            "duration_ms": duration_ms,
+            "artifacts": [],
+        }
+
+    def _create_youtube_connector(self) -> Any:
+        if self._youtube_factory is not None:
+            return self._youtube_factory()
+        from packages.connectors.youtube_dlp_connector import YoutubeDlpConnector
+
+        return YoutubeDlpConnector()
+
+
 def create_actor_runner(
     spec: ActorSpec,
     entry: Any,
@@ -719,6 +810,13 @@ def create_actor_runner(
         )
     if spec.base_family == ActorBaseFamily.NEWS_CONTENT_MONITORING:
         return NewsContentMonitoringRunner(
+            spec,
+            task_id=task_id,
+            tenant_id=tenant_id,
+            secrets_manager=secrets_manager,
+        )
+    if spec.base_family == ActorBaseFamily.VIDEO_METADATA:
+        return VideoMetadataRunner(
             spec,
             task_id=task_id,
             tenant_id=tenant_id,

@@ -92,15 +92,15 @@ def test_amazon_marketplace_provider_ladder_uses_keepa_without_apify_runtime() -
     assert all(not (step.connector and "apify" in step.connector.lower()) for step in spec.provider_chain)
 
 
-def test_unsupported_route_strategy_gets_machine_readable_provider_ladder() -> None:
+def test_yt_dlp_provider_ladder_uses_native_video_connector() -> None:
     from packages.core.actor_runtime import ProviderTier, build_actor_spec
 
     spec = build_actor_spec(_entry(route_strategy="yt_dlp", title="Video Downloader"))
 
     assert spec.base_family == "yt_dlp"
-    assert spec.provider_chain[0].name == "unsupported_route_strategy"
-    assert spec.provider_chain[0].tier == ProviderTier.UNSUPPORTED
-    assert "not yet mapped" in spec.provider_chain[0].rationale
+    assert spec.provider_chain[0].name == "yt_dlp_metadata"
+    assert spec.provider_chain[0].tier == ProviderTier.PROVIDER_SDK
+    assert spec.provider_chain[0].connector == "packages.connectors.youtube_dlp_connector.YoutubeDlpConnector"
 
 
 def test_all_current_base_families_have_tiered_provider_ladders() -> None:
@@ -120,6 +120,7 @@ def test_all_current_base_families_have_tiered_provider_ladders() -> None:
         ),
         ActorBaseFamily.REVIEW_MONITORING_GENERIC: _entry(title="Trustpilot Review Monitor"),
         ActorBaseFamily.NEWS_CONTENT_MONITORING: _entry(title="News Article Monitor", categories=("NEWS",)),
+        ActorBaseFamily.VIDEO_METADATA: _entry(route_strategy="yt_dlp", title="YouTube Video Metadata"),
     }
 
     for expected_family, entry in samples.items():

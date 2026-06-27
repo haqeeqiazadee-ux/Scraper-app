@@ -5,11 +5,27 @@ yt-dlp Connector for video metadata extraction and downloading.
 from __future__ import annotations
 
 import logging
+from types import SimpleNamespace
 from typing import Any
 
-import yt_dlp
+try:
+    import yt_dlp
+except ModuleNotFoundError:
+    yt_dlp = SimpleNamespace(YoutubeDL=None)
 
 logger = logging.getLogger(__name__)
+
+
+def _load_yt_dlp() -> Any:
+    global yt_dlp
+    if getattr(yt_dlp, "YoutubeDL", None) is not None:
+        return yt_dlp
+    try:
+        import yt_dlp as loaded_yt_dlp
+    except ModuleNotFoundError as exc:
+        raise RuntimeError("yt-dlp is not installed") from exc
+    yt_dlp = loaded_yt_dlp
+    return yt_dlp
 
 class YoutubeDlpConnector:
     """Extracts metadata and media from YouTube and other video platforms."""
@@ -41,7 +57,7 @@ class YoutubeDlpConnector:
     def extract_metadata(self, url: str) -> dict[str, Any]:
         """Extract metadata from a video URL without downloading the file."""
         try:
-            with yt_dlp.YoutubeDL(self.ydl_opts) as ydl:
+            with _load_yt_dlp().YoutubeDL(self.ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
                 if not info:
                     return {}
@@ -73,7 +89,7 @@ class YoutubeDlpConnector:
             'skip_download': True,
         })
         try:
-            with yt_dlp.YoutubeDL(opts) as ydl:
+            with _load_yt_dlp().YoutubeDL(opts) as ydl:
                 info = ydl.extract_info(url, download=False)
                 return {
                     "subtitles": info.get("subtitles", {}),

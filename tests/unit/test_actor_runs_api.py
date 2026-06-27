@@ -70,23 +70,39 @@ def _first_actor_matching_strategy(strategy: str) -> str:
     return actors[0].actor_id
 
 
-def test_actor_run_blocks_non_native_strategy_without_redirecting() -> None:
+def test_actor_run_executes_yt_dlp_strategy_without_redirecting(monkeypatch: pytest.MonkeyPatch) -> None:
     actor_id = _first_actor_with_strategy("yt_dlp")
+
+    from packages.core.actor_runtime.families import VideoMetadataRunner
+
+    class FakeYoutubeConnector:
+        def extract_metadata(self, target: str) -> dict[str, Any]:
+            assert "youtube.com/watch" in target
+            return {
+                "id": "video-1",
+                "title": "Fixture Video",
+                "uploader": "Fixture Channel",
+                "view_count": 100,
+            }
+
+    monkeypatch.setattr(VideoMetadataRunner, "_create_youtube_connector", lambda self: FakeYoutubeConnector())
 
     async def scenario(client: AsyncClient) -> None:
         response = await client.post(
             f"/api/v1/actors/{actor_id}/runs",
-            json={"input": {"target": "https://example.com/products"}},
+            json={"input": {"target": "https://www.youtube.com/watch?v=video-1"}},
             headers=TENANT_HEADER,
         )
 
         assert response.status_code == 200
         data = response.json()["data"]
         assert data["actor_id"] == actor_id
-        assert data["state"] == "blocked_policy"
-        assert data["task"]["status"] == "blocked"
-        assert data["run"]["status"] == "blocked_policy"
+        assert data["state"] == "succeeded"
+        assert data["task"]["status"] == "completed"
+        assert data["run"]["status"] == "completed"
         assert data["run"]["connector"] == "actor_runtime"
+        assert data["result"]["item_count"] == 1
+        assert data["result"]["extraction_method"] == "yt_dlp_metadata"
         assert "apify.com" not in data["run"]["connector"]
 
         detail = await client.get(
@@ -94,7 +110,7 @@ def test_actor_run_blocks_non_native_strategy_without_redirecting() -> None:
             headers=TENANT_HEADER,
         )
         assert detail.status_code == 200
-        assert detail.json()["data"]["state"] == "blocked_policy"
+        assert detail.json()["data"]["state"] == "succeeded"
 
     asyncio.run(_with_client(scenario))
 

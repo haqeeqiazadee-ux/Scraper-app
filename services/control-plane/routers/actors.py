@@ -64,6 +64,7 @@ RUNNABLE_NATIVE_STRATEGIES = {
     "lead_generation_generic",
     "review_monitoring_generic",
     "news_content_monitoring",
+    "yt_dlp",
 }
 
 

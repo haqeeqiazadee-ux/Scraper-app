@@ -68,11 +68,27 @@ def test_mcp_actor_route_returns_api_surface_and_provider_ladder(monkeypatch) ->
     assert data["api_surface"]["run_endpoint"] == f"/api/v1/actors/{actor_id}/runs"
 
 
-def test_mcp_actor_run_blocks_unsupported_routes_without_apify_fallback(monkeypatch) -> None:
+def test_mcp_actor_run_executes_yt_dlp_routes_without_apify_fallback(monkeypatch) -> None:
     from packages.core import mcp_server
+    from packages.core.actor_runtime import ActorRuntimeResult, ActorRunState
 
     monkeypatch.delenv("SCRAPER_API_KEY_REQUIRED", raising=False)
     actor_id = _first_actor_with_strategy("yt_dlp")
+
+    class FakeRunner:
+        async def run(self, payload: dict[str, Any]) -> ActorRuntimeResult:
+            return ActorRuntimeResult(
+                actor_id=actor_id,
+                state=ActorRunState.SUCCEEDED,
+                provider="yt_dlp_metadata",
+                output={
+                    "extracted_data": [{"video_id": "video-1", "title": "Fixture Video"}],
+                    "item_count": 1,
+                    "extraction_method": "yt_dlp_metadata",
+                },
+            )
+
+    monkeypatch.setattr(mcp_server, "_create_actor_runtime_runner", lambda *args, **kwargs: FakeRunner())
 
     data = _content_json(
         asyncio.run(
@@ -80,16 +96,17 @@ def test_mcp_actor_run_blocks_unsupported_routes_without_apify_fallback(monkeypa
                 "actor_run",
                 {
                     "actor_id": actor_id,
-                    "input": {"target": "https://example.com/video"},
+                    "input": {"target": "https://www.youtube.com/watch?v=video-1"},
                 },
             )
         )
     )
 
     assert data["success"] is True
-    assert data["state"] == "blocked_policy"
+    assert data["state"] == "succeeded"
+    assert data["provider"] == "yt_dlp_metadata"
     assert data["execution_source"] == "native_actor_runtime"
-    assert data["provider_ladder"][0]["tier"] == "unsupported"
+    assert data["provider_ladder"][0]["tier"] == "provider_sdk"
     assert "apify" not in json.dumps(data["provider_ladder"]).lower()
 
 

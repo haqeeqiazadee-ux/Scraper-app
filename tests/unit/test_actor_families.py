@@ -319,6 +319,43 @@ def test_local_maps_runner_prefers_serper_provider_when_key_is_present() -> None
     assert result.provider == "serper_places"
 
 
+def test_video_metadata_runner_uses_ytdlp_connector_without_api_key() -> None:
+    from packages.core.actor_runtime import ActorRunState
+    from packages.core.actor_runtime.families import VideoMetadataRunner, build_actor_spec
+
+    class FakeYoutubeConnector:
+        def extract_metadata(self, target: str) -> dict:
+            assert target == "https://www.youtube.com/watch?v=fixture"
+            return {
+                "id": "fixture",
+                "title": "Fixture Video",
+                "uploader": "Fixture Channel",
+                "view_count": 123,
+            }
+
+    runner = VideoMetadataRunner(
+        build_actor_spec(
+            _entry(
+                route_strategy="yt_dlp",
+                title="YouTube Video Scraper",
+                categories=("VIDEOS",),
+            )
+        ),
+        task_id="task-1",
+        tenant_id="tenant-1",
+        secrets_manager=EmptySecrets(),
+        youtube_factory=FakeYoutubeConnector,
+    )
+
+    result = asyncio.run(runner.run({"target": "https://www.youtube.com/watch?v=fixture"}))
+
+    assert result.state == ActorRunState.SUCCEEDED
+    assert result.provider == "yt_dlp_metadata"
+    assert result.output["item_count"] == 1
+    assert result.output["extracted_data"][0]["video_id"] == "fixture"
+    assert result.output["extraction_method"] == "yt_dlp_metadata"
+
+
 def test_job_board_runner_schema_matches_and_validates_worker_items() -> None:
     from packages.core.actor_runtime import ActorRunState
     from packages.core.actor_runtime.families import JobBoardSchemaRunner, build_actor_spec
