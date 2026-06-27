@@ -1070,4 +1070,10 @@ This file is the mandatory proof trail for the pre-code reuse gate.
   - `python scripts/run_actor_proof_factory.py --ledger docs/agent-sync/runtime/actor-proof-ledger.jsonl --status`
   - Local ledger verification: 27,753 rows, 27,753 `api_mapped`, 0 `live_e2e_passed=true`, 0 `ui_route_passed=true`, 0 `fixture_replay_passed=true`.
   - Claude read-only validation returned `PASS`, no blockers, no fixbacks.
-- Status: H1 production E2E is green. P1 has full catalog API-mapped proof-row coverage and an improved proof-level guard. Full 27,753 live E2E proof remains open with 0 `live_e2e_passed` actors.
+  - Commit `aebf16f` pushed to `main`.
+  - Commit `fe40d3a` pushed to `main`.
+  - Railway deployment `00af0cd7-3504-4d09-bae0-48507f50cace` succeeded.
+  - Post-deploy proof sample against `https://scraper.exsel.ai` produced 3 `api_mapped` rows with `live_e2e_passed=false` and `ui_route_passed=false`.
+  - Latest post-deploy H1 rerun passed: 56 passed, 1 warning in 214.94s.
+  - Claude final post-deploy validation returned `PASS`, no blockers, no fixbacks.
+- Status: H1 production E2E is green on the latest Railway deployment. P1 has full catalog API-mapped proof-row coverage and an improved proof-level guard. Full 27,753 live E2E proof remains open with 0 `live_e2e_passed` actors.

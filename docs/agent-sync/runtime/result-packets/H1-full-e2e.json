@@ -39,7 +39,9 @@
     "Local unit fixback: 19 passed.",
     "Local ASGI fixback smoke: example.com completed item_count=1, httpbin.org/html completed item_count=1, Trustpilot smart scrape completed item_count=1, Trustpilot template execute completed item_count=1.",
     "Claude read-only validation: PASS with no blockers.",
-    "Production H1 live rerun: 56 passed, 1 warning in 220.62s."
+    "Production H1 live rerun: 56 passed, 1 warning in 220.62s.",
+    "Latest post-deploy H1 rerun after Railway deployment 00af0cd7-3504-4d09-bae0-48507f50cace: 56 passed, 1 warning in 214.94s.",
+    "Claude final post-deploy validation: PASS with no blockers or fixbacks."
   ],
   "tests_failed": [
     "Initial full suite: 7 failed out of 56.",
@@ -51,9 +53,10 @@
   "known_limitations": [
     "The suite targets live production URLs from tests/e2e/test_all_workflows.py, not a freshly deployed copy of the current local main changes.",
     "Trustpilot fallback is a source-level proof item only; it must not be claimed as extracted real review text.",
-    "New proof-factory promotion fix is local and still needs deployment verification."
+    "Full 27,753 live E2E actor proof remains open; H1 covers the existing 56 production workflow suite, not every catalog actor."
   ],
-  "qa_status": "production_live_e2e_passed",
+  "qa_status": "production_live_e2e_passed_latest_railway_deploy",
   "next_recommended_packet": "H2-deployment-verification-after-proof-fix-deploy",
-  "updated_at_utc": "2026-06-27T20:46:21+00:00"
+  "updated_at_utc": "2026-06-27T21:05:01+00:00",
+  "claude_validation_status": "PASS"
 }
