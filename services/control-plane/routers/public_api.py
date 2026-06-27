@@ -397,8 +397,8 @@ async def search(
     )
 
     # Delegate to existing Serper search logic
-    import os
-    api_key = os.environ.get("SERPER_API_KEY", "").strip()
+    from packages.core.secrets import get_env_secret
+    api_key = get_env_secret("SERPER_API_KEY", "") or ""
     if not api_key:
         raise HTTPException(
             status_code=503,

@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import os
 import re
 import time
 import traceback
@@ -27,6 +26,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from packages.contracts.task import Task, TaskStatus
 from packages.core.router import ExecutionRouter, RouteDecision, Lane
 from packages.core.escalation import EscalationManager
+from packages.core.secrets import get_env_secret
 from services.control_plane.dependencies import get_session, get_database, get_tenant_id
 
 logger = structlog.get_logger(__name__)
@@ -164,7 +164,7 @@ async def _handle_search(
     tracker = CostTracker()
     step_ts = time.time()
 
-    api_key = os.environ.get("SERPER_API_KEY", "").strip()
+    api_key = get_env_secret("SERPER_API_KEY", "") or ""
     if not api_key:
         _record_step(steps, "Search failed: SERPER_API_KEY not configured", step_ts)
         return {
@@ -317,13 +317,14 @@ async def _handle_url_scrape(
     parsed_url = urlparse(url)
     domain_lower = parsed_url.netloc.lower()
     is_amazon = "amazon." in domain_lower
+    is_ebay = "ebay." in domain_lower
     is_tiktok = "tiktok.com" in domain_lower
     is_facebook = "facebook.com" in domain_lower or "fb.com" in domain_lower
 
     # TikTok → route based on URL type
     # /shop/* → ScrapeCreators API (paid, $0.0019/req)
     # everything else → davidteather TikTok-Api (free)
-    SCRAPECREATORS_API_KEY = os.environ.get("SCRAPECREATORS_API_KEY", "").strip()
+    SCRAPECREATORS_API_KEY = get_env_secret("SCRAPECREATORS_API_KEY", "") or ""
     _SC_BASE = "https://api.scrapecreators.com/v1"
 
     if is_tiktok:
@@ -505,14 +506,15 @@ async def _handle_url_scrape(
 
     # Amazon → route ALL queries to Keepa API
 
-    if is_amazon and not os.environ.get("KEEPA_API_KEY", "").strip():
+    keepa_api_key = get_env_secret("KEEPA_API_KEY", "") or ""
+    if is_amazon and not keepa_api_key:
         step_ts = _record_step(
             steps,
             "Amazon detected; KEEPA_API_KEY not configured, falling back to scraper",
             step_ts,
         )
 
-    if is_amazon and os.environ.get("KEEPA_API_KEY", "").strip():
+    if is_amazon and keepa_api_key:
         try:
             from services.control_plane.routers.keepa import _get_keepa
             connector = _get_keepa()
@@ -598,6 +600,17 @@ async def _handle_url_scrape(
                     platform_products = _normalise_keepa_products(products)
                     step_ts = _record_step(steps, f"Keepa API: search '{keywords}' — {len(platform_products)} products", step_ts)
                     tracker.record("keepa_search", detail=f"keyword: {keywords[:50]}")
+                else:
+                    from packages.connectors.search_fallback import amazon_search_fallback
+                    fallback_products = await amazon_search_fallback(keywords, max_results=20)
+                    if fallback_products:
+                        platform_products = fallback_products
+                        step_ts = _record_step(
+                            steps,
+                            f"Keepa keyword fallback: Amazon search provider returned {len(platform_products)} products",
+                            step_ts,
+                        )
+                        tracker.record("serper_amazon_fallback", detail=f"keyword: {keywords[:50]}")
 
             elif category_match:
                 # Bestsellers by category
@@ -656,8 +669,45 @@ async def _handle_url_scrape(
         except Exception as keepa_err:
             logger.warning("smart_scrape.keepa_failed", error=str(keepa_err)[:200])
 
+    # eBay blocks anonymous datacenter scraping aggressively. Prefer official
+    # Browse API when configured, otherwise use source-backed search results.
+    if is_ebay and not platform_products:
+        try:
+            from urllib.parse import parse_qs, unquote_plus
+            query_params = parse_qs(parsed_url.query)
+            ebay_query = unquote_plus((query_params.get("_nkw") or query_params.get("q") or [""])[0]).strip()
+            completed = any(key in query_params for key in ("LH_Complete", "LH_Sold"))
+            if ebay_query:
+                ebay_items: list[dict[str, Any]] = []
+                if get_env_secret("EBAY_APP_ID") and get_env_secret("EBAY_CERT_ID"):
+                    from packages.connectors.ebay_connector import EbayConnector
+                    connector = EbayConnector()
+                    ebay_items = await connector.search_products(ebay_query, limit=20)
+                    for item in ebay_items:
+                        item.setdefault("_category", "product")
+                        item.setdefault("_extraction_method", "ebay_browse_api")
+
+                if not ebay_items:
+                    from packages.connectors.search_fallback import ebay_search_fallback
+                    ebay_items = await ebay_search_fallback(
+                        ebay_query,
+                        max_results=20,
+                        completed=completed,
+                    )
+
+                if ebay_items:
+                    platform_products = ebay_items
+                    step_ts = _record_step(
+                        steps,
+                        f"eBay provider fallback: {len(platform_products)} listings for '{ebay_query}'",
+                        step_ts,
+                    )
+                    tracker.record("ebay_provider_fallback", detail=ebay_query[:50])
+        except Exception as ebay_err:
+            logger.warning("smart_scrape.ebay_fallback_failed", error=str(ebay_err)[:200])
+
     # Non-Amazon: try Shopify/WooCommerce APIs
-    if not platform_products and not is_amazon:
+    if not platform_products and not is_amazon and not is_ebay:
         try:
             import httpx as _httpx
             api_base = f"{parsed_url.scheme}://{parsed_url.netloc}"
@@ -713,7 +763,7 @@ async def _handle_url_scrape(
             logger.debug("smart_scrape.platform_api_skip", error=str(api_err)[:100])
 
     # If platform API returned products, skip lane execution entirely
-    if platform_products and len(platform_products) >= 3:
+    if platform_products and (len(platform_products) >= 3 or is_ebay):
         # Save directly to DB
         await task_repo_create_and_save(
             session, tenant_id, task_id, run_id, url, platform_products, steps, step_ts, request,

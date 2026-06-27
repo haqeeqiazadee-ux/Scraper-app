@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import logging
-import os
 import re
 from typing import Any, Optional
+from urllib.parse import quote_plus
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
@@ -84,6 +84,47 @@ def _extract_asins(text: str) -> list[str]:
     return asins
 
 
+def _amazon_host_for_domain(domain: str) -> str:
+    """Return the Amazon host matching a Keepa domain code."""
+    return {
+        "US": "www.amazon.com",
+        "GB": "www.amazon.co.uk",
+        "DE": "www.amazon.de",
+        "FR": "www.amazon.fr",
+        "IT": "www.amazon.it",
+        "ES": "www.amazon.es",
+        "CA": "www.amazon.ca",
+        "JP": "www.amazon.co.jp",
+        "IN": "www.amazon.in",
+        "MX": "www.amazon.com.mx",
+        "BR": "www.amazon.com.br",
+    }.get(domain.upper(), "www.amazon.com")
+
+
+async def _amazon_html_fallback(query: str, domain: str, max_results: int = 10) -> list[dict[str, Any]]:
+    """Use the native HTTP collector and Amazon extractor when Keepa returns no data."""
+    from packages.connectors.http_collector import HttpCollector
+    from packages.core.ai_providers.social.amazon import AmazonExtractor
+    from packages.core.interfaces import FetchRequest
+
+    host = _amazon_host_for_domain(domain)
+    asin = _extract_asin(query)
+    url = f"https://{host}/dp/{asin}" if asin else f"https://{host}/s?k={quote_plus(query)}"
+    collector = HttpCollector()
+    try:
+        response = await collector.fetch(FetchRequest(url=url, timeout_ms=30000))
+        if not response.ok:
+            return []
+        products = AmazonExtractor().extract(response.html or response.text, str(response.url or url))
+        for product in products:
+            product.setdefault("source", "amazon_live_html")
+            product.setdefault("_category", "product")
+            product.setdefault("_extraction_method", "amazon_html_fallback")
+        return products[:max_results]
+    finally:
+        await collector.close()
+
+
 @router.post("/keepa/query")
 async def keepa_query(req: KeepaQueryRequest) -> dict[str, Any]:
     """Query Keepa for product data.
@@ -114,6 +155,8 @@ async def keepa_query(req: KeepaQueryRequest) -> dict[str, Any]:
             stats_days=90,
             history_days=30,
         )
+        if not products:
+            products = await _amazon_html_fallback(asins[0], req.domain, max_results=1)
         return {
             "query": query,
             "query_type": "asin_lookup",
@@ -140,6 +183,9 @@ async def keepa_query(req: KeepaQueryRequest) -> dict[str, Any]:
                 stats_days=90,
                 history_days=7,
             )
+        if not products:
+            from packages.connectors.search_fallback import amazon_search_fallback
+            products = await amazon_search_fallback(query, max_results=req.max_results)
 
         return {
             "query": query,

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import os
 from typing import Any
 
 import httpx
@@ -11,6 +10,7 @@ import structlog
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
+from packages.core.secrets import get_env_secret
 from services.control_plane.routers.crawl import OutputFormat
 
 logger = structlog.get_logger(__name__)
@@ -142,7 +142,7 @@ search_router = APIRouter(prefix="/search", tags=["Search"])
 @search_router.post("", status_code=200)
 async def search_and_scrape(request: SearchRequest) -> SearchResponse:
     """Search the web via Serper (Google) and scrape the top results."""
-    api_key = os.environ.get("SERPER_API_KEY", "").strip()
+    api_key = get_env_secret("SERPER_API_KEY", "") or ""
     if not api_key:
         raise HTTPException(
             status_code=503,

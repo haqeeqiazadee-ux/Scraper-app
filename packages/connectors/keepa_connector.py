@@ -26,6 +26,7 @@ from typing import Any, Optional
 from urllib.parse import urlparse
 
 from packages.core.interfaces import ConnectorMetrics, FetchRequest, FetchResponse
+from packages.core.secrets import get_env_secret
 
 logger = logging.getLogger(__name__)
 
@@ -125,8 +126,7 @@ class KeepaConnector:
 
     def _load_api_key(self) -> str:
         """Load Keepa API key from environment."""
-        import os
-        key = os.environ.get("KEEPA_API_KEY", "")
+        key = get_env_secret("KEEPA_API_KEY", "") or ""
         if not key:
             logger.warning("KEEPA_API_KEY not set — Keepa queries will fail")
         return key

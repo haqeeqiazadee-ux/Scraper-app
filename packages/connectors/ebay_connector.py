@@ -18,11 +18,11 @@ from __future__ import annotations
 
 import base64
 import logging
-import os
 import time
 from typing import Any, Optional
 
 from packages.core.interfaces import ConnectorMetrics
+from packages.core.secrets import get_env_secret
 
 logger = logging.getLogger(__name__)
 
@@ -45,8 +45,8 @@ class EbayConnector:
         cert_id: Optional[str] = None,
         sandbox: bool = False,
     ) -> None:
-        self._app_id = app_id or os.environ.get("EBAY_APP_ID", "")
-        self._cert_id = cert_id or os.environ.get("EBAY_CERT_ID", "")
+        self._app_id = app_id or get_env_secret("EBAY_APP_ID", "") or ""
+        self._cert_id = cert_id or get_env_secret("EBAY_CERT_ID", "") or ""
         self._sandbox = sandbox
         self._access_token: Optional[str] = None
         self._token_expires: float = 0

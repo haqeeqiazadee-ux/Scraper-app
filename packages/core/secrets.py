@@ -16,6 +16,19 @@ from typing import Optional, Protocol, runtime_checkable
 logger = logging.getLogger(__name__)
 
 
+def clean_secret_value(value: Optional[str]) -> Optional[str]:
+    """Strip transport artifacts without logging or otherwise exposing a secret."""
+    if value is None:
+        return None
+    cleaned = value.strip().strip("'\"").lstrip("\ufeff").strip("'\"").strip()
+    return cleaned or None
+
+
+def get_env_secret(key: str, default: Optional[str] = None) -> Optional[str]:
+    """Read and sanitize an environment-backed secret."""
+    return clean_secret_value(os.environ.get(key)) or default
+
+
 @runtime_checkable
 class SecretProvider(Protocol):
     """Interface for secret storage backends."""
@@ -29,7 +42,7 @@ class EnvSecretProvider:
     """Secrets from environment variables (default)."""
 
     def get_secret(self, key: str) -> Optional[str]:
-        value = os.environ.get(key)
+        value = get_env_secret(key)
         if value:
             logger.debug("Secret retrieved", extra={"key": key})
         return value
