@@ -40,9 +40,15 @@
     "packages/core/normalizer.py",
     "services/worker-http/worker.py",
     "tests/unit/test_normalizer.py",
-    "docs/agent-sync/runtime/actor-proof-ledger.production-batch-25.jsonl"
+    "docs/agent-sync/runtime/actor-proof-ledger.production-batch-25.jsonl",
+    "packages/connectors/youtube_dlp_connector.py",
+    "packages/core/actor_runtime/families.py",
+    "tests/unit/test_youtube_dlp.py",
+    "tests/unit/test_actor_provider_ladder.py",
+    "tests/unit/test_mcp_actor_tools.py",
+    "docs/agent-sync/runtime/actor-proof-ledger.production-video-batch-25.jsonl"
   ],
-  "implementation_summary": "Added an actor proof-factory substrate that records explicit per-actor proof levels, failure classes, durable proof rows, proof summary/list/detail APIs, run-to-proof promotion, a resumable proof runner script, visible proof counters/status in the existing UI, and focused tests that prevent API-mapped actors from being claimed as live E2E proven. Added fixes preventing failed actor runs from being promoted to ui_route_passed, preventing zero-item completed runs from being promoted to runtime_smoke_passed, preventing the proof runner from asserting UI proof by default, routing generated test inputs to hosted first-party fixtures, and fixing the runtime family classifier so the word leading no longer triggers lead-generation routing. Post-deploy fix: non-product actor proof outputs now survive normalization, and the HTTP worker lazy-loads yt-dlp only for video URLs so review/contact/content actors are not coupled to optional video tooling.",
+  "implementation_summary": "Added an actor proof-factory substrate that records explicit per-actor proof levels, failure classes, durable proof rows, proof summary/list/detail APIs, run-to-proof promotion, a resumable proof runner script, visible proof counters/status in the existing UI, and focused tests that prevent API-mapped actors from being claimed as live E2E proven. Added fixes preventing failed actor runs from being promoted to ui_route_passed, preventing zero-item completed runs from being promoted to runtime_smoke_passed, preventing the proof runner from asserting UI proof by default, routing generated test inputs to hosted first-party fixtures, and fixing the runtime family classifier so the word leading no longer triggers lead-generation routing. Post-deploy fix: non-product actor proof outputs now survive normalization, and the HTTP worker lazy-loads yt-dlp only for video URLs so review/contact/content actors are not coupled to optional video tooling. Native video actor support added: yt_dlp route_strategy now uses the existing YoutubeDlpConnector through a metadata-only provider SDK runner and is no longer blocked as unsupported.",
   "tenant_isolation_checked": true,
   "secrets_touched": false,
   "api_first_boundary_checked": true,
@@ -91,7 +97,12 @@
     "C:\\Users\\PC\\.local\\bin\\claude.exe -p \"Validate narrow non-product actor proof normalization and lazy yt-dlp diff\"",
     "python -m compileall -q packages services scripts tests/unit/test_actor_proof_factory.py tests/unit/test_actor_families.py tests/unit/test_normalizer.py",
     "python -m pytest tests/unit/test_normalizer.py tests/unit/test_actor_families.py tests/unit/test_actor_proof_factory.py tests/unit/test_actor_runs_api.py tests/unit/test_actor_value_metrics.py -q",
-    "python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 25 --write-ledger --ledger docs/agent-sync/runtime/actor-proof-ledger.production-batch-25.jsonl --base-url https://scraper.exsel.ai --concurrency 1 --rate-limit-per-second 0.5 --timeout 45"
+    "python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 25 --write-ledger --ledger docs/agent-sync/runtime/actor-proof-ledger.production-batch-25.jsonl --base-url https://scraper.exsel.ai --concurrency 1 --rate-limit-per-second 0.5 --timeout 45",
+    "python -m pytest tests/unit/test_youtube_dlp.py tests/unit/test_actor_provider_ladder.py tests/unit/test_actor_families.py tests/unit/test_actor_runs_api.py tests/unit/test_mcp_actor_tools.py -q",
+    "python -m compileall -q packages services scripts tests/unit/test_youtube_dlp.py tests/unit/test_actor_provider_ladder.py tests/unit/test_actor_families.py tests/unit/test_actor_runs_api.py tests/unit/test_mcp_actor_tools.py tests/unit/test_actor_proof_factory.py tests/unit/test_actor_value_metrics.py",
+    "python -m pytest tests/unit/test_youtube_dlp.py tests/unit/test_actor_provider_ladder.py tests/unit/test_actor_families.py tests/unit/test_actor_runs_api.py tests/unit/test_mcp_actor_tools.py tests/unit/test_actor_proof_factory.py tests/unit/test_actor_value_metrics.py -q",
+    "C:\\Users\\PC\\.local\\bin\\claude.exe -p \"Validate native yt_dlp video actor family diff\"",
+    "python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 25 --write-ledger --ledger docs/agent-sync/runtime/actor-proof-ledger.production-video-batch-25.jsonl --base-url https://scraper.exsel.ai --concurrency 1 --rate-limit-per-second 0.5 --timeout 60"
   ],
   "tests_passed": [
     "compileall passed",
@@ -126,7 +137,11 @@
     "45 focused normalizer/family/proof tests passed after non-product validation fix.",
     "59 focused normalizer/family/proof/run/value tests passed after non-product validation fix.",
     "Claude validation of lazy yt-dlp and non-product normalizer diff returned PASS with no blockers.",
-    "Post-fix production proof batch: 25 rows; 23 fixture_replay_passed, 2 api_mapped unsupported yt_dlp, 0 live_e2e_passed, 0 ui_route_passed."
+    "Post-fix production proof batch: 25 rows; 23 fixture_replay_passed, 2 api_mapped unsupported yt_dlp, 0 live_e2e_passed, 0 ui_route_passed.",
+    "41 video-family/provider/API/MCP tests passed after native yt_dlp implementation.",
+    "47 focused video/proof/run/value tests passed after native yt_dlp implementation.",
+    "Claude validation of native yt_dlp video actor family returned PASS with no blockers.",
+    "Post-video-family production proof batch: 25 rows; 23 fixture_replay_passed, 2 runtime_smoke_passed yt_dlp actors, 0 api_mapped, 0 failures, 0 live_e2e_passed, 0 ui_route_passed."
   ],
   "tests_failed": [
     "Initial broad Claude validation attempt timed out; narrow retry passed",
@@ -137,15 +152,24 @@
     "Deployment smoke for proof APIs/UI remains part of H2.",
     "Full 27,753 API-mapped proof coverage exists, but 0 actors are live_e2e_passed; this must not be marketed as live E2E proof.",
     "Latest 25-row production batch proves fixture replay for 23 sampled actors only; it is not full 27,753 live E2E proof.",
-    "yt_dlp route strategy remains unsupported by the native actor proof factory until a video-family runner is implemented and tested."
+    "yt_dlp route strategy remains unsupported by the native actor proof factory until a video-family runner is implemented and tested.",
+    "yt_dlp actors in the latest bounded batch are runtime_smoke_passed, not fixture_replay_passed or live_e2e_passed, because they use an external YouTube metadata target.",
+    "Latest 25-row production video batch does not prove all 3,055 yt_dlp actors or all 27,753 workflows end-to-end."
   ],
   "qa_status": "accepted_api_mapped_full_catalog_coverage_live_e2e_unproven",
   "next_recommended_packet": "deploy-hosted-fixtures-and-run-fixture-proof-promotion-sample",
-  "updated_at_utc": "2026-06-27T21:57:38Z",
+  "updated_at_utc": "2026-06-27T22:08:54Z",
   "production_fixture_batch_count": 25,
   "production_fixture_batch_fixture_replay_passed_count": 23,
   "production_fixture_batch_api_mapped_count": 2,
   "production_fixture_batch_live_e2e_passed_count": 0,
   "production_fixture_batch_ui_route_passed_count": 0,
-  "latest_railway_deployment": "f2ecc3db-cd00-445f-9a65-a119631e0d44"
+  "latest_railway_deployment": "07ba733e-714a-4b6e-9aa6-ce967940acdc",
+  "production_video_batch_count": 25,
+  "production_video_batch_fixture_replay_passed_count": 23,
+  "production_video_batch_runtime_smoke_passed_count": 2,
+  "production_video_batch_api_mapped_count": 0,
+  "production_video_batch_failure_count": 0,
+  "production_video_batch_live_e2e_passed_count": 0,
+  "production_video_batch_ui_route_passed_count": 0
 }

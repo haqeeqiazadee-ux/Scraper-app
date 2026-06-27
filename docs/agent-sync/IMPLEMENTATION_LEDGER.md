@@ -1256,3 +1256,51 @@ This file is the mandatory proof trail for the pre-code reuse gate.
   - `GET https://myscraper.netlify.app/fixtures/actor-proof/reviews.html -> 200`
   - `python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 25 --write-ledger --ledger docs/agent-sync/runtime/actor-proof-ledger.production-batch-25.jsonl --base-url https://scraper.exsel.ai --concurrency 1 --rate-limit-per-second 0.5 --timeout 45`
 - Status: Non-product fixture replay is fixed and deployed for bounded production proof. Full 27,753 live E2E proof remains open; the next implementation gap is native `yt_dlp`/video-family support and scaling proof batches beyond 25.
+
+## Mainline Loop - Native Video Actor Family
+
+- Task: Convert `yt_dlp` catalog actors from unsupported route strategy to native video metadata execution.
+- Phase: P1/P2 proof-factory promotion fixback
+- Existing files inspected:
+  - `packages/connectors/youtube_dlp_connector.py`
+  - `packages/core/actor_runtime/families.py`
+  - `packages/core/actor_runtime/runner.py`
+  - `services/control-plane/routers/actors.py`
+  - `tests/unit/test_youtube_dlp.py`
+  - `tests/unit/test_actor_provider_ladder.py`
+  - `tests/unit/test_actor_runs_api.py`
+  - `tests/unit/test_mcp_actor_tools.py`
+- Reuse decision: `extend_existing`
+- Reason: The repo already had `YoutubeDlpConnector`, actor provider ladders, actor API, MCP actor tools, and proof runner. The correct fix was a thin metadata runner around the existing connector, not a new video scraping subsystem.
+- Files modified:
+  - `packages/connectors/youtube_dlp_connector.py`
+  - `packages/core/actor_runtime/families.py`
+  - `packages/core/actor_runtime/__init__.py`
+  - `services/control-plane/routers/actors.py`
+  - `tests/unit/test_actor_families.py`
+  - `tests/unit/test_actor_provider_ladder.py`
+  - `tests/unit/test_actor_runs_api.py`
+  - `tests/unit/test_mcp_actor_tools.py`
+  - `docs/agent-sync/runtime/actor-proof-ledger.production-video-batch-25.jsonl`
+  - `docs/agent-sync/runtime/result-packets/P1-actor-proof-factory-27753.json`
+  - `docs/agent-sync/runtime/result-packets/H2-deployment-verification.json`
+  - `docs/agent-sync/PHASE_STATUS.md`
+  - `docs/agent-sync/IMPLEMENTATION_LEDGER.md`
+- Evidence:
+  - `ActorBaseFamily.VIDEO_METADATA` now maps to value `yt_dlp`.
+  - `build_actor_spec(...)` emits a `yt_dlp_metadata` `provider_sdk` ladder using `packages.connectors.youtube_dlp_connector.YoutubeDlpConnector`.
+  - `VideoMetadataRunner` executes metadata-only extraction through `asyncio.to_thread(...)`, returns one structured dataset item, and optionally includes subtitles when requested.
+  - `RUNNABLE_NATIVE_STRATEGIES` now includes `yt_dlp`.
+  - `YoutubeDlpConnector` remains import-safe when `yt-dlp` is absent locally and raises only when the video execution path is actually used.
+  - Claude validation returned `PASS` for syntax, semantics, and business logic.
+  - Railway deployment `07ba733e-714a-4b6e-9aa6-ce967940acdc` succeeded.
+  - Post-video 25-actor production proof batch: 23 `fixture_replay_passed`, 2 `runtime_smoke_passed` `yt_dlp` actors, 0 `api_mapped`, 0 failures, 0 `live_e2e_passed`, 0 `ui_route_passed`.
+- Tests/gates:
+  - `python -m pytest tests/unit/test_youtube_dlp.py tests/unit/test_actor_provider_ladder.py tests/unit/test_actor_families.py tests/unit/test_actor_runs_api.py tests/unit/test_mcp_actor_tools.py -q`
+  - `python -m compileall -q packages services scripts tests/unit/test_youtube_dlp.py tests/unit/test_actor_provider_ladder.py tests/unit/test_actor_families.py tests/unit/test_actor_runs_api.py tests/unit/test_mcp_actor_tools.py tests/unit/test_actor_proof_factory.py tests/unit/test_actor_value_metrics.py`
+  - `python -m pytest tests/unit/test_youtube_dlp.py tests/unit/test_actor_provider_ladder.py tests/unit/test_actor_families.py tests/unit/test_actor_runs_api.py tests/unit/test_mcp_actor_tools.py tests/unit/test_actor_proof_factory.py tests/unit/test_actor_value_metrics.py -q`
+  - `C:\Users\PC\.local\bin\claude.exe -p "Validate native yt_dlp video actor family diff"`
+  - `railway.cmd up --service scraper-platform --detach`
+  - `GET https://scraper.exsel.ai/api/v1/health -> 200`
+  - `python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 25 --write-ledger --ledger docs/agent-sync/runtime/actor-proof-ledger.production-video-batch-25.jsonl --base-url https://scraper.exsel.ai --concurrency 1 --rate-limit-per-second 0.5 --timeout 60`
+- Status: Native video metadata execution is implemented, tested, deployed, and proved in a bounded production batch. Full 27,753 live E2E proof remains open; next gate is scaling proof batches and adding UI-route/live-E2E assertions.

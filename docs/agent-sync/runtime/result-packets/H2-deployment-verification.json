@@ -16,9 +16,10 @@
     "docs/agent-sync/PHASE_STATUS.md",
     "docs/agent-sync/IMPLEMENTATION_LEDGER.md",
     "docs/agent-sync/runtime/actor-proof-ledger.production-batch-25.jsonl",
-    "docs/agent-sync/runtime/result-packets/P1-actor-proof-factory-27753.json"
+    "docs/agent-sync/runtime/result-packets/P1-actor-proof-factory-27753.json",
+    "docs/agent-sync/runtime/actor-proof-ledger.production-video-batch-25.jsonl"
   ],
-  "implementation_summary": "Checked production reachability for frontend fixtures and backend health after Railway deployment f2ecc3db-cd00-445f-9a65-a119631e0d44. Backend health and hosted review fixture returned 200. A 25-actor production proof batch produced 23 fixture_replay_passed rows and 2 api_mapped unsupported yt_dlp rows; no live E2E or UI-route proof was claimed.",
+  "implementation_summary": "Checked production reachability after Railway deployment 07ba733e-714a-4b6e-9aa6-ce967940acdc with native yt_dlp video family enabled. Backend health and hosted review fixture returned 200. A 25-actor production proof batch produced 23 fixture_replay_passed rows and 2 runtime_smoke_passed yt_dlp rows; no API-mapped failures, live E2E proof, or UI-route proof was claimed.",
   "tenant_isolation_checked": true,
   "secrets_touched": false,
   "api_first_boundary_checked": true,
@@ -49,7 +50,13 @@
     "GET https://scraper.exsel.ai/api/v1/health -> 200",
     "GET https://myscraper.netlify.app/fixtures/actor-proof/reviews.html -> 200",
     "python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 25 --write-ledger --ledger docs/agent-sync/runtime/actor-proof-ledger.production-batch-25.jsonl --base-url https://scraper.exsel.ai --concurrency 1 --rate-limit-per-second 0.5 --timeout 45",
-    "python scripts/run_actor_proof_factory.py --ledger docs/agent-sync/runtime/actor-proof-ledger.production-batch-25.jsonl --status"
+    "python scripts/run_actor_proof_factory.py --ledger docs/agent-sync/runtime/actor-proof-ledger.production-batch-25.jsonl --status",
+    "railway.cmd up --service scraper-platform --detach -> deployment 07ba733e-714a-4b6e-9aa6-ce967940acdc",
+    "railway.cmd deployment list --service scraper-platform -> 07ba733e-714a-4b6e-9aa6-ce967940acdc SUCCESS",
+    "GET https://scraper.exsel.ai/api/v1/health -> 200 after native video deploy",
+    "GET https://myscraper.netlify.app/fixtures/actor-proof/reviews.html -> 200 after native video deploy",
+    "python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 25 --write-ledger --ledger docs/agent-sync/runtime/actor-proof-ledger.production-video-batch-25.jsonl --base-url https://scraper.exsel.ai --concurrency 1 --rate-limit-per-second 0.5 --timeout 60",
+    "python scripts/run_actor_proof_factory.py --ledger docs/agent-sync/runtime/actor-proof-ledger.production-video-batch-25.jsonl --status"
   ],
   "tests_passed": [
     "Frontend root returned HTTP 200.",
@@ -67,24 +74,36 @@
     "Latest Railway deployment f2ecc3db-cd00-445f-9a65-a119631e0d44 succeeded.",
     "Backend /api/v1/health returned HTTP 200 after deployment.",
     "Hosted review fixture returned HTTP 200 from Netlify.",
-    "Post-fix production proof batch: 25 rows; 23 fixture_replay_passed, 2 api_mapped unsupported yt_dlp, 0 live_e2e_passed, 0 ui_route_passed."
+    "Post-fix production proof batch: 25 rows; 23 fixture_replay_passed, 2 api_mapped unsupported yt_dlp, 0 live_e2e_passed, 0 ui_route_passed.",
+    "Latest Railway deployment 07ba733e-714a-4b6e-9aa6-ce967940acdc succeeded.",
+    "Backend /api/v1/health returned HTTP 200 after native video deployment.",
+    "Post-video-family production proof batch: 25 rows; 23 fixture_replay_passed, 2 runtime_smoke_passed yt_dlp, 0 api_mapped, 0 failures, 0 live_e2e_passed, 0 ui_route_passed."
   ],
   "tests_failed": [],
   "known_limitations": [
     "This verifies latest backend deployment reachability and a bounded proof sample; it is not full 27,753 live E2E proof.",
     "Full 27,753 live E2E actor proof remains open; current full catalog ledger is api_mapped, not live_e2e_passed.",
     "Latest post-fix batch is bounded to 25 actors and does not prove all 27,753 workflows end-to-end.",
-    "Native yt_dlp/video-family execution remains unimplemented for the two unsupported sampled actors."
+    "Native yt_dlp/video-family execution remains unimplemented for the two unsupported sampled actors.",
+    "Latest post-video batch is bounded to 25 actors and does not prove all 27,753 workflows end-to-end.",
+    "Video-family proof currently reaches runtime_smoke_passed, not live_e2e_passed, because UI-route and per-actor live assertions are still separate gates."
   ],
   "qa_status": "deployment_verified_release_blocked_only_by_full_27753_live_e2e_proof",
   "next_recommended_packet": "scale-live-e2e-proof-beyond-api-mapped-ledger",
-  "updated_at_utc": "2026-06-27T21:57:38Z",
+  "updated_at_utc": "2026-06-27T22:08:54Z",
   "claude_validation_status": "PASS",
-  "latest_railway_deployment": "f2ecc3db-cd00-445f-9a65-a119631e0d44",
+  "latest_railway_deployment": "07ba733e-714a-4b6e-9aa6-ce967940acdc",
   "latest_netlify_deployment": "6a40422f954dc32f20af854f",
   "production_fixture_batch_count": 25,
   "production_fixture_batch_fixture_replay_passed_count": 23,
   "production_fixture_batch_api_mapped_count": 2,
   "production_fixture_batch_live_e2e_passed_count": 0,
-  "production_fixture_batch_ui_route_passed_count": 0
+  "production_fixture_batch_ui_route_passed_count": 0,
+  "production_video_batch_count": 25,
+  "production_video_batch_fixture_replay_passed_count": 23,
+  "production_video_batch_runtime_smoke_passed_count": 2,
+  "production_video_batch_api_mapped_count": 0,
+  "production_video_batch_failure_count": 0,
+  "production_video_batch_live_e2e_passed_count": 0,
+  "production_video_batch_ui_route_passed_count": 0
 }
