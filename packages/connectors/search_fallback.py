@@ -33,7 +33,7 @@ async def serper_site_search(
         response = await client.post(
             SERPER_SEARCH_URL,
             headers={"X-API-KEY": key, "Content-Type": "application/json"},
-            json={"q": q, "num": min(max_results, 20)},
+            json={"q": q, "num": min(max_results, 10)},
         )
     if response.status_code != 200:
         return []

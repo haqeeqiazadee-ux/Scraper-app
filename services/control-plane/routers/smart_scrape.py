@@ -602,7 +602,7 @@ async def _handle_url_scrape(
                     tracker.record("keepa_search", detail=f"keyword: {keywords[:50]}")
                 else:
                     from packages.connectors.search_fallback import amazon_search_fallback
-                    fallback_products = await amazon_search_fallback(keywords, max_results=20)
+                    fallback_products = await amazon_search_fallback(keywords, max_results=10)
                     if fallback_products:
                         platform_products = fallback_products
                         step_ts = _record_step(
@@ -699,13 +699,13 @@ async def _handle_url_scrape(
                     if search_key:
                         direct_hits = await _serper_search(
                             f"site:ebay.com/itm {ebay_query} eBay listing",
-                            20,
+                            10,
                             search_key,
                         )
                         if not direct_hits:
                             direct_hits = await _serper_search(
                                 f"site:ebay.com {ebay_query} eBay listing",
-                                20,
+                                10,
                                 search_key,
                             )
                     ebay_items = marketplace_items_from_hits(
@@ -717,7 +717,7 @@ async def _handle_url_scrape(
                     if not ebay_items:
                         ebay_items = await ebay_search_fallback(
                             ebay_query,
-                            max_results=20,
+                            max_results=10,
                             completed=completed,
                         )
 

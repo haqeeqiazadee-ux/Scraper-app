@@ -85,7 +85,7 @@ async def _serper_search(query: str, count: int, api_key: str) -> list[dict[str,
         "X-API-KEY": api_key,
         "Content-Type": "application/json",
     }
-    payload = {"q": query, "num": min(count, 20)}
+    payload = {"q": query, "num": min(count, 10)}
 
     async with httpx.AsyncClient(timeout=15.0) as client:
         resp = await client.post(SERPER_SEARCH_URL, headers=headers, json=payload)
