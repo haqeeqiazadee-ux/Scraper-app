@@ -98,12 +98,20 @@ def _post_json(url: str, payload: dict[str, Any], tenant: str, timeout: int) -> 
         return json.loads(response.read().decode("utf-8"))
 
 
+def _error_summary(exc: BaseException) -> str:
+    if isinstance(exc, urllib.error.HTTPError):
+        return f"HTTPError:{exc.code}"
+    return type(exc).__name__
+
+
 def _prove_actor(
     actor: dict[str, Any],
     *,
     base_url: str | None,
     tenant: str,
     timeout: int,
+    attempts: int,
+    retry_backoff_seconds: float,
 ) -> dict[str, Any]:
     actor_id = str(actor["id"])
     test_input = _safe_input(actor)
@@ -120,43 +128,56 @@ def _prove_actor(
             "failure_class": "none",
             "provenance": ["catalog-chunk", "offline-proof-runner"],
         }
-    try:
-        run = _post_json(
-            f"{base_url.rstrip('/')}/api/v1/actors/{actor_id}/runs",
-            {"input": test_input, "options": {"source": "proof_factory_runner"}},
-            tenant,
-            timeout,
-        )
-        run_id = run["data"]["run"]["id"]
-        fixture_replay_passed = _is_fixture_input(test_input)
-        proof = _post_json(
-            f"{base_url.rstrip('/')}/api/v1/actors/{actor_id}/runs/{run_id}/proof",
-            {
-                "ui_route_passed": False,
-                "fixture_replay_passed": fixture_replay_passed,
-                "provenance": ["proof-factory-runner", f"run:{run_id}"],
-                "proof_metadata": {
-                    "input_kind": "hosted_fixture" if fixture_replay_passed else "external_target",
-                    "fixture_kind": test_input.get("fixture_kind"),
+    max_attempts = max(attempts, 1)
+    last_exc: BaseException | None = None
+    for attempt in range(1, max_attempts + 1):
+        try:
+            run = _post_json(
+                f"{base_url.rstrip('/')}/api/v1/actors/{actor_id}/runs",
+                {"input": test_input, "options": {"source": "proof_factory_runner"}},
+                tenant,
+                timeout,
+            )
+            run_id = run["data"]["run"]["id"]
+            fixture_replay_passed = _is_fixture_input(test_input)
+            proof = _post_json(
+                f"{base_url.rstrip('/')}/api/v1/actors/{actor_id}/runs/{run_id}/proof",
+                {
+                    "ui_route_passed": False,
+                    "fixture_replay_passed": fixture_replay_passed,
+                    "provenance": ["proof-factory-runner", f"run:{run_id}"],
+                    "proof_metadata": {
+                        "input_kind": "hosted_fixture" if fixture_replay_passed else "external_target",
+                        "fixture_kind": test_input.get("fixture_kind"),
+                        "attempt": attempt,
+                    },
                 },
-            },
-            tenant,
-            timeout,
-        )
-        return proof["data"]
-    except (KeyError, urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
-        return {
-            "actor_id": actor_id,
-            "proof_level": "api_mapped",
-            "last_verified_at": now,
-            "test_input": test_input,
-            "live_e2e_passed": False,
-            "fixture_replay_passed": False,
-            "ui_route_passed": False,
-            "failure_class": "external_outage",
-            "failure_reason": type(exc).__name__,
-            "provenance": ["proof-factory-runner", "failed-api-call"],
-        }
+                tenant,
+                timeout,
+            )
+            return proof["data"]
+        except (KeyError, urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+            last_exc = exc
+            if attempt < max_attempts:
+                time.sleep(max(retry_backoff_seconds, 0.0) * attempt)
+
+    return {
+        "actor_id": actor_id,
+        "proof_level": "api_mapped",
+        "last_verified_at": now,
+        "test_input": test_input,
+        "live_e2e_passed": False,
+        "fixture_replay_passed": False,
+        "ui_route_passed": False,
+        "failure_class": "external_outage",
+        "failure_reason": _error_summary(last_exc) if last_exc else "unknown",
+        "provenance": ["proof-factory-runner", "failed-api-call"],
+        "proof_metadata": {
+            "attempts": max_attempts,
+            "input_kind": "hosted_fixture" if _is_fixture_input(test_input) else "external_target",
+            "fixture_kind": test_input.get("fixture_kind"),
+        },
+    }
 
 
 def _status(ledger_path: Path) -> None:
@@ -194,6 +215,8 @@ def main() -> int:
     parser.add_argument("--concurrency", type=int, default=4)
     parser.add_argument("--rate-limit-per-second", type=float, default=2.0)
     parser.add_argument("--timeout", type=int, default=30)
+    parser.add_argument("--attempts", type=int, default=1)
+    parser.add_argument("--retry-backoff-seconds", type=float, default=2.0)
     parser.add_argument("--write-ledger", action="store_true")
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--resume-success-only", action="store_true")
@@ -223,6 +246,8 @@ def main() -> int:
                     base_url=args.base_url or None,
                     tenant=args.tenant,
                     timeout=args.timeout,
+                    attempts=args.attempts,
+                    retry_backoff_seconds=args.retry_backoff_seconds,
                 )
             )
             if delay:

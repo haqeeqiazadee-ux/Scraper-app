@@ -5,6 +5,7 @@ import json
 import os
 from types import SimpleNamespace
 from typing import Any, Callable
+from urllib.error import HTTPError
 
 from httpx import ASGITransport, AsyncClient
 
@@ -227,6 +228,14 @@ def test_proof_runner_resume_success_only_retries_failed_latest_rows(tmp_path) -
     )
 
     assert _read_done(ledger, success_only=True) == {"a2"}
+
+
+def test_proof_runner_summarizes_http_errors() -> None:
+    from scripts.run_actor_proof_factory import _error_summary
+
+    error = HTTPError("https://example.com", 503, "Service Unavailable", hdrs=None, fp=None)
+
+    assert _error_summary(error) == "HTTPError:503"
 
 
 def test_actor_proof_api_records_manual_ui_route_proof() -> None:
