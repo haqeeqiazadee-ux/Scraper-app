@@ -14,6 +14,7 @@ Supabase connection notes:
 from __future__ import annotations
 
 import logging
+from urllib.parse import quote
 
 from sqlalchemy import NullPool
 from sqlalchemy.pool import StaticPool
@@ -34,6 +35,31 @@ def _is_supabase_direct_url(url: str) -> bool:
     return "supabase.co:5432" in url and "pooler.supabase.com" not in url
 
 
+def _normalize_database_url(url: str) -> str:
+    """Normalize common hosted Postgres URLs into an async SQLAlchemy URL."""
+    if "://" not in url:
+        return url
+
+    scheme, rest = url.split("://", 1)
+    if scheme not in {"postgres", "postgresql", "postgresql+asyncpg"}:
+        return url
+
+    normalized_scheme = "postgresql+asyncpg"
+    if "@" not in rest:
+        return f"{normalized_scheme}://{rest}"
+
+    userinfo, host_and_db = rest.rsplit("@", 1)
+    if ":" not in userinfo:
+        return f"{normalized_scheme}://{quote(userinfo, safe='')}@{host_and_db}"
+
+    username, password = userinfo.split(":", 1)
+    return (
+        f"{normalized_scheme}://"
+        f"{quote(username, safe='')}:{quote(password, safe='')}"
+        f"@{host_and_db}"
+    )
+
+
 class Database:
     """Manages database connections and sessions."""
 
@@ -41,6 +67,8 @@ class Database:
         # Detect Supabase direct URLs and warn — they use IPv6 which fails on
         # Railway/Render/Vercel. The pooler URL cluster (aws-0, aws-1, etc.)
         # varies per project, so we can't auto-convert reliably.
+        url = _normalize_database_url(url)
+
         if _is_supabase_direct_url(url):
             logger.error(
                 "DATABASE_URL uses a Supabase direct connection (IPv6-only). "
