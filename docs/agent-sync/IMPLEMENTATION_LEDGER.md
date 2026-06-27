@@ -1077,3 +1077,35 @@ This file is the mandatory proof trail for the pre-code reuse gate.
   - Latest post-deploy H1 rerun passed: 56 passed, 1 warning in 214.94s.
   - Claude final post-deploy validation returned `PASS`, no blockers, no fixbacks.
 - Status: H1 production E2E is green on the latest Railway deployment. P1 has full catalog API-mapped proof-row coverage and an improved proof-level guard. Full 27,753 live E2E proof remains open with 0 `live_e2e_passed` actors.
+
+## Mainline Loop - Proof Factory URL-Safe Inputs
+
+- Task: Remove invalid generated proof targets so the next live proof-promotion loop starts from runnable URL-shaped inputs instead of failing on plain-text hostnames.
+- Phase: P1 proof-factory hardening
+- Existing files inspected:
+  - `packages/core/actor_runtime/families.py`
+  - `packages/core/actor_runtime/proof.py`
+  - `scripts/run_actor_proof_factory.py`
+  - `tests/unit/test_actor_proof_factory.py`
+  - `docs/agent-sync/runtime/result-packets/P1-actor-proof-factory-27753.json`
+- Reuse decision: `extend_existing`
+- Reason: The existing proof factory was the right substrate, but generated inputs for several families were plain-text search phrases. The current native runners expect URL-like targets, so the fix was to preserve the factory and tighten its default test input generation.
+- Files modified:
+  - `packages/core/actor_runtime/proof.py`
+  - `scripts/run_actor_proof_factory.py`
+  - `tests/unit/test_actor_proof_factory.py`
+  - `docs/agent-sync/runtime/actor-proof-ledger.jsonl`
+  - `docs/agent-sync/runtime/result-packets/P1-actor-proof-factory-27753.json`
+  - `docs/agent-sync/IMPLEMENTATION_LEDGER.md`
+- Evidence:
+  - Job, real-estate, lead/business, news, social, and generic generated proof inputs now use `https://example.com` instead of invalid plain-text targets.
+  - Generic/example targets carry `workflow_hint` so category intent is preserved without creating malformed URLs.
+  - Full offline proof ledger was regenerated from scratch.
+  - Ledger verification: 27,753 rows, 27,753 `api_mapped`, 0 `live_e2e_passed=true`, 0 `ui_route_passed=true`, 0 `fixture_replay_passed=true`, and 0 invalid generated targets.
+- Tests/gates:
+  - `python -m compileall -q packages services scripts tests/unit/test_actor_proof_factory.py`
+  - `python -m pytest tests/unit/test_actor_proof_factory.py tests/unit/test_actor_runs_api.py tests/unit/test_actor_value_metrics.py -q`
+  - `python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 0 --write-ledger --concurrency 8 --ledger docs/agent-sync/runtime/actor-proof-ledger.jsonl`
+  - `python scripts/run_actor_proof_factory.py --ledger docs/agent-sync/runtime/actor-proof-ledger.jsonl --status`
+  - Claude read-only validation returned `PASS`, no blockers, no fixbacks.
+- Status: Proof-factory generated inputs are now URL-safe for the next live proof-promotion batches. Full 27,753 live E2E proof remains open with 0 `live_e2e_passed` actors.

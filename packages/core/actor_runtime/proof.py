@@ -108,20 +108,20 @@ def generate_actor_test_input(entry: Any) -> dict[str, Any]:
     name = str(getattr(entry, "name", "actor") or "actor")
 
     if "JOBS" in categories or route_strategy == "job_board_schema":
-        return {"target": "software engineer remote", "max_items": 5}
+        return {"target": "https://example.com", "max_items": 5}
     if "REAL_ESTATE" in categories or route_strategy == "real_estate_schema":
-        return {"target": "apartments for rent in Austin TX", "max_items": 5}
+        return {"target": "https://example.com", "max_items": 5}
     if "VIDEOS" in categories or route_strategy == "yt_dlp":
         return {"target": "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "max_items": 5}
     if "ECOMMERCE" in categories:
         return {"target": "https://example.com/products", "max_items": 5}
     if "LEAD_GENERATION" in categories or "BUSINESS" in categories:
-        return {"target": "coffee shops in Seattle", "max_items": 5}
+        return {"target": "https://example.com", "max_items": 5}
     if "NEWS" in categories:
-        return {"target": "technology news", "max_items": 5}
+        return {"target": "https://example.com", "max_items": 5}
     if "SOCIAL_MEDIA" in categories:
-        return {"target": "open source AI", "max_items": 5}
-    return {"target": f"{name} sample workflow", "max_items": 5}
+        return {"target": "https://example.com", "max_items": 5}
+    return {"target": "https://example.com", "max_items": 5, "workflow_hint": name}
 
 
 def classify_actor_proof_failure(

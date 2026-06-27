@@ -27,18 +27,21 @@ def _safe_input(actor: dict[str, Any]) -> dict[str, Any]:
     categories = {str(item).upper() for item in actor.get("categories", [])}
     strategy = str(actor.get("route_strategy") or "")
     if "JOBS" in categories or strategy == "job_board_schema":
-        target = "software engineer remote"
+        target = "https://example.com"
     elif "REAL_ESTATE" in categories or strategy == "real_estate_schema":
-        target = "apartments for rent in Austin TX"
+        target = "https://example.com"
     elif "VIDEOS" in categories or strategy == "yt_dlp":
         target = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
     elif "ECOMMERCE" in categories:
         target = "https://example.com/products"
     elif "LEAD_GENERATION" in categories or "BUSINESS" in categories:
-        target = "coffee shops in Seattle"
+        target = "https://example.com"
     else:
-        target = f"{actor.get('name', 'actor')} sample workflow"
-    return {"target": target, "max_items": 5}
+        target = "https://example.com"
+    result = {"target": target, "max_items": 5}
+    if target == "https://example.com":
+        result["workflow_hint"] = str(actor.get("name", "actor") or "actor")
+    return result
 
 
 def _read_done(ledger_path: Path) -> set[str]:

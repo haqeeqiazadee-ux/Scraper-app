@@ -73,6 +73,27 @@ def test_actor_proof_helpers_are_strict_about_live_e2e() -> None:
     assert "apify.com" not in generated["target"]
     assert generated["target"] == "https://example.com/products"
 
+    job_generated = generate_actor_test_input(
+        SimpleNamespace(
+            actor_id="actor-jobs",
+            name="jobs",
+            categories=("JOBS",),
+            route_strategy="job_board_schema",
+        )
+    )
+    assert job_generated["target"].startswith("https://")
+
+    generic_generated = generate_actor_test_input(
+        SimpleNamespace(
+            actor_id="actor-generic",
+            name="generic",
+            categories=(),
+            route_strategy="native_pipeline",
+        )
+    )
+    assert generic_generated["target"] == "https://example.com"
+    assert generic_generated["workflow_hint"] == "generic"
+
     assert classify_actor_proof_failure(
         run_status="failed",
         error="missing API key",

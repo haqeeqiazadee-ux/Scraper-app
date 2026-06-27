@@ -141,4 +141,5 @@ Phase 5 can be committed only after:
 - [x] Full live E2E local fixback passed for the 4 persistent scrape-execution cases: example.com, httpbin.org/html UI scrape path, Trustpilot smart scrape, and Trustpilot template execution.
 - [x] Full live E2E production rerun passed: 56 passed, 1 warning in 220.62s.
 - [x] Deployment verification passed for latest Railway deployment `00af0cd7-3504-4d09-bae0-48507f50cace`; frontend root returned 200, backend health returned 200, public API account returned 401 without an API key, production proof sample stayed `api_mapped`, and latest post-deploy H1 rerun passed 56/56.
+- [x] Proof-factory generated inputs are URL-safe across the full ledger: 27,753 rows regenerated with 0 invalid generated targets, 27,753 `api_mapped`, and 0 `live_e2e_passed`.
 - [ ] Full SaaS release candidate not claimed: 27,753 live E2E actor proof remains open; current full catalog ledger is 27,753 `api_mapped`, 0 `live_e2e_passed`.
