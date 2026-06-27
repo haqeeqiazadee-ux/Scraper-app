@@ -23,3 +23,11 @@ def test_normalize_database_url_strips_wrapping_quotes() -> None:
     )
 
     assert url == "postgresql+asyncpg://postgres:pw@db.example.supabase.co:5432/postgres"
+
+
+def test_normalize_database_url_strips_bom_prefix() -> None:
+    url = _normalize_database_url(
+        "\ufeffpostgresql+asyncpg://postgres:pw@db.example.supabase.co:5432/postgres"
+    )
+
+    assert url == "postgresql+asyncpg://postgres:pw@db.example.supabase.co:5432/postgres"

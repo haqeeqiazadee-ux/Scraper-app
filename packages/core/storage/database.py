@@ -37,7 +37,7 @@ def _is_supabase_direct_url(url: str) -> bool:
 
 def _normalize_database_url(url: str) -> str:
     """Normalize common hosted Postgres URLs into an async SQLAlchemy URL."""
-    url = url.strip().strip('"').strip("'")
+    url = url.strip().lstrip("\ufeff").strip('"').strip("'")
     if "://" not in url:
         return url
 
