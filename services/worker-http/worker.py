@@ -9,8 +9,6 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
-import asyncio
-from packages.connectors.youtube_dlp_connector import YoutubeDlpConnector
 import time
 from datetime import datetime, timezone
 from typing import Optional
@@ -190,6 +188,8 @@ class HttpWorker:
         is_video = any(re.search(p, url) for p in video_platforms)
         if is_video:
             logger.info("Video platform detected, using YoutubeDlpConnector")
+            from packages.connectors.youtube_dlp_connector import YoutubeDlpConnector
+
             ydl_connector = YoutubeDlpConnector()
             metadata = await asyncio.to_thread(ydl_connector.extract_metadata, url)
 

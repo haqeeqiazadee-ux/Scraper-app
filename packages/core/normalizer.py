@@ -345,9 +345,25 @@ def validate_item(item: dict) -> bool:
     """
     name = str(item.get("name", "")).strip()
     price_raw = str(item.get("price", "")).strip()
+    non_product_signal_fields = (
+        "review_title",
+        "review_text",
+        "reviewer_name",
+        "email",
+        "phone",
+        "content_type",
+        "full_content",
+        "article_body",
+        "job_url",
+        "company_name",
+        "property_url",
+        "address",
+    )
+    has_non_product_signal = any(item.get(field) not in (None, "", [], {}) for field in non_product_signal_fields)
 
-    # Must have a name
-    if not name or len(name) < 3:
+    # Product-style records need a usable name; typed records can be validated
+    # by their own semantic fields after selector/schema extraction.
+    if (not name or len(name) < 3) and not has_non_product_signal:
         return False
 
     # Reject placeholder/garbage names
@@ -355,7 +371,7 @@ def validate_item(item: dict) -> bool:
         "undefined", "null", "none", "n/a", "na", "test", "placeholder",
         "untitled", "no title", "product", "item", "loading", "...",
     }
-    if name.lower() in garbage_names:
+    if name and name.lower() in garbage_names:
         return False
 
     # If there's a price, validate it

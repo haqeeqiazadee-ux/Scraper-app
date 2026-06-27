@@ -3,7 +3,7 @@
 import pytest
 from packages.core.normalizer import (
     normalize_item, normalize_items, clean_price, clean_rating,
-    clean_integer, clean_url,
+    clean_integer, clean_url, Normalizer,
 )
 
 
@@ -52,6 +52,23 @@ class TestNormalizeItems:
         assert len(results) == 2
         assert results[0]["name"] == "A"
         assert results[1]["name"] == "B"
+
+
+class TestNormalizerBatch:
+
+    def test_keeps_review_records_without_product_name(self):
+        result = Normalizer().normalize_batch([
+            {
+                "review_title": "Reliable delivery",
+                "review_text": "Fast response and clean structured fields.",
+                "rating": "5 stars",
+                "source": "Actor Proof Reviews",
+            }
+        ])
+
+        assert len(result) == 1
+        assert result[0]["review_text"] == "Fast response and clean structured fields."
+        assert result[0]["rating"] == "5"
 
 
 class TestCleanPrice:
