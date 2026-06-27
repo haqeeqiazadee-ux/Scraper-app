@@ -688,12 +688,38 @@ async def _handle_url_scrape(
                         item.setdefault("_extraction_method", "ebay_browse_api")
 
                 if not ebay_items:
-                    from packages.connectors.search_fallback import ebay_search_fallback
-                    ebay_items = await ebay_search_fallback(
-                        ebay_query,
-                        max_results=20,
-                        completed=completed,
+                    from packages.connectors.search_fallback import (
+                        ebay_search_fallback,
+                        marketplace_items_from_hits,
                     )
+                    from services.control_plane.routers.search import _serper_search
+
+                    search_key = get_env_secret("SERPER_API_KEY", "") or ""
+                    direct_hits = []
+                    if search_key:
+                        direct_hits = await _serper_search(
+                            f"site:ebay.com/itm {ebay_query} eBay listing",
+                            20,
+                            search_key,
+                        )
+                        if not direct_hits:
+                            direct_hits = await _serper_search(
+                                f"site:ebay.com {ebay_query} eBay listing",
+                                20,
+                                search_key,
+                            )
+                    ebay_items = marketplace_items_from_hits(
+                        direct_hits,
+                        platform="ebay",
+                        query=ebay_query,
+                        method="serper_ebay_listing_search",
+                    )
+                    if not ebay_items:
+                        ebay_items = await ebay_search_fallback(
+                            ebay_query,
+                            max_results=20,
+                            completed=completed,
+                        )
 
                 if ebay_items:
                     platform_products = ebay_items
