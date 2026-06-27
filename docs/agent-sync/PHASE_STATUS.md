@@ -143,4 +143,5 @@ Phase 5 can be committed only after:
 - [x] Deployment verification passed for latest Railway deployment `b90de75c-6409-4bde-b47a-5e09bfd3d7d6`; frontend root returned 200, backend health returned 200, public API account returned 401 without an API key, production proof sample stayed `api_mapped`, and latest post-deploy H1 rerun passed 56/56.
 - [x] Proof-factory generated inputs are URL-safe across the full ledger: 27,753 rows regenerated with 0 invalid generated targets, 27,753 `api_mapped`, and 0 `live_e2e_passed`.
 - [x] Runtime smoke proof is stricter: completed zero-item runs remain `api_mapped` and cannot become `runtime_smoke_passed`.
+- [x] Hosted proof fixtures added for products, jobs, real estate, contacts, reviews, news, and generic extraction; offline ledger regenerated with fixture targets while keeping all 27,753 rows `api_mapped` until live fixture replay succeeds.
 - [ ] Full SaaS release candidate not claimed: 27,753 live E2E actor proof remains open; current full catalog ledger is 27,753 `api_mapped`, 0 `live_e2e_passed`.

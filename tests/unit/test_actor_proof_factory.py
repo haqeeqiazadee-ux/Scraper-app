@@ -71,7 +71,9 @@ def test_actor_proof_helpers_are_strict_about_live_e2e() -> None:
 
     generated = generate_actor_test_input(entry)
     assert "apify.com" not in generated["target"]
-    assert generated["target"] == "https://example.com/products"
+    assert generated["target"].endswith("/fixtures/actor-proof/products.html")
+    assert generated["fixture_kind"] == "products"
+    assert "css_selectors" in generated
 
     job_generated = generate_actor_test_input(
         SimpleNamespace(
@@ -82,6 +84,8 @@ def test_actor_proof_helpers_are_strict_about_live_e2e() -> None:
         )
     )
     assert job_generated["target"].startswith("https://")
+    assert job_generated["fixture_kind"] == "jobs"
+    assert job_generated["css_selectors"]["company"] == "[data-proof-company]"
 
     generic_generated = generate_actor_test_input(
         SimpleNamespace(
@@ -91,8 +95,9 @@ def test_actor_proof_helpers_are_strict_about_live_e2e() -> None:
             route_strategy="native_pipeline",
         )
     )
-    assert generic_generated["target"] == "https://example.com"
+    assert generic_generated["target"].endswith("/fixtures/actor-proof/generic.html")
     assert generic_generated["workflow_hint"] == "generic"
+    assert generic_generated["fixture_kind"] == "generic"
 
     assert classify_actor_proof_failure(
         run_status="failed",
@@ -122,6 +127,16 @@ def test_actor_proof_helpers_are_strict_about_live_e2e() -> None:
     ) == ActorProofLevel.FIXTURE_REPLAY_PASSED
 
     assert choose_proof_level(
+        run_status="completed",
+        has_result=True,
+        item_count=1,
+        export_json_passed=True,
+        export_csv_passed=True,
+        ui_route_passed=False,
+        fixture_replay_passed=False,
+    ) == ActorProofLevel.RUNTIME_SMOKE_PASSED
+
+    assert choose_proof_level(
         run_status="failed",
         has_result=False,
         item_count=0,
@@ -140,6 +155,35 @@ def test_actor_proof_helpers_are_strict_about_live_e2e() -> None:
         ui_route_passed=False,
         fixture_replay_passed=False,
     ) == ActorProofLevel.API_MAPPED
+
+    assert choose_proof_level(
+        run_status="completed",
+        has_result=True,
+        item_count=0,
+        export_json_passed=True,
+        export_csv_passed=True,
+        ui_route_passed=False,
+        fixture_replay_passed=True,
+    ) == ActorProofLevel.API_MAPPED
+
+
+def test_proof_runner_uses_shared_fixture_input_generation() -> None:
+    from scripts.run_actor_proof_factory import _is_fixture_input, _safe_input
+
+    generated = _safe_input(
+        {
+            "id": "actor-1",
+            "name": "website-email-extractor",
+            "title": "Website Email Scraper",
+            "description": "Pull emails, phones, and social links from any website.",
+            "categories": ["LEAD_GENERATION"],
+            "route_strategy": "native_pipeline",
+        }
+    )
+
+    assert generated["fixture_kind"] == "contacts"
+    assert generated["target"].endswith("/fixtures/actor-proof/contacts.html")
+    assert _is_fixture_input(generated) is True
 
 
 def test_actor_proof_api_records_manual_ui_route_proof() -> None:

@@ -26,12 +26,19 @@
     "services/control-plane/routers/actors.py",
     "scripts/run_actor_proof_factory.py",
     "tests/unit/test_actor_proof_factory.py",
+    "apps/web/public/fixtures/actor-proof/products.html",
+    "apps/web/public/fixtures/actor-proof/jobs.html",
+    "apps/web/public/fixtures/actor-proof/real-estate.html",
+    "apps/web/public/fixtures/actor-proof/contacts.html",
+    "apps/web/public/fixtures/actor-proof/reviews.html",
+    "apps/web/public/fixtures/actor-proof/news.html",
+    "apps/web/public/fixtures/actor-proof/generic.html",
     "apps/web/src/pages/ActorsPage.tsx",
     "apps/web/src/pages/ActorDetailPage.tsx",
     "docs/agent-sync/runtime/actor-proof-ledger.sample.jsonl",
     "docs/agent-sync/runtime/result-packets/P1-actor-proof-factory-27753.json"
   ],
-  "implementation_summary": "Added an actor proof-factory substrate that records explicit per-actor proof levels, failure classes, durable proof rows, proof summary/list/detail APIs, run-to-proof promotion, a resumable proof runner script, visible proof counters/status in the existing UI, and focused tests that prevent API-mapped actors from being claimed as live E2E proven. Added fixes preventing failed actor runs from being promoted to ui_route_passed, preventing zero-item completed runs from being promoted to runtime_smoke_passed, optimized offline proof-runner throttling, generated full catalog API-mapped proof coverage, and regenerated the full ledger with URL-safe generated test inputs so proof runs no longer use invalid plain-text targets.",
+  "implementation_summary": "Added an actor proof-factory substrate that records explicit per-actor proof levels, failure classes, durable proof rows, proof summary/list/detail APIs, run-to-proof promotion, a resumable proof runner script, visible proof counters/status in the existing UI, and focused tests that prevent API-mapped actors from being claimed as live E2E proven. Added fixes preventing failed actor runs from being promoted to ui_route_passed, preventing zero-item completed runs from being promoted to runtime_smoke_passed, preventing the proof runner from asserting UI proof by default, and routing generated test inputs to hosted first-party fixtures for fixture replay proof instead of invalid or unrelated placeholder targets.",
   "tenant_isolation_checked": true,
   "secrets_touched": false,
   "api_first_boundary_checked": true,
@@ -68,7 +75,11 @@
     "python scripts/run_actor_proof_factory.py --ledger docs/agent-sync/runtime/actor-proof-ledger.jsonl --status",
     "C:\\Users\\PC\\.local\\bin\\claude.exe -p \"Read-only validation of current git diff proof-factory URL-safe input change...\"",
     "python -m pytest tests/unit/test_actor_proof_factory.py tests/unit/test_actor_runs_api.py tests/unit/test_actor_value_metrics.py -q",
-    "C:\\Users\\PC\\.local\\bin\\claude.exe -p \"Read-only validation of current git diff runtime_smoke proof gate tightening...\""
+    "C:\\Users\\PC\\.local\\bin\\claude.exe -p \"Read-only validation of current git diff runtime_smoke proof gate tightening...\"",
+    "python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 0 --write-ledger --concurrency 8 --ledger docs/agent-sync/runtime/actor-proof-ledger.jsonl",
+    "python scripts/run_actor_proof_factory.py --ledger docs/agent-sync/runtime/actor-proof-ledger.jsonl --status",
+    "npm.cmd run build",
+    "C:\\Users\\PC\\.local\\bin\\claude.exe -p \"Read-only validation of current git diff hosted-fixture proof layer...\""
   ],
   "tests_passed": [
     "compileall passed",
@@ -91,7 +102,12 @@
     "Claude read-only validation of URL-safe proof input change returned PASS with no fixbacks.",
     "18 focused actor proof/run/value tests passed after stricter runtime_smoke gate requiring a result dataset with item_count > 0 and export checks.",
     "Regression added: completed zero-item runs remain api_mapped instead of runtime_smoke_passed.",
-    "Claude read-only validation of runtime_smoke proof gate tightening returned PASS with no fixbacks."
+    "Claude read-only validation of runtime_smoke proof gate tightening returned PASS with no fixbacks.",
+    "19 focused actor proof/run/value tests passed after hosted fixture input generation and no-default-UI-proof runner changes.",
+    "Default proof ledger regenerated with hosted fixture input distribution: products 4,845; contacts 8,709; jobs 2,537; generic 4,055; real-estate 2,317; news 883; reviews 767; external 3,640.",
+    "Offline proof ledger remains honest: 27,753 api_mapped rows, 0 live_e2e_passed true, 0 ui_route_passed true, 0 fixture_replay_passed true.",
+    "Frontend build passed and copied hosted proof fixtures into apps/web/dist/fixtures/actor-proof.",
+    "Claude read-only validation of hosted-fixture proof layer returned PASS with no fixbacks."
   ],
   "tests_failed": [
     "Initial broad Claude validation attempt timed out; narrow retry passed",
@@ -103,6 +119,6 @@
     "Full 27,753 API-mapped proof coverage exists, but 0 actors are live_e2e_passed; this must not be marketed as live E2E proof."
   ],
   "qa_status": "accepted_api_mapped_full_catalog_coverage_live_e2e_unproven",
-  "next_recommended_packet": "batch-live-proof-promotion-with-fixture-materialization",
-  "updated_at_utc": "2026-06-27T21:19:26+00:00"
+  "next_recommended_packet": "deploy-hosted-fixtures-and-run-fixture-proof-promotion-sample",
+  "updated_at_utc": "2026-06-27T21:30:13+00:00"
 }

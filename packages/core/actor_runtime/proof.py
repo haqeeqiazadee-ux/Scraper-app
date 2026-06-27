@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
@@ -101,27 +102,124 @@ def actor_public_route(actor_id: str) -> str:
     return f"/actors/{actor_id}"
 
 
+def _fixture_base_url() -> str:
+    return os.getenv(
+        "ACTOR_PROOF_FIXTURE_BASE_URL",
+        "https://myscraper.netlify.app/fixtures/actor-proof",
+    ).rstrip("/")
+
+
+def _fixture_input(kind: str, name: str, css_selectors: dict[str, str]) -> dict[str, Any]:
+    return {
+        "target": f"{_fixture_base_url()}/{kind}.html",
+        "max_items": 5,
+        "workflow_hint": name,
+        "fixture_kind": kind,
+        "css_selectors": css_selectors,
+    }
+
+
 def generate_actor_test_input(entry: Any) -> dict[str, Any]:
     """Generate a safe default input without using Apify URLs as runtime targets."""
     categories = {str(item).upper() for item in getattr(entry, "categories", ())}
     route_strategy = str(getattr(entry, "route_strategy", "native_pipeline") or "native_pipeline")
     name = str(getattr(entry, "name", "actor") or "actor")
+    title = str(getattr(entry, "title", "") or "")
+    description = str(getattr(entry, "description", "") or "")
+    text = f"{name} {title} {description}".lower()
 
     if "JOBS" in categories or route_strategy == "job_board_schema":
-        return {"target": "https://example.com", "max_items": 5}
+        return _fixture_input(
+            "jobs",
+            name,
+            {
+                "job_url": "[data-proof-job-url]",
+                "title": "[data-proof-title]",
+                "company": "[data-proof-company]",
+                "description": "[data-proof-description]",
+                "source": "[data-proof-source]",
+            },
+        )
     if "REAL_ESTATE" in categories or route_strategy == "real_estate_schema":
-        return {"target": "https://example.com", "max_items": 5}
+        return _fixture_input(
+            "real-estate",
+            name,
+            {
+                "property_url": "[data-proof-property-url]",
+                "title": "[data-proof-title]",
+                "description": "[data-proof-description]",
+                "source": "[data-proof-source]",
+                "price": "[data-proof-price]",
+            },
+        )
     if "VIDEOS" in categories or route_strategy == "yt_dlp":
         return {"target": "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "max_items": 5}
+    if any(term in text for term in ("google maps", "maps business", "local business", "places", "near me")):
+        return {"target": "coffee shops in Seattle", "query": "coffee shops in Seattle", "max_items": 5, "workflow_hint": name}
     if "ECOMMERCE" in categories:
-        return {"target": "https://example.com/products", "max_items": 5}
+        return _fixture_input(
+            "products",
+            name,
+            {
+                "name": "[data-proof-name]",
+                "price": "[data-proof-price]",
+                "description": "[data-proof-description]",
+                "product_url": "[data-proof-product-url]",
+            },
+        )
     if "LEAD_GENERATION" in categories or "BUSINESS" in categories:
-        return {"target": "https://example.com", "max_items": 5}
-    if "NEWS" in categories:
-        return {"target": "https://example.com", "max_items": 5}
+        return _fixture_input(
+            "contacts",
+            name,
+            {
+                "name": "[data-proof-name]",
+                "email": "[data-proof-email]",
+                "phone": "[data-proof-phone]",
+                "source": "[data-proof-source]",
+            },
+        )
+    if "review" in text or "reviews" in text or any(term in text for term in ("trustpilot", "yelp", "ratings")):
+        return _fixture_input(
+            "reviews",
+            name,
+            {
+                "review_title": "[data-proof-review-title]",
+                "review_text": "[data-proof-review-text]",
+                "rating": "[data-proof-rating]",
+                "source": "[data-proof-source]",
+            },
+        )
+    if "NEWS" in categories or any(term in text for term in ("news", "article", "blog", "rss", "content monitor")):
+        return _fixture_input(
+            "news",
+            name,
+            {
+                "title": "[data-proof-title]",
+                "description": "[data-proof-description]",
+                "content_type": "[data-proof-content-type]",
+                "source": "[data-proof-source]",
+            },
+        )
     if "SOCIAL_MEDIA" in categories:
-        return {"target": "https://example.com", "max_items": 5}
-    return {"target": "https://example.com", "max_items": 5, "workflow_hint": name}
+        return _fixture_input(
+            "contacts",
+            name,
+            {
+                "name": "[data-proof-name]",
+                "email": "[data-proof-email]",
+                "phone": "[data-proof-phone]",
+                "source": "[data-proof-source]",
+            },
+        )
+    return _fixture_input(
+        "generic",
+        name,
+        {
+            "name": "[data-proof-name]",
+            "description": "[data-proof-description]",
+            "source": "[data-proof-source]",
+        },
+    )
 
 
 def classify_actor_proof_failure(
@@ -168,7 +266,14 @@ def choose_proof_level(
         and ui_route_passed
     ):
         return ActorProofLevel.LIVE_E2E_PASSED
-    if fixture_replay_passed:
+    if (
+        fixture_replay_passed
+        and run_status == "completed"
+        and has_result
+        and item_count > 0
+        and export_json_passed
+        and export_csv_passed
+    ):
         return ActorProofLevel.FIXTURE_REPLAY_PASSED
     if run_status == "completed" and has_result and item_count > 0 and export_json_passed and export_csv_passed:
         return ActorProofLevel.RUNTIME_SMOKE_PASSED

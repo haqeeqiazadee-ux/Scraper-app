@@ -2,13 +2,21 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 import time
 import urllib.error
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import UTC, datetime
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from packages.core.actor_runtime.proof import generate_actor_test_input
 
 
 DEFAULT_LEDGER = Path("docs/agent-sync/runtime/actor-proof-ledger.jsonl")
@@ -24,24 +32,20 @@ def _load_catalog(index_path: Path) -> list[dict[str, Any]]:
 
 
 def _safe_input(actor: dict[str, Any]) -> dict[str, Any]:
-    categories = {str(item).upper() for item in actor.get("categories", [])}
-    strategy = str(actor.get("route_strategy") or "")
-    if "JOBS" in categories or strategy == "job_board_schema":
-        target = "https://example.com"
-    elif "REAL_ESTATE" in categories or strategy == "real_estate_schema":
-        target = "https://example.com"
-    elif "VIDEOS" in categories or strategy == "yt_dlp":
-        target = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-    elif "ECOMMERCE" in categories:
-        target = "https://example.com/products"
-    elif "LEAD_GENERATION" in categories or "BUSINESS" in categories:
-        target = "https://example.com"
-    else:
-        target = "https://example.com"
-    result = {"target": target, "max_items": 5}
-    if target == "https://example.com":
-        result["workflow_hint"] = str(actor.get("name", "actor") or "actor")
-    return result
+    return generate_actor_test_input(
+        SimpleNamespace(
+            actor_id=actor.get("id"),
+            name=actor.get("name", "actor"),
+            title=actor.get("title", ""),
+            description=actor.get("description", ""),
+            categories=tuple(actor.get("categories", []) or ()),
+            route_strategy=actor.get("route_strategy", "native_pipeline"),
+        )
+    )
+
+
+def _is_fixture_input(test_input: dict[str, Any]) -> bool:
+    return bool(test_input.get("fixture_kind"))
 
 
 def _read_done(ledger_path: Path) -> set[str]:
@@ -99,9 +103,18 @@ def _prove_actor(
             timeout,
         )
         run_id = run["data"]["run"]["id"]
+        fixture_replay_passed = _is_fixture_input(test_input)
         proof = _post_json(
             f"{base_url.rstrip('/')}/api/v1/actors/{actor_id}/runs/{run_id}/proof",
-            {"ui_route_passed": True, "provenance": ["proof-factory-runner", f"run:{run_id}"]},
+            {
+                "ui_route_passed": False,
+                "fixture_replay_passed": fixture_replay_passed,
+                "provenance": ["proof-factory-runner", f"run:{run_id}"],
+                "proof_metadata": {
+                    "input_kind": "hosted_fixture" if fixture_replay_passed else "external_target",
+                    "fixture_kind": test_input.get("fixture_kind"),
+                },
+            },
             tenant,
             timeout,
         )

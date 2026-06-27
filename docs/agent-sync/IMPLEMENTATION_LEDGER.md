@@ -1138,3 +1138,45 @@ This file is the mandatory proof trail for the pre-code reuse gate.
   - Railway deployment `b90de75c-6409-4bde-b47a-5e09bfd3d7d6` succeeded.
   - Post-deploy production proof sample against `https://scraper.exsel.ai` produced 3 `api_mapped` rows; two completed zero-item rows stayed `api_mapped` with `failure_class=no_result_dataset`, not `runtime_smoke_passed`.
 - Status: Proof-level semantics are stricter in production. Full 27,753 live E2E proof remains open with 0 `live_e2e_passed` actors.
+
+## Mainline Loop - Hosted Fixture Proof Targets
+
+- Task: Add first-party hosted proof fixtures and stop the proof runner from claiming UI proof by default.
+- Phase: P1/P2 proof-factory promotion substrate
+- Existing files inspected:
+  - `packages/core/actor_runtime/proof.py`
+  - `packages/core/actor_runtime/families.py`
+  - `scripts/run_actor_proof_factory.py`
+  - `packages/core/ai_providers/deterministic.py`
+  - `tests/unit/test_actor_proof_factory.py`
+  - `docs/YOUSELL_API_WORKFLOWS.md`
+- Reuse decision: `extend_existing`
+- Reason: The proof factory and native family runners already exist. The gap was safe, deterministic proof inputs that can produce datasets without treating unrelated public pages as actor-specific live E2E proof.
+- Files modified:
+  - `packages/core/actor_runtime/proof.py`
+  - `scripts/run_actor_proof_factory.py`
+  - `tests/unit/test_actor_proof_factory.py`
+  - `apps/web/public/fixtures/actor-proof/products.html`
+  - `apps/web/public/fixtures/actor-proof/jobs.html`
+  - `apps/web/public/fixtures/actor-proof/real-estate.html`
+  - `apps/web/public/fixtures/actor-proof/contacts.html`
+  - `apps/web/public/fixtures/actor-proof/reviews.html`
+  - `apps/web/public/fixtures/actor-proof/news.html`
+  - `apps/web/public/fixtures/actor-proof/generic.html`
+  - `docs/agent-sync/runtime/actor-proof-ledger.jsonl`
+  - `docs/agent-sync/runtime/result-packets/P1-actor-proof-factory-27753.json`
+  - `docs/agent-sync/IMPLEMENTATION_LEDGER.md`
+  - `docs/agent-sync/PHASE_STATUS.md`
+- Evidence:
+  - Generated proof inputs now route to hosted first-party fixtures for products, jobs, real estate, contacts, reviews, news, and generic pages.
+  - The proof runner now sends `ui_route_passed=false` by default and marks hosted fixture inputs as `fixture_replay_passed` candidates instead of live UI proof.
+  - `fixture_replay_passed` proof level now requires a completed run with a persisted result, `item_count > 0`, and JSON/CSV export checks.
+  - Full offline ledger regenerated with 27,753 `api_mapped` rows and fixture input distribution: products 4,845; contacts 8,709; jobs 2,537; generic 4,055; real-estate 2,317; news 883; reviews 767; external 3,640.
+- Tests/gates:
+  - `python -m compileall -q packages services scripts tests/unit/test_actor_proof_factory.py`
+  - `python -m pytest tests/unit/test_actor_proof_factory.py tests/unit/test_actor_runs_api.py tests/unit/test_actor_value_metrics.py -q`
+  - `python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 0 --write-ledger --concurrency 8 --ledger docs/agent-sync/runtime/actor-proof-ledger.jsonl`
+  - `python scripts/run_actor_proof_factory.py --ledger docs/agent-sync/runtime/actor-proof-ledger.jsonl --status`
+  - `npm.cmd run build`
+  - Claude read-only validation returned `PASS`, no blockers, no fixbacks.
+- Status: Hosted fixture proof substrate is local and build-verified. Next step is deploy Railway + Netlify and run a production fixture-promotion sample.
