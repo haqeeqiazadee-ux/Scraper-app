@@ -113,7 +113,10 @@
     "python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 250 --write-ledger --resume --resume-success-only --ledger docs/agent-sync/runtime/actor-proof-ledger.production-rollout.jsonl --base-url https://scraper.exsel.ai --tenant proof-factory-rollout --concurrency 1 --rate-limit-per-second 0.5 --timeout 75",
     "python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 83 --write-ledger --resume --resume-success-only --ledger docs/agent-sync/runtime/actor-proof-ledger.production-rollout.jsonl --base-url https://scraper.exsel.ai --tenant proof-factory-rollout --concurrency 1 --rate-limit-per-second 0.25 --timeout 90",
     "python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 6 --write-ledger --resume --resume-success-only --ledger docs/agent-sync/runtime/actor-proof-ledger.production-rollout.jsonl --base-url https://scraper.exsel.ai --tenant proof-factory-rollout --concurrency 1 --rate-limit-per-second 0.15 --timeout 120",
-    "python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 1 --write-ledger --resume --resume-success-only --ledger docs/agent-sync/runtime/actor-proof-ledger.production-rollout.jsonl --base-url https://scraper.exsel.ai --tenant proof-factory-rollout --concurrency 1 --rate-limit-per-second 0.1 --timeout 120"
+    "python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 1 --write-ledger --resume --resume-success-only --ledger docs/agent-sync/runtime/actor-proof-ledger.production-rollout.jsonl --base-url https://scraper.exsel.ai --tenant proof-factory-rollout --concurrency 1 --rate-limit-per-second 0.1 --timeout 120",
+    "python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 500 --write-ledger --resume --resume-success-only --ledger docs/agent-sync/runtime/actor-proof-ledger.production-rollout.jsonl --base-url https://scraper.exsel.ai --tenant proof-factory-rollout --concurrency 1 --rate-limit-per-second 0.5 --timeout 75",
+    "python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 29 --write-ledger --resume --resume-success-only --ledger docs/agent-sync/runtime/actor-proof-ledger.production-rollout.jsonl --base-url https://scraper.exsel.ai --tenant proof-factory-rollout --concurrency 1 --rate-limit-per-second 0.2 --timeout 120",
+    "python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 10 --write-ledger --resume --resume-success-only --ledger docs/agent-sync/runtime/actor-proof-ledger.production-rollout.jsonl --base-url https://scraper.exsel.ai --tenant proof-factory-rollout --concurrency 1 --rate-limit-per-second 0.1 --timeout 150"
   ],
   "tests_passed": [
     "compileall passed",
@@ -158,7 +161,8 @@
     "Success-only resume recovered transient transport failures from 214/250 to 250/250 proved actors.",
     "6 proof-factory unit tests passed after retry-aware runner changes.",
     "Claude validation of retry-aware proof runner returned PASS with no blockers.",
-    "Production rollout ledger latest state scaled to 500 unique actors: 419 fixture_replay_passed, 81 runtime_smoke_passed, 0 api_mapped, 0 failures; raw_rows=633 after retries."
+    "Production rollout ledger latest state scaled to 500 unique actors: 419 fixture_replay_passed, 81 runtime_smoke_passed, 0 api_mapped, 0 failures; raw_rows=633 after retries.",
+    "Production rollout ledger latest state scaled to 1,000 unique actors: 853 fixture_replay_passed, 147 runtime_smoke_passed, 0 api_mapped, 0 failures; raw_rows=1,172 after retries."
   ],
   "tests_failed": [
     "Initial broad Claude validation attempt timed out; narrow retry passed",
@@ -174,11 +178,12 @@
     "Latest 25-row production video batch does not prove all 3,055 yt_dlp actors or all 27,753 workflows end-to-end.",
     "Production rollout has 250 unique actors proved, not all 27,753 actors.",
     "Rollout proof levels are fixture_replay_passed/runtime_smoke_passed only; live_e2e_passed remains 0 because UI-route/live assertions are not yet applied per actor.",
-    "Production rollout has 500 unique actors proved, not all 27,753 actors."
+    "Production rollout has 500 unique actors proved, not all 27,753 actors.",
+    "Production rollout has 1,000 unique actors proved, not all 27,753 actors."
   ],
   "qa_status": "accepted_api_mapped_full_catalog_coverage_live_e2e_unproven",
   "next_recommended_packet": "deploy-hosted-fixtures-and-run-fixture-proof-promotion-sample",
-  "updated_at_utc": "2026-06-27T22:44:48Z",
+  "updated_at_utc": "2026-06-27T23:13:24Z",
   "production_fixture_batch_count": 25,
   "production_fixture_batch_fixture_replay_passed_count": 23,
   "production_fixture_batch_api_mapped_count": 2,
@@ -192,10 +197,10 @@
   "production_video_batch_failure_count": 0,
   "production_video_batch_live_e2e_passed_count": 0,
   "production_video_batch_ui_route_passed_count": 0,
-  "production_rollout_unique_actor_count": 500,
-  "production_rollout_raw_row_count": 633,
-  "production_rollout_fixture_replay_passed_count": 419,
-  "production_rollout_runtime_smoke_passed_count": 81,
+  "production_rollout_unique_actor_count": 1000,
+  "production_rollout_raw_row_count": 1172,
+  "production_rollout_fixture_replay_passed_count": 853,
+  "production_rollout_runtime_smoke_passed_count": 147,
   "production_rollout_api_mapped_count": 0,
   "production_rollout_failure_count": 0,
   "production_rollout_live_e2e_passed_count": 0,
