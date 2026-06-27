@@ -309,6 +309,13 @@ async def _handle_url_scrape(
     run_id = str(uuid4())
     step_ts = time.time()
 
+    async def _bounded_provider_call(coro: Any, default: Any, timeout_s: float, label: str) -> Any:
+        try:
+            return await asyncio.wait_for(coro, timeout=timeout_s)
+        except Exception as exc:
+            logger.warning("smart_scrape.provider_call_failed", label=label, error=str(exc)[:200])
+            return default
+
     # ---- Step 0: Try platform APIs FIRST (before any lane execution) ----
     # Amazon → Keepa, Shopify → /products.json, WooCommerce → REST API
     platform_products: list[dict[str, Any]] | None = None
@@ -564,13 +571,26 @@ async def _handle_url_scrape(
             if asin_match:
                 # Single ASIN lookup
                 asin = asin_match.group(1)
-                products = await connector.query_products(
-                    asins=[asin],
-                    domain=keepa_domain,
-                    include_rating=True,
-                    stats_days=90,
-                    history_days=30,
+                products = await _bounded_provider_call(
+                    connector.query_products(
+                        asins=[asin],
+                        domain=keepa_domain,
+                        include_rating=True,
+                        stats_days=90,
+                        history_days=30,
+                    ),
+                    [],
+                    20,
+                    "keepa_asin",
                 )
+                if not products:
+                    from services.control_plane.routers.keepa import _amazon_html_fallback
+                    products = await _bounded_provider_call(
+                        _amazon_html_fallback(asin, keepa_domain, max_results=1),
+                        [],
+                        20,
+                        "amazon_asin_html_fallback",
+                    )
                 if products:
                     platform_products = _normalise_keepa_products(products)
                     step_ts = _record_step(steps, f"Keepa API: ASIN {asin} — {len(platform_products)} product(s)", step_ts)
@@ -580,18 +600,28 @@ async def _handle_url_scrape(
                 # Keyword search
                 from urllib.parse import unquote_plus
                 keywords = unquote_plus(keyword_match.group(1))
-                asins = await connector.search_products(
-                    domain=keepa_domain,
-                    n_products=20,
-                    title=keywords,
+                asins = await _bounded_provider_call(
+                    connector.search_products(
+                        domain=keepa_domain,
+                        n_products=10,
+                        title=keywords,
+                    ),
+                    [],
+                    15,
+                    "keepa_keyword_search",
                 )
                 products = (
-                    await connector.query_products(
-                        asins=asins[:20],
-                        domain=keepa_domain,
-                        include_rating=True,
-                        stats_days=90,
-                        history_days=7,
+                    await _bounded_provider_call(
+                        connector.query_products(
+                            asins=asins[:10],
+                            domain=keepa_domain,
+                            include_rating=True,
+                            stats_days=90,
+                            history_days=7,
+                        ),
+                        [],
+                        20,
+                        "keepa_keyword_products",
                     )
                     if asins
                     else []
@@ -619,18 +649,28 @@ async def _handle_url_scrape(
                     from urllib.parse import unquote_plus as _uqp
                     category = _uqp(category)
                 except: pass
-                asins = await connector.search_products(
-                    domain=keepa_domain,
-                    n_products=20,
-                    title=f"bestsellers {category}",
+                asins = await _bounded_provider_call(
+                    connector.search_products(
+                        domain=keepa_domain,
+                        n_products=10,
+                        title=f"bestsellers {category}",
+                    ),
+                    [],
+                    15,
+                    "keepa_category_search",
                 )
                 products = (
-                    await connector.query_products(
-                        asins=asins[:20],
-                        domain=keepa_domain,
-                        include_rating=True,
-                        stats_days=90,
-                        history_days=7,
+                    await _bounded_provider_call(
+                        connector.query_products(
+                            asins=asins[:10],
+                            domain=keepa_domain,
+                            include_rating=True,
+                            stats_days=90,
+                            history_days=7,
+                        ),
+                        [],
+                        20,
+                        "keepa_category_products",
                     )
                     if asins
                     else []
@@ -643,18 +683,28 @@ async def _handle_url_scrape(
             else:
                 # Generic Amazon URL — try as keyword search with domain
                 search_text = unquote_plus(parsed_url.path.strip("/").replace("-", " ")) or domain_lower
-                asins = await connector.search_products(
-                    domain=keepa_domain,
-                    n_products=20,
-                    title=search_text,
+                asins = await _bounded_provider_call(
+                    connector.search_products(
+                        domain=keepa_domain,
+                        n_products=10,
+                        title=search_text,
+                    ),
+                    [],
+                    15,
+                    "keepa_generic_search",
                 )
                 products = (
-                    await connector.query_products(
-                        asins=asins[:20],
-                        domain=keepa_domain,
-                        include_rating=True,
-                        stats_days=90,
-                        history_days=7,
+                    await _bounded_provider_call(
+                        connector.query_products(
+                            asins=asins[:10],
+                            domain=keepa_domain,
+                            include_rating=True,
+                            stats_days=90,
+                            history_days=7,
+                        ),
+                        [],
+                        20,
+                        "keepa_generic_products",
                     )
                     if asins
                     else []
@@ -682,7 +732,12 @@ async def _handle_url_scrape(
                 if get_env_secret("EBAY_APP_ID") and get_env_secret("EBAY_CERT_ID"):
                     from packages.connectors.ebay_connector import EbayConnector
                     connector = EbayConnector()
-                    ebay_items = await connector.search_products(ebay_query, limit=20)
+                    ebay_items = await _bounded_provider_call(
+                        connector.search_products(ebay_query, limit=10),
+                        [],
+                        15,
+                        "ebay_browse_api",
+                    )
                     for item in ebay_items:
                         item.setdefault("_category", "product")
                         item.setdefault("_extraction_method", "ebay_browse_api")
@@ -766,7 +821,8 @@ async def _handle_url_scrape(
 
             # WooCommerce: /wp-json/wc/store/v1/products
             if not platform_products:
-                woo_resp = await _api_client.get(f"{api_base}/wp-json/wc/store/v1/products?per_page=100")
+                async with _httpx.AsyncClient(timeout=10, follow_redirects=True) as _woo_client:
+                    woo_resp = await _woo_client.get(f"{api_base}/wp-json/wc/store/v1/products?per_page=100")
                 if woo_resp.status_code == 200:
                     woo_list = woo_resp.json()
                     if isinstance(woo_list, list) and woo_list:
@@ -789,7 +845,7 @@ async def _handle_url_scrape(
             logger.debug("smart_scrape.platform_api_skip", error=str(api_err)[:100])
 
     # If platform API returned products, skip lane execution entirely
-    if platform_products and (len(platform_products) >= 3 or is_ebay):
+    if platform_products and (len(platform_products) >= 3 or is_amazon or is_ebay):
         # Save directly to DB
         await task_repo_create_and_save(
             session, tenant_id, task_id, run_id, url, platform_products, steps, step_ts, request,
