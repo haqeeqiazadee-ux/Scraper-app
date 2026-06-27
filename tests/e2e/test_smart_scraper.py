@@ -25,7 +25,7 @@ load_dotenv(_env_path)
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-BACKEND_URL = os.getenv("E2E_BACKEND_URL", "https://scraper-platform-production-17cb.up.railway.app")
+BACKEND_URL = os.getenv("E2E_BACKEND_URL", "https://scraper.exsel.ai")
 API_BASE = f"{BACKEND_URL}/api/v1"
 FRONTEND_URL = os.getenv("E2E_FRONTEND_URL", "https://myscraper.netlify.app")
 HEADERS = {"X-Tenant-ID": "e2e-smart-test"}

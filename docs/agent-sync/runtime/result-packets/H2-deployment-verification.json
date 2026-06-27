@@ -25,8 +25,8 @@
   "deployment_checked": true,
   "tests_run": [
     "Invoke-WebRequest https://myscraper.netlify.app",
-    "Invoke-WebRequest https://scraper-platform-production-17cb.up.railway.app/api/v1/health",
-    "Invoke-WebRequest https://scraper-platform-production-17cb.up.railway.app/v1/account"
+    "Invoke-WebRequest https://scraper.exsel.ai/api/v1/health",
+    "Invoke-WebRequest https://scraper.exsel.ai/v1/account"
   ],
   "tests_passed": [
     "Frontend root returned HTTP 200.",

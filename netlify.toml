@@ -5,7 +5,7 @@ publish = "dist"
 
 [[redirects]]
 from = "/api/*"
-to = "https://scraper-platform-production-17cb.up.railway.app/api/:splat"
+to = "https://scraper.exsel.ai/api/:splat"
 status = 200
 force = true
 

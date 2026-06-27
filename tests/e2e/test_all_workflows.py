@@ -20,7 +20,7 @@ from playwright.sync_api import sync_playwright, Page
 
 load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
-BACKEND = os.getenv("E2E_BACKEND_URL", "https://scraper-platform-production-17cb.up.railway.app")
+BACKEND = os.getenv("E2E_BACKEND_URL", "https://scraper.exsel.ai")
 FRONTEND = os.getenv("E2E_FRONTEND_URL", "https://myscraper.netlify.app")
 API = f"{BACKEND}/api/v1"
 H = {"X-Tenant-ID": "e2e-all-workflows", "Content-Type": "application/json"}

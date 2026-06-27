@@ -1,6 +1,6 @@
 # YOUSELL — Working Scraper API Workflows
 
-**Base URL:** `https://scraper-platform-production-17cb.up.railway.app/api/v1`
+**Base URL:** `https://scraper.exsel.ai/api/v1`
 **Header:** `X-Tenant-ID: default` (required on all requests)
 **Tested:** 2026-04-07 — All verified on live Railway deployment
 
@@ -237,7 +237,7 @@ curl -o results.xlsx "{BASE}/tasks/{TASK_ID}/export/xlsx"
 ```python
 import httpx
 
-API = "https://scraper-platform-production-17cb.up.railway.app/api/v1"
+API = "https://scraper.exsel.ai/api/v1"
 H = {"X-Tenant-ID": "default", "Content-Type": "application/json"}
 
 def scrape(target, intent="products", schema=None, cookies=None, max_pages=1):

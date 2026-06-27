@@ -5,7 +5,7 @@ Uses synchronous httpx + Playwright (no async event loop conflicts).
 
 Targets:
   Frontend: https://myscraper.netlify.app
-  Backend:  https://scraper-platform-production-17cb.up.railway.app/api/v1
+  Backend:  https://scraper.exsel.ai/api/v1
 
 Usage:
   python -m pytest tests/e2e/test_live_e2e.py -v --tb=short
@@ -35,7 +35,7 @@ load_dotenv(_env_path)
 # Constants
 # ---------------------------------------------------------------------------
 FRONTEND_URL = os.getenv("E2E_FRONTEND_URL", "https://myscraper.netlify.app")
-BACKEND_URL = os.getenv("E2E_BACKEND_URL", "https://scraper-platform-production-17cb.up.railway.app")
+BACKEND_URL = os.getenv("E2E_BACKEND_URL", "https://scraper.exsel.ai")
 API_BASE = f"{BACKEND_URL}/api/v1"
 API_TIMEOUT = 60.0
 PAGE_LOAD_TIMEOUT = 20_000

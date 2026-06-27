@@ -941,12 +941,12 @@ This file is the mandatory proof trail for the pre-code reuse gate.
   - `docs/agent-sync/IMPLEMENTATION_LEDGER.md`
 - Evidence:
   - `https://myscraper.netlify.app` returned HTTP 200.
-  - `https://scraper-platform-production-17cb.up.railway.app/api/v1/health` returned HTTP 200.
-  - `https://scraper-platform-production-17cb.up.railway.app/v1/account` returned HTTP 401 without an API key, confirming the public API auth boundary.
+  - `https://scraper.exsel.ai/api/v1/health` returned HTTP 200.
+  - `https://scraper.exsel.ai/v1/account` returned HTTP 401 without an API key, confirming the public API auth boundary.
 - Tests/gates:
   - `Invoke-WebRequest https://myscraper.netlify.app`
-  - `Invoke-WebRequest https://scraper-platform-production-17cb.up.railway.app/api/v1/health`
-  - `Invoke-WebRequest https://scraper-platform-production-17cb.up.railway.app/v1/account`
+  - `Invoke-WebRequest https://scraper.exsel.ai/api/v1/health`
+  - `Invoke-WebRequest https://scraper.exsel.ai/v1/account`
 - Status: H2 reachability is partially verified, but final deployment verification remains blocked by H1 full E2E failures and by the need to verify the latest pushed commit after deployment.
 
 ## Phase P1 - Actor Proof Factory 27753

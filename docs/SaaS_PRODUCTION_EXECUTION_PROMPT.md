@@ -27,7 +27,7 @@ Do not proceed to the next phase until the current phase passes all test validat
 
 ### Step 1: Frontend Scaffolding
 1. **Initialize App:** In a new directory `apps/frontend`, bootstrap a React or Next.js application.
-2. **Configuration:** Set up a `netlify.toml` file to deploy the static assets and proxy `/api/*` requests to the Railway backend (`https://scraper-platform-production-17cb.up.railway.app`).
+2. **Configuration:** Set up a `netlify.toml` file to deploy the static assets and proxy `/api/*` requests to the Railway backend (`https://scraper.exsel.ai`).
 
 ### Step 2: Core SaaS Views
 1. **Authentication:** Implement a basic login/tenant mechanism (can be mock JWT or Supabase Auth) to match the `tenant_id` logic required by the Control Plane.

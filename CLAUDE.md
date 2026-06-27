@@ -6,8 +6,8 @@
 
 **Name:** AI Scraping Platform
 **Live Site:** https://myscraper.netlify.app
-**Backend API:** https://scraper-platform-production-17cb.up.railway.app
-**Public API:** https://scraper-platform-production-17cb.up.railway.app/v1
+**Backend API:** https://scraper.exsel.ai
+**Public API:** https://scraper.exsel.ai/v1
 **Repo:** https://github.com/haqeeqiazadee-ux/Scraper-app
 **Owner:** Muhammad Usman
 **Status:** PRODUCTION — All phases complete, 56 E2E tests passing, 24 public API endpoints
@@ -38,7 +38,7 @@
 | Component | Platform | URL |
 |-----------|----------|-----|
 | Frontend | Netlify | https://myscraper.netlify.app |
-| Backend | Railway | https://scraper-platform-production-17cb.up.railway.app |
+| Backend | Railway | https://scraper.exsel.ai |
 | Database | Supabase | PostgreSQL 15 |
 
 **Environment Variables (Railway):** DATABASE_URL, SECRET_KEY, SERPER_API_KEY, KEEPA_API_KEY, GEMINI_API_KEY, CORS_ORIGINS
