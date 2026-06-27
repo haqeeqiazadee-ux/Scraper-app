@@ -1216,3 +1216,43 @@ This file is the mandatory proof trail for the pre-code reuse gate.
   - Netlify production deploy `6a40422f954dc32f20af854f` succeeded and hosted fixture URLs returned HTTP 200.
   - Production proof sample against `https://scraper.exsel.ai`: 3 rows; 2 `fixture_replay_passed`, 1 `api_mapped` unsupported `yt_dlp`, 0 `live_e2e_passed`, 0 `ui_route_passed`.
 - Status: Hosted fixture proof promotion is working in production for the bounded sample. Full 27,753 live E2E proof remains open with 0 `live_e2e_passed` actors.
+
+## Mainline Loop - Non-Product Fixture Proof Fix
+
+- Task: Fix the proof-factory gap where hosted review fixtures fetched successfully but were dropped by product-only normalization.
+- Phase: P1/P2 proof-factory promotion fixback
+- Existing files inspected:
+  - `packages/core/normalizer.py`
+  - `services/worker-http/worker.py`
+  - `packages/core/actor_runtime/families.py`
+  - `apps/web/public/fixtures/actor-proof/reviews.html`
+  - `docs/agent-sync/runtime/actor-proof-ledger.production-batch-25.jsonl`
+- Reuse decision: `extend_existing`
+- Reason: The proof factory, hosted fixtures, deterministic selector extraction, and family runners were correct. The narrow gap was shared validation rejecting typed non-product outputs without a product `name`, plus an optional `yt_dlp` import coupled to non-video worker paths.
+- Files modified:
+  - `packages/core/normalizer.py`
+  - `services/worker-http/worker.py`
+  - `tests/unit/test_normalizer.py`
+  - `docs/agent-sync/runtime/actor-proof-ledger.production-batch-25.jsonl`
+  - `docs/agent-sync/runtime/result-packets/P1-actor-proof-factory-27753.json`
+  - `docs/agent-sync/runtime/result-packets/H2-deployment-verification.json`
+  - `docs/agent-sync/PHASE_STATUS.md`
+  - `docs/agent-sync/IMPLEMENTATION_LEDGER.md`
+- Evidence:
+  - `Normalizer.validate_item(...)` now preserves typed review/contact/content/job/property records with semantic fields even when they do not have a product-style `name`.
+  - Product garbage checks remain in place for product-style records.
+  - `YoutubeDlpConnector` is lazy-imported only inside the video URL branch, so non-video actor runs do not require the optional video dependency at worker import time.
+  - Local hosted review fixture runner now returns 1 review item through `review_monitoring_generic`.
+  - Claude validation returned `PASS` for syntax, semantics, and business logic.
+  - Railway deployment `f2ecc3db-cd00-445f-9a65-a119631e0d44` succeeded.
+  - Post-fix 25-actor production proof batch: 23 `fixture_replay_passed`, 2 `api_mapped` unsupported `yt_dlp`, 0 `live_e2e_passed`, 0 `ui_route_passed`.
+- Tests/gates:
+  - `python -m pytest tests/unit/test_normalizer.py tests/unit/test_actor_families.py tests/unit/test_actor_proof_factory.py -q`
+  - `python -m compileall -q packages services scripts tests/unit/test_actor_proof_factory.py tests/unit/test_actor_families.py tests/unit/test_normalizer.py`
+  - `python -m pytest tests/unit/test_normalizer.py tests/unit/test_actor_families.py tests/unit/test_actor_proof_factory.py tests/unit/test_actor_runs_api.py tests/unit/test_actor_value_metrics.py -q`
+  - `C:\Users\PC\.local\bin\claude.exe -p "Validate narrow non-product actor proof normalization and lazy yt-dlp diff"`
+  - `railway.cmd up --service scraper-platform --detach`
+  - `GET https://scraper.exsel.ai/api/v1/health -> 200`
+  - `GET https://myscraper.netlify.app/fixtures/actor-proof/reviews.html -> 200`
+  - `python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 25 --write-ledger --ledger docs/agent-sync/runtime/actor-proof-ledger.production-batch-25.jsonl --base-url https://scraper.exsel.ai --concurrency 1 --rate-limit-per-second 0.5 --timeout 45`
+- Status: Non-product fixture replay is fixed and deployed for bounded production proof. Full 27,753 live E2E proof remains open; the next implementation gap is native `yt_dlp`/video-family support and scaling proof batches beyond 25.

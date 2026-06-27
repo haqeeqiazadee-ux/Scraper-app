@@ -36,9 +36,13 @@
     "apps/web/src/pages/ActorsPage.tsx",
     "apps/web/src/pages/ActorDetailPage.tsx",
     "docs/agent-sync/runtime/actor-proof-ledger.sample.jsonl",
-    "docs/agent-sync/runtime/result-packets/P1-actor-proof-factory-27753.json"
+    "docs/agent-sync/runtime/result-packets/P1-actor-proof-factory-27753.json",
+    "packages/core/normalizer.py",
+    "services/worker-http/worker.py",
+    "tests/unit/test_normalizer.py",
+    "docs/agent-sync/runtime/actor-proof-ledger.production-batch-25.jsonl"
   ],
-  "implementation_summary": "Added an actor proof-factory substrate that records explicit per-actor proof levels, failure classes, durable proof rows, proof summary/list/detail APIs, run-to-proof promotion, a resumable proof runner script, visible proof counters/status in the existing UI, and focused tests that prevent API-mapped actors from being claimed as live E2E proven. Added fixes preventing failed actor runs from being promoted to ui_route_passed, preventing zero-item completed runs from being promoted to runtime_smoke_passed, preventing the proof runner from asserting UI proof by default, routing generated test inputs to hosted first-party fixtures, and fixing the runtime family classifier so the word leading no longer triggers lead-generation routing.",
+  "implementation_summary": "Added an actor proof-factory substrate that records explicit per-actor proof levels, failure classes, durable proof rows, proof summary/list/detail APIs, run-to-proof promotion, a resumable proof runner script, visible proof counters/status in the existing UI, and focused tests that prevent API-mapped actors from being claimed as live E2E proven. Added fixes preventing failed actor runs from being promoted to ui_route_passed, preventing zero-item completed runs from being promoted to runtime_smoke_passed, preventing the proof runner from asserting UI proof by default, routing generated test inputs to hosted first-party fixtures, and fixing the runtime family classifier so the word leading no longer triggers lead-generation routing. Post-deploy fix: non-product actor proof outputs now survive normalization, and the HTTP worker lazy-loads yt-dlp only for video URLs so review/contact/content actors are not coupled to optional video tooling.",
   "tenant_isolation_checked": true,
   "secrets_touched": false,
   "api_first_boundary_checked": true,
@@ -82,7 +86,12 @@
     "C:\\Users\\PC\\.local\\bin\\claude.exe -p \"Read-only validation of current git diff hosted-fixture proof layer...\"",
     "python -m pytest tests/unit/test_actor_proof_factory.py tests/unit/test_actor_families.py tests/unit/test_actor_runs_api.py tests/unit/test_actor_value_metrics.py -q",
     "python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 0 --write-ledger --concurrency 8 --ledger docs/agent-sync/runtime/actor-proof-ledger.jsonl",
-    "C:\\Users\\PC\\.local\\bin\\claude.exe -p \"Read-only validation of current git diff family classifier word-boundary proof routing fix...\""
+    "C:\\Users\\PC\\.local\\bin\\claude.exe -p \"Read-only validation of current git diff family classifier word-boundary proof routing fix...\"",
+    "python -m pytest tests/unit/test_normalizer.py tests/unit/test_actor_families.py tests/unit/test_actor_proof_factory.py -q",
+    "C:\\Users\\PC\\.local\\bin\\claude.exe -p \"Validate narrow non-product actor proof normalization and lazy yt-dlp diff\"",
+    "python -m compileall -q packages services scripts tests/unit/test_actor_proof_factory.py tests/unit/test_actor_families.py tests/unit/test_normalizer.py",
+    "python -m pytest tests/unit/test_normalizer.py tests/unit/test_actor_families.py tests/unit/test_actor_proof_factory.py tests/unit/test_actor_runs_api.py tests/unit/test_actor_value_metrics.py -q",
+    "python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 25 --write-ledger --ledger docs/agent-sync/runtime/actor-proof-ledger.production-batch-25.jsonl --base-url https://scraper.exsel.ai --concurrency 1 --rate-limit-per-second 0.5 --timeout 45"
   ],
   "tests_passed": [
     "compileall passed",
@@ -113,7 +122,11 @@
     "Claude read-only validation of hosted-fixture proof layer returned PASS with no fixbacks.",
     "33 focused actor proof/family/run/value tests passed after fixing lead word-boundary classification.",
     "Regression added: leading classifieds text stays generic and no longer routes to lead_generation_generic.",
-    "Claude read-only validation of family classifier/proof routing fix returned PASS with no fixbacks."
+    "Claude read-only validation of family classifier/proof routing fix returned PASS with no fixbacks.",
+    "45 focused normalizer/family/proof tests passed after non-product validation fix.",
+    "59 focused normalizer/family/proof/run/value tests passed after non-product validation fix.",
+    "Claude validation of lazy yt-dlp and non-product normalizer diff returned PASS with no blockers.",
+    "Post-fix production proof batch: 25 rows; 23 fixture_replay_passed, 2 api_mapped unsupported yt_dlp, 0 live_e2e_passed, 0 ui_route_passed."
   ],
   "tests_failed": [
     "Initial broad Claude validation attempt timed out; narrow retry passed",
@@ -122,9 +135,17 @@
   "known_limitations": [
     "Sample proof ledger intentionally records api_mapped rows only and must not be marketed as live E2E proof.",
     "Deployment smoke for proof APIs/UI remains part of H2.",
-    "Full 27,753 API-mapped proof coverage exists, but 0 actors are live_e2e_passed; this must not be marketed as live E2E proof."
+    "Full 27,753 API-mapped proof coverage exists, but 0 actors are live_e2e_passed; this must not be marketed as live E2E proof.",
+    "Latest 25-row production batch proves fixture replay for 23 sampled actors only; it is not full 27,753 live E2E proof.",
+    "yt_dlp route strategy remains unsupported by the native actor proof factory until a video-family runner is implemented and tested."
   ],
   "qa_status": "accepted_api_mapped_full_catalog_coverage_live_e2e_unproven",
   "next_recommended_packet": "deploy-hosted-fixtures-and-run-fixture-proof-promotion-sample",
-  "updated_at_utc": "2026-06-27T21:42:29+00:00"
+  "updated_at_utc": "2026-06-27T21:57:38Z",
+  "production_fixture_batch_count": 25,
+  "production_fixture_batch_fixture_replay_passed_count": 23,
+  "production_fixture_batch_api_mapped_count": 2,
+  "production_fixture_batch_live_e2e_passed_count": 0,
+  "production_fixture_batch_ui_route_passed_count": 0,
+  "latest_railway_deployment": "f2ecc3db-cd00-445f-9a65-a119631e0d44"
 }
