@@ -170,7 +170,7 @@ def choose_proof_level(
         return ActorProofLevel.LIVE_E2E_PASSED
     if fixture_replay_passed:
         return ActorProofLevel.FIXTURE_REPLAY_PASSED
-    if run_status == "completed":
+    if run_status == "completed" and has_result and item_count > 0 and export_json_passed and export_csv_passed:
         return ActorProofLevel.RUNTIME_SMOKE_PASSED
     if ui_route_passed and run_status in {"route_checked", "ui_route_passed"}:
         return ActorProofLevel.UI_ROUTE_PASSED

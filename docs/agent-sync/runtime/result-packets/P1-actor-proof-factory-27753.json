@@ -31,7 +31,7 @@
     "docs/agent-sync/runtime/actor-proof-ledger.sample.jsonl",
     "docs/agent-sync/runtime/result-packets/P1-actor-proof-factory-27753.json"
   ],
-  "implementation_summary": "Added an actor proof-factory substrate that records explicit per-actor proof levels, failure classes, durable proof rows, proof summary/list/detail APIs, run-to-proof promotion, a resumable proof runner script, visible proof counters/status in the existing UI, and focused tests that prevent API-mapped actors from being claimed as live E2E proven. Added a fix preventing failed actor runs from being promoted to ui_route_passed proof level, optimized offline proof-runner throttling, generated full catalog API-mapped proof coverage, and regenerated the full ledger with URL-safe generated test inputs so proof runs no longer use invalid plain-text targets.",
+  "implementation_summary": "Added an actor proof-factory substrate that records explicit per-actor proof levels, failure classes, durable proof rows, proof summary/list/detail APIs, run-to-proof promotion, a resumable proof runner script, visible proof counters/status in the existing UI, and focused tests that prevent API-mapped actors from being claimed as live E2E proven. Added fixes preventing failed actor runs from being promoted to ui_route_passed, preventing zero-item completed runs from being promoted to runtime_smoke_passed, optimized offline proof-runner throttling, generated full catalog API-mapped proof coverage, and regenerated the full ledger with URL-safe generated test inputs so proof runs no longer use invalid plain-text targets.",
   "tenant_isolation_checked": true,
   "secrets_touched": false,
   "api_first_boundary_checked": true,
@@ -66,7 +66,9 @@
     "python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 0 --write-ledger --resume --concurrency 8 --ledger docs/agent-sync/runtime/actor-proof-ledger.jsonl",
     "python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 0 --write-ledger --concurrency 8 --ledger docs/agent-sync/runtime/actor-proof-ledger.jsonl",
     "python scripts/run_actor_proof_factory.py --ledger docs/agent-sync/runtime/actor-proof-ledger.jsonl --status",
-    "C:\\Users\\PC\\.local\\bin\\claude.exe -p \"Read-only validation of current git diff proof-factory URL-safe input change...\""
+    "C:\\Users\\PC\\.local\\bin\\claude.exe -p \"Read-only validation of current git diff proof-factory URL-safe input change...\"",
+    "python -m pytest tests/unit/test_actor_proof_factory.py tests/unit/test_actor_runs_api.py tests/unit/test_actor_value_metrics.py -q",
+    "C:\\Users\\PC\\.local\\bin\\claude.exe -p \"Read-only validation of current git diff runtime_smoke proof gate tightening...\""
   ],
   "tests_passed": [
     "compileall passed",
@@ -86,7 +88,10 @@
     "18 focused actor proof/run/value tests passed after stricter ui_route boolean guard.",
     "18 focused actor proof/run/value tests passed after URL-safe proof input generation.",
     "Default proof ledger regenerated from scratch with 27,753 rows, 27,753 api_mapped, 0 live_e2e_passed true, 0 ui_route_passed true, 0 fixture_replay_passed true, and 0 invalid generated targets.",
-    "Claude read-only validation of URL-safe proof input change returned PASS with no fixbacks."
+    "Claude read-only validation of URL-safe proof input change returned PASS with no fixbacks.",
+    "18 focused actor proof/run/value tests passed after stricter runtime_smoke gate requiring a result dataset with item_count > 0 and export checks.",
+    "Regression added: completed zero-item runs remain api_mapped instead of runtime_smoke_passed.",
+    "Claude read-only validation of runtime_smoke proof gate tightening returned PASS with no fixbacks."
   ],
   "tests_failed": [
     "Initial broad Claude validation attempt timed out; narrow retry passed",
@@ -99,5 +104,5 @@
   ],
   "qa_status": "accepted_api_mapped_full_catalog_coverage_live_e2e_unproven",
   "next_recommended_packet": "batch-live-proof-promotion-with-fixture-materialization",
-  "updated_at_utc": "2026-06-27T21:13:33+00:00"
+  "updated_at_utc": "2026-06-27T21:19:26+00:00"
 }

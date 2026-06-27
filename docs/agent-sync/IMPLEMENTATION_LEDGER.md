@@ -1109,3 +1109,30 @@ This file is the mandatory proof trail for the pre-code reuse gate.
   - `python scripts/run_actor_proof_factory.py --ledger docs/agent-sync/runtime/actor-proof-ledger.jsonl --status`
   - Claude read-only validation returned `PASS`, no blockers, no fixbacks.
 - Status: Proof-factory generated inputs are now URL-safe for the next live proof-promotion batches. Full 27,753 live E2E proof remains open with 0 `live_e2e_passed` actors.
+
+## Mainline Loop - Runtime Smoke Proof Tightening
+
+- Task: Prevent zero-item completed runs from being treated as runtime-smoke proof.
+- Phase: P1 proof-factory hardening
+- Existing files inspected:
+  - `packages/core/actor_runtime/proof.py`
+  - `services/control-plane/routers/actors.py`
+  - `tests/unit/test_actor_proof_factory.py`
+  - `docs/agent-sync/runtime/actor-proof-ledger.production-verification.jsonl`
+- Reuse decision: `extend_existing`
+- Reason: The production proof sample after URL-safe input deployment showed two completed zero-item actor runs being promoted to `runtime_smoke_passed` while also carrying `failure_class=no_result_dataset`. That is not a safe proof state.
+- Files modified:
+  - `packages/core/actor_runtime/proof.py`
+  - `tests/unit/test_actor_proof_factory.py`
+  - `docs/agent-sync/runtime/result-packets/P1-actor-proof-factory-27753.json`
+  - `docs/agent-sync/IMPLEMENTATION_LEDGER.md`
+  - `docs/agent-sync/PHASE_STATUS.md`
+- Evidence:
+  - `choose_proof_level(...)` now returns `runtime_smoke_passed` only when a run completed, has a persisted result, has `item_count > 0`, and both JSON and CSV export checks passed.
+  - Completed zero-item runs now remain `api_mapped` unless a stricter proof gate is satisfied.
+  - Added a regression assertion covering the zero-item completed run case.
+- Tests/gates:
+  - `python -m compileall -q packages services scripts tests/unit/test_actor_proof_factory.py`
+  - `python -m pytest tests/unit/test_actor_proof_factory.py tests/unit/test_actor_runs_api.py tests/unit/test_actor_value_metrics.py -q`
+  - Claude read-only validation returned `PASS`, no blockers, no fixbacks.
+- Status: Local proof-level semantics are stricter and green. Deployment and post-deploy production proof resample are required next.

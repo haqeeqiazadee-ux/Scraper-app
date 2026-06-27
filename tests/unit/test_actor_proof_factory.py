@@ -131,6 +131,16 @@ def test_actor_proof_helpers_are_strict_about_live_e2e() -> None:
         fixture_replay_passed=False,
     ) == ActorProofLevel.API_MAPPED
 
+    assert choose_proof_level(
+        run_status="completed",
+        has_result=True,
+        item_count=0,
+        export_json_passed=True,
+        export_csv_passed=True,
+        ui_route_passed=False,
+        fixture_replay_passed=False,
+    ) == ActorProofLevel.API_MAPPED
+
 
 def test_actor_proof_api_records_manual_ui_route_proof() -> None:
     actor_id = _first_native_actor()
