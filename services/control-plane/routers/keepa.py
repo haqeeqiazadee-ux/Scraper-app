@@ -156,25 +156,25 @@ async def keepa_query(req: KeepaQueryRequest) -> dict[str, Any]:
     if asins:
         # Direct ASIN lookup
         products = await _bounded_keepa_call(
-            keepa.query_products(
-                asins=asins[:100],
-                domain=req.domain,
-                include_offers=req.include_offers,
-                include_buybox=req.include_buybox,
-                include_rating=True,
-                stats_days=90,
-                history_days=30,
-            ),
+            _amazon_html_fallback(asins[0], req.domain, max_results=1),
             [],
             20,
-            "asin_lookup",
+            "amazon_html_fallback",
         )
         if not products:
             products = await _bounded_keepa_call(
-                _amazon_html_fallback(asins[0], req.domain, max_results=1),
+                keepa.query_products(
+                    asins=asins[:100],
+                    domain=req.domain,
+                    include_offers=req.include_offers,
+                    include_buybox=req.include_buybox,
+                    include_rating=True,
+                    stats_days=90,
+                    history_days=30,
+                ),
                 [],
                 20,
-                "amazon_html_fallback",
+                "asin_lookup",
             )
         return {
             "query": query,
@@ -187,19 +187,22 @@ async def keepa_query(req: KeepaQueryRequest) -> dict[str, Any]:
         }
     else:
         # Keyword search via product_finder
-        found_asins = await _bounded_keepa_call(
-            keepa.search_products(
-                domain=req.domain,
-                n_products=min(req.max_results, 10),
-                title=query,
-            ),
-            [],
-            15,
-            "keyword_search",
-        )
+        from packages.connectors.search_fallback import amazon_search_fallback
+        products = await amazon_search_fallback(query, max_results=min(req.max_results, 10))
+        found_asins = []
+        if not products:
+            found_asins = await _bounded_keepa_call(
+                keepa.search_products(
+                    domain=req.domain,
+                    n_products=min(req.max_results, 10),
+                    title=query,
+                ),
+                [],
+                15,
+                "keyword_search",
+            )
 
-        products = []
-        if found_asins:
+        if not products and found_asins:
             products = await _bounded_keepa_call(
                 keepa.query_products(
                     asins=found_asins[:min(req.max_results, 10)],
@@ -213,8 +216,7 @@ async def keepa_query(req: KeepaQueryRequest) -> dict[str, Any]:
                 "keyword_products",
             )
         if not products:
-            from packages.connectors.search_fallback import amazon_search_fallback
-            products = await amazon_search_fallback(query, max_results=req.max_results)
+            products = await amazon_search_fallback(query, max_results=min(req.max_results, 10))
 
         return {
             "query": query,

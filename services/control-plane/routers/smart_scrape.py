@@ -521,7 +521,44 @@ async def _handle_url_scrape(
             step_ts,
         )
 
-    if is_amazon and keepa_api_key:
+    if is_amazon and not platform_products:
+        try:
+            import re as _amazon_re
+            from urllib.parse import unquote_plus as _amazon_unquote_plus
+
+            asin_match = _amazon_re.search(r'/dp/([A-Z0-9]{10})', url) or _amazon_re.search(r'/product/([A-Z0-9]{10})', url)
+            keyword_match = _amazon_re.search(r'[?&]k=([^&]+)', url)
+
+            if asin_match:
+                from services.control_plane.routers.keepa import _amazon_html_fallback
+                asin = asin_match.group(1)
+                platform_products = await _bounded_provider_call(
+                    _amazon_html_fallback(asin, "US", max_results=1),
+                    [],
+                    20,
+                    "amazon_asin_fast_fallback",
+                )
+                if platform_products:
+                    step_ts = _record_step(
+                        steps,
+                        f"Keepa-compatible Amazon ASIN fallback: {len(platform_products)} product(s)",
+                        step_ts,
+                    )
+            elif keyword_match:
+                from packages.connectors.search_fallback import amazon_search_fallback
+                keywords = _amazon_unquote_plus(keyword_match.group(1))
+                platform_products = await amazon_search_fallback(keywords, max_results=10)
+                if platform_products:
+                    step_ts = _record_step(
+                        steps,
+                        f"Keepa keyword fallback: Amazon search provider returned {len(platform_products)} products",
+                        step_ts,
+                    )
+                    tracker.record("serper_amazon_fallback", detail=f"keyword: {keywords[:50]}")
+        except Exception as amazon_fast_err:
+            logger.warning("smart_scrape.amazon_fast_fallback_failed", error=str(amazon_fast_err)[:200])
+
+    if is_amazon and keepa_api_key and not platform_products:
         try:
             from services.control_plane.routers.keepa import _get_keepa
             connector = _get_keepa()
