@@ -49,7 +49,7 @@
     "docs/agent-sync/runtime/actor-proof-ledger.production-video-batch-25.jsonl",
     "docs/agent-sync/runtime/actor-proof-ledger.production-rollout.jsonl"
   ],
-  "implementation_summary": "Added an actor proof-factory substrate that records explicit per-actor proof levels, failure classes, durable proof rows, proof summary/list/detail APIs, run-to-proof promotion, a resumable proof runner script, visible proof counters/status in the existing UI, and focused tests that prevent API-mapped actors from being claimed as live E2E proven. Added fixes preventing failed actor runs from being promoted to ui_route_passed, preventing zero-item completed runs from being promoted to runtime_smoke_passed, preventing the proof runner from asserting UI proof by default, routing generated test inputs to hosted first-party fixtures, and fixing the runtime family classifier so the word leading no longer triggers lead-generation routing. Post-deploy fix: non-product actor proof outputs now survive normalization, and the HTTP worker lazy-loads yt-dlp only for video URLs so review/contact/content actors are not coupled to optional video tooling. Native video actor support added: yt_dlp route_strategy now uses the existing YoutubeDlpConnector through a metadata-only provider SDK runner and is no longer blocked as unsupported. Proof runner rollout semantics hardened: status now reports latest proof per actor with raw row audit count, and --resume-success-only allows failed transport rows to be retried without re-running successful actors.",
+  "implementation_summary": "Added an actor proof-factory substrate that records explicit per-actor proof levels, failure classes, durable proof rows, proof summary/list/detail APIs, run-to-proof promotion, a resumable proof runner script, visible proof counters/status in the existing UI, and focused tests that prevent API-mapped actors from being claimed as live E2E proven. Added fixes preventing failed actor runs from being promoted to ui_route_passed, preventing zero-item completed runs from being promoted to runtime_smoke_passed, preventing the proof runner from asserting UI proof by default, routing generated test inputs to hosted first-party fixtures, and fixing the runtime family classifier so the word leading no longer triggers lead-generation routing. Post-deploy fix: non-product actor proof outputs now survive normalization, and the HTTP worker lazy-loads yt-dlp only for video URLs so review/contact/content actors are not coupled to optional video tooling. Native video actor support added: yt_dlp route_strategy now uses the existing YoutubeDlpConnector through a metadata-only provider SDK runner and is no longer blocked as unsupported. Proof runner rollout semantics hardened: status now reports latest proof per actor with raw row audit count, --resume-success-only allows failed transport rows to be retried without re-running successful actors, and streaming ledger writes preserve long rollout progress as each actor finishes.",
   "tenant_isolation_checked": true,
   "secrets_touched": false,
   "api_first_boundary_checked": true,
@@ -118,7 +118,9 @@
     "python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 29 --write-ledger --resume --resume-success-only --ledger docs/agent-sync/runtime/actor-proof-ledger.production-rollout.jsonl --base-url https://scraper.exsel.ai --tenant proof-factory-rollout --concurrency 1 --rate-limit-per-second 0.2 --timeout 120",
     "python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 10 --write-ledger --resume --resume-success-only --ledger docs/agent-sync/runtime/actor-proof-ledger.production-rollout.jsonl --base-url https://scraper.exsel.ai --tenant proof-factory-rollout --concurrency 1 --rate-limit-per-second 0.1 --timeout 150",
     "python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 1000 --write-ledger --resume --resume-success-only --ledger docs/agent-sync/runtime/actor-proof-ledger.production-rollout.jsonl --base-url https://scraper.exsel.ai --tenant proof-factory-rollout --concurrency 1 --rate-limit-per-second 0.5 --timeout 90 --attempts 3 --retry-backoff-seconds 4",
-    "python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 1000 --write-ledger --resume --resume-success-only --ledger docs/agent-sync/runtime/actor-proof-ledger.production-rollout.jsonl --base-url https://scraper.exsel.ai --tenant proof-factory-rollout --concurrency 1 --rate-limit-per-second 0.5 --timeout 90 --attempts 3 --retry-backoff-seconds 4 after streaming ledger commit"
+    "python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 1000 --write-ledger --resume --resume-success-only --ledger docs/agent-sync/runtime/actor-proof-ledger.production-rollout.jsonl --base-url https://scraper.exsel.ai --tenant proof-factory-rollout --concurrency 1 --rate-limit-per-second 0.5 --timeout 90 --attempts 3 --retry-backoff-seconds 4 after streaming ledger commit",
+    "python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 1 --write-ledger --resume --resume-success-only --ledger docs/agent-sync/runtime/actor-proof-ledger.production-rollout.jsonl --base-url https://scraper.exsel.ai --tenant proof-factory-rollout --concurrency 1 --rate-limit-per-second 0.1 --timeout 120 --attempts 3 --retry-backoff-seconds 5",
+    "python scripts/run_actor_proof_factory.py --ledger docs/agent-sync/runtime/actor-proof-ledger.production-rollout.jsonl --status"
   ],
   "tests_passed": [
     "compileall passed",
@@ -166,7 +168,8 @@
     "Production rollout ledger latest state scaled to 500 unique actors: 419 fixture_replay_passed, 81 runtime_smoke_passed, 0 api_mapped, 0 failures; raw_rows=633 after retries.",
     "Production rollout ledger latest state scaled to 1,000 unique actors: 853 fixture_replay_passed, 147 runtime_smoke_passed, 0 api_mapped, 0 failures; raw_rows=1,172 after retries.",
     "Production rollout ledger latest state scaled to 2,000 unique actors: 1,710 fixture_replay_passed, 290 runtime_smoke_passed, 0 api_mapped, 0 failures; raw_rows=2,172 after retries.",
-    "Production rollout ledger latest state scaled to 3,000 unique actors: 2,583 fixture_replay_passed, 417 runtime_smoke_passed, 0 api_mapped, 0 failures; raw_rows=3,172 after retries."
+    "Production rollout ledger latest state scaled to 3,000 unique actors: 2,583 fixture_replay_passed, 417 runtime_smoke_passed, 0 api_mapped, 0 failures; raw_rows=3,172 after retries.",
+    "Production rollout ledger latest state scaled to 4,000 unique actors: 3,452 fixture_replay_passed, 548 runtime_smoke_passed, 0 api_mapped, 0 failures; raw_rows=4,173 after retries."
   ],
   "tests_failed": [
     "Initial broad Claude validation attempt timed out; narrow retry passed",
@@ -185,11 +188,12 @@
     "Production rollout has 500 unique actors proved, not all 27,753 actors.",
     "Production rollout has 1,000 unique actors proved, not all 27,753 actors.",
     "Production rollout has 2,000 unique actors proved, not all 27,753 actors.",
-    "Production rollout has 3,000 unique actors proved, not all 27,753 actors."
+    "Production rollout has 3,000 unique actors proved, not all 27,753 actors.",
+    "Production rollout has 4,000 unique actors proved, not all 27,753 actors."
   ],
   "qa_status": "accepted_api_mapped_full_catalog_coverage_live_e2e_unproven",
   "next_recommended_packet": "deploy-hosted-fixtures-and-run-fixture-proof-promotion-sample",
-  "updated_at_utc": "2026-06-28T03:23:04Z",
+  "updated_at_utc": "2026-06-28T05:30:04Z",
   "production_fixture_batch_count": 25,
   "production_fixture_batch_fixture_replay_passed_count": 23,
   "production_fixture_batch_api_mapped_count": 2,
@@ -203,10 +207,10 @@
   "production_video_batch_failure_count": 0,
   "production_video_batch_live_e2e_passed_count": 0,
   "production_video_batch_ui_route_passed_count": 0,
-  "production_rollout_unique_actor_count": 3000,
-  "production_rollout_raw_row_count": 3172,
-  "production_rollout_fixture_replay_passed_count": 2583,
-  "production_rollout_runtime_smoke_passed_count": 417,
+  "production_rollout_unique_actor_count": 4000,
+  "production_rollout_raw_row_count": 4173,
+  "production_rollout_fixture_replay_passed_count": 3452,
+  "production_rollout_runtime_smoke_passed_count": 548,
   "production_rollout_api_mapped_count": 0,
   "production_rollout_failure_count": 0,
   "production_rollout_live_e2e_passed_count": 0,
