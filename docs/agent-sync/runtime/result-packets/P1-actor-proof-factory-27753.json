@@ -120,6 +120,8 @@
     "python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 1000 --write-ledger --resume --resume-success-only --ledger docs/agent-sync/runtime/actor-proof-ledger.production-rollout.jsonl --base-url https://scraper.exsel.ai --tenant proof-factory-rollout --concurrency 1 --rate-limit-per-second 0.5 --timeout 90 --attempts 3 --retry-backoff-seconds 4",
     "python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 1000 --write-ledger --resume --resume-success-only --ledger docs/agent-sync/runtime/actor-proof-ledger.production-rollout.jsonl --base-url https://scraper.exsel.ai --tenant proof-factory-rollout --concurrency 1 --rate-limit-per-second 0.5 --timeout 90 --attempts 3 --retry-backoff-seconds 4 after streaming ledger commit",
     "python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 1 --write-ledger --resume --resume-success-only --ledger docs/agent-sync/runtime/actor-proof-ledger.production-rollout.jsonl --base-url https://scraper.exsel.ai --tenant proof-factory-rollout --concurrency 1 --rate-limit-per-second 0.1 --timeout 120 --attempts 3 --retry-backoff-seconds 5",
+    "python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 1000 --write-ledger --resume --resume-success-only --ledger docs/agent-sync/runtime/actor-proof-ledger.production-rollout.jsonl --base-url https://scraper.exsel.ai --tenant proof-factory-rollout --concurrency 1 --rate-limit-per-second 0.5 --timeout 90 --attempts 3 --retry-backoff-seconds 4 after 4,000 checkpoint",
+    "python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 1 --write-ledger --resume --resume-success-only --ledger docs/agent-sync/runtime/actor-proof-ledger.production-rollout.jsonl --base-url https://scraper.exsel.ai --tenant proof-factory-rollout --concurrency 1 --rate-limit-per-second 0.1 --timeout 120 --attempts 3 --retry-backoff-seconds 5 after 5,000 checkpoint",
     "python scripts/run_actor_proof_factory.py --ledger docs/agent-sync/runtime/actor-proof-ledger.production-rollout.jsonl --status"
   ],
   "tests_passed": [
@@ -169,7 +171,8 @@
     "Production rollout ledger latest state scaled to 1,000 unique actors: 853 fixture_replay_passed, 147 runtime_smoke_passed, 0 api_mapped, 0 failures; raw_rows=1,172 after retries.",
     "Production rollout ledger latest state scaled to 2,000 unique actors: 1,710 fixture_replay_passed, 290 runtime_smoke_passed, 0 api_mapped, 0 failures; raw_rows=2,172 after retries.",
     "Production rollout ledger latest state scaled to 3,000 unique actors: 2,583 fixture_replay_passed, 417 runtime_smoke_passed, 0 api_mapped, 0 failures; raw_rows=3,172 after retries.",
-    "Production rollout ledger latest state scaled to 4,000 unique actors: 3,452 fixture_replay_passed, 548 runtime_smoke_passed, 0 api_mapped, 0 failures; raw_rows=4,173 after retries."
+    "Production rollout ledger latest state scaled to 4,000 unique actors: 3,452 fixture_replay_passed, 548 runtime_smoke_passed, 0 api_mapped, 0 failures; raw_rows=4,173 after retries.",
+    "Production rollout ledger latest state scaled to 5,000 unique actors: 4,317 fixture_replay_passed, 683 runtime_smoke_passed, 0 api_mapped, 0 failures; raw_rows=5,174 after retries."
   ],
   "tests_failed": [
     "Initial broad Claude validation attempt timed out; narrow retry passed",
@@ -189,11 +192,12 @@
     "Production rollout has 1,000 unique actors proved, not all 27,753 actors.",
     "Production rollout has 2,000 unique actors proved, not all 27,753 actors.",
     "Production rollout has 3,000 unique actors proved, not all 27,753 actors.",
-    "Production rollout has 4,000 unique actors proved, not all 27,753 actors."
+    "Production rollout has 4,000 unique actors proved, not all 27,753 actors.",
+    "Production rollout has 5,000 unique actors proved, not all 27,753 actors."
   ],
   "qa_status": "accepted_api_mapped_full_catalog_coverage_live_e2e_unproven",
   "next_recommended_packet": "deploy-hosted-fixtures-and-run-fixture-proof-promotion-sample",
-  "updated_at_utc": "2026-06-28T05:30:04Z",
+  "updated_at_utc": "2026-06-28T07:33:30Z",
   "production_fixture_batch_count": 25,
   "production_fixture_batch_fixture_replay_passed_count": 23,
   "production_fixture_batch_api_mapped_count": 2,
@@ -207,10 +211,10 @@
   "production_video_batch_failure_count": 0,
   "production_video_batch_live_e2e_passed_count": 0,
   "production_video_batch_ui_route_passed_count": 0,
-  "production_rollout_unique_actor_count": 4000,
-  "production_rollout_raw_row_count": 4173,
-  "production_rollout_fixture_replay_passed_count": 3452,
-  "production_rollout_runtime_smoke_passed_count": 548,
+  "production_rollout_unique_actor_count": 5000,
+  "production_rollout_raw_row_count": 5174,
+  "production_rollout_fixture_replay_passed_count": 4317,
+  "production_rollout_runtime_smoke_passed_count": 683,
   "production_rollout_api_mapped_count": 0,
   "production_rollout_failure_count": 0,
   "production_rollout_live_e2e_passed_count": 0,
