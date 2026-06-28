@@ -238,6 +238,19 @@ def test_proof_runner_summarizes_http_errors() -> None:
     assert _error_summary(error) == "HTTPError:503"
 
 
+def test_proof_runner_writes_ledger_rows_immediately(tmp_path) -> None:
+    from scripts.run_actor_proof_factory import _write_ledger_row
+
+    ledger = tmp_path / "proof.jsonl"
+    with ledger.open("a", encoding="utf-8") as handle:
+        _write_ledger_row(handle, {"actor_id": "a1", "proof_level": "fixture_replay_passed"})
+        assert ledger.read_text(encoding="utf-8").strip()
+
+    row = json.loads(ledger.read_text(encoding="utf-8"))
+    assert row["actor_id"] == "a1"
+    assert row["proof_level"] == "fixture_replay_passed"
+
+
 def test_actor_proof_api_records_manual_ui_route_proof() -> None:
     actor_id = _first_native_actor()
 

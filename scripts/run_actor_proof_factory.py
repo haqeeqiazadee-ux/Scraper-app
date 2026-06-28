@@ -104,6 +104,11 @@ def _error_summary(exc: BaseException) -> str:
     return type(exc).__name__
 
 
+def _write_ledger_row(handle: Any, result: dict[str, Any]) -> None:
+    handle.write(json.dumps(result, sort_keys=True, default=str) + "\n")
+    handle.flush()
+
+
 def _prove_actor(
     actor: dict[str, Any],
     *,
@@ -236,30 +241,36 @@ def main() -> int:
 
     results: list[dict[str, Any]] = []
     delay = 1.0 / max(args.rate_limit_per_second, 0.1) if args.base_url else 0.0
-    with ThreadPoolExecutor(max_workers=max(args.concurrency, 1)) as executor:
-        futures = []
-        for actor in pending:
-            futures.append(
-                executor.submit(
-                    _prove_actor,
-                    actor,
-                    base_url=args.base_url or None,
-                    tenant=args.tenant,
-                    timeout=args.timeout,
-                    attempts=args.attempts,
-                    retry_backoff_seconds=args.retry_backoff_seconds,
-                )
-            )
-            if delay:
-                time.sleep(delay)
-        for future in as_completed(futures):
-            results.append(future.result())
+    ledger_handle = None
+    try:
+        if args.write_ledger:
+            ledger_path.parent.mkdir(parents=True, exist_ok=True)
+            ledger_handle = ledger_path.open("a", encoding="utf-8")
 
-    if args.write_ledger:
-        ledger_path.parent.mkdir(parents=True, exist_ok=True)
-        with ledger_path.open("a", encoding="utf-8") as handle:
-            for result in results:
-                handle.write(json.dumps(result, sort_keys=True, default=str) + "\n")
+        with ThreadPoolExecutor(max_workers=max(args.concurrency, 1)) as executor:
+            futures = []
+            for actor in pending:
+                futures.append(
+                    executor.submit(
+                        _prove_actor,
+                        actor,
+                        base_url=args.base_url or None,
+                        tenant=args.tenant,
+                        timeout=args.timeout,
+                        attempts=args.attempts,
+                        retry_backoff_seconds=args.retry_backoff_seconds,
+                    )
+                )
+                if delay:
+                    time.sleep(delay)
+            for future in as_completed(futures):
+                result = future.result()
+                results.append(result)
+                if ledger_handle is not None:
+                    _write_ledger_row(ledger_handle, result)
+    finally:
+        if ledger_handle is not None:
+            ledger_handle.close()
 
     print(json.dumps({"catalog_count": len(actors), "processed": len(results), "ledger": str(ledger_path)}, indent=2))
     return 0
