@@ -1359,3 +1359,31 @@ This file is the mandatory proof trail for the pre-code reuse gate.
   - `python scripts/run_actor_proof_factory.py --catalog apps/web/public/data/actors/index.json --sample 1 --write-ledger --resume --resume-success-only --ledger docs/agent-sync/runtime/actor-proof-ledger.production-rollout.jsonl --base-url https://scraper.exsel.ai --tenant proof-factory-rollout --concurrency 1 --rate-limit-per-second 0.1 --timeout 120 --attempts 3 --retry-backoff-seconds 5 after 5,000 checkpoint`
   - `python scripts/run_actor_proof_factory.py --ledger docs/agent-sync/runtime/actor-proof-ledger.production-rollout.jsonl --status`
 - Status: Production proof rollout is at 5,000 unique actors with zero latest failures. Full 27,753 live E2E proof remains open; next gate is continued rollout scaling and UI-route/live-E2E proof assertions.
+
+## Mainline Loop - Proof Rollout Timebox Remedy
+
+- Task: Recover from the unbounded 6,000-wave proof rollout and add a guard against future multi-hour drift.
+- Phase: P1 production proof rollout remediation
+- Existing files inspected:
+  - `scripts/run_actor_proof_factory.py`
+  - `tests/unit/test_actor_proof_factory.py`
+  - `docs/agent-sync/runtime/actor-proof-ledger.production-rollout.jsonl`
+  - `docs/agent-sync/PHASE_STATUS.md`
+  - `C:\Users\PC\second-brain\memory\lessons.json`
+- Reuse decision: `extend_existing`
+- Reason: The proof runner already had resume, success-only retry, streaming ledger writes, and latest-row status. The missing control was an explicit runtime checkpoint guard and a hard reset to the last clean committed proof state after interruption.
+- Files modified:
+  - `scripts/run_actor_proof_factory.py`
+  - `tests/unit/test_actor_proof_factory.py`
+  - `docs/agent-sync/PHASE_STATUS.md`
+  - `docs/agent-sync/IMPLEMENTATION_LEDGER.md`
+- Evidence:
+  - No `run_actor_proof_factory.py --catalog` process remained active after interruption.
+  - Dirty partial 6,000-wave ledger was restored back to the pushed 5,000-actor checkpoint.
+  - `--max-runtime-seconds` now stops scheduling new actors after the configured timebox while allowing in-flight proofs to finish and flush.
+  - Runner output now reports `pending_remaining` and `stopped_due_to_deadline` for checkpoint visibility.
+  - Second-brain lesson `0081-scraper-proof-rollout-timebox-checkpoint-guard` records the durable failure pattern and remedy.
+- Tests/gates:
+  - `python -m pytest tests/unit/test_actor_proof_factory.py -q` -> 9 passed.
+  - `python -m compileall -q scripts/run_actor_proof_factory.py tests/unit/test_actor_proof_factory.py`
+- Status: Remediation implemented. The exact next start point is the committed 5,000-actor proof checkpoint, with future rollout waves required to use bounded checkpoints rather than open-ended multi-hour loops.

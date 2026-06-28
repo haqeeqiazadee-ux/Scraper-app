@@ -6,7 +6,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
@@ -222,6 +222,12 @@ def main() -> int:
     parser.add_argument("--timeout", type=int, default=30)
     parser.add_argument("--attempts", type=int, default=1)
     parser.add_argument("--retry-backoff-seconds", type=float, default=2.0)
+    parser.add_argument(
+        "--max-runtime-seconds",
+        type=float,
+        default=0.0,
+        help="Stop scheduling new actors after this many seconds; in-flight proofs finish and flush.",
+    )
     parser.add_argument("--write-ledger", action="store_true")
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--resume-success-only", action="store_true")
@@ -242,15 +248,37 @@ def main() -> int:
     results: list[dict[str, Any]] = []
     delay = 1.0 / max(args.rate_limit_per_second, 0.1) if args.base_url else 0.0
     ledger_handle = None
+    started_at = time.monotonic()
+    deadline = started_at + args.max_runtime_seconds if args.max_runtime_seconds > 0 else None
+    stopped_due_to_deadline = False
     try:
         if args.write_ledger:
             ledger_path.parent.mkdir(parents=True, exist_ok=True)
             ledger_handle = ledger_path.open("a", encoding="utf-8")
 
-        with ThreadPoolExecutor(max_workers=max(args.concurrency, 1)) as executor:
-            futures = []
-            for actor in pending:
-                futures.append(
+        workers = max(args.concurrency, 1)
+        actor_iter = iter(pending)
+        actor_source_exhausted = False
+
+        def deadline_reached() -> bool:
+            return deadline is not None and time.monotonic() >= deadline
+
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            in_flight = set()
+
+            def submit_next() -> bool:
+                nonlocal actor_source_exhausted, stopped_due_to_deadline
+                if actor_source_exhausted:
+                    return False
+                if deadline_reached():
+                    stopped_due_to_deadline = True
+                    return False
+                try:
+                    actor = next(actor_iter)
+                except StopIteration:
+                    actor_source_exhausted = True
+                    return False
+                in_flight.add(
                     executor.submit(
                         _prove_actor,
                         actor,
@@ -263,16 +291,40 @@ def main() -> int:
                 )
                 if delay:
                     time.sleep(delay)
-            for future in as_completed(futures):
-                result = future.result()
-                results.append(result)
-                if ledger_handle is not None:
-                    _write_ledger_row(ledger_handle, result)
+                return True
+
+            while len(in_flight) < workers and submit_next():
+                pass
+
+            while in_flight:
+                done_futures, in_flight = wait(in_flight, timeout=0.5, return_when=FIRST_COMPLETED)
+                if not done_futures:
+                    if deadline_reached():
+                        stopped_due_to_deadline = True
+                    continue
+                for future in done_futures:
+                    result = future.result()
+                    results.append(result)
+                    if ledger_handle is not None:
+                        _write_ledger_row(ledger_handle, result)
+                while len(in_flight) < workers and submit_next():
+                    pass
     finally:
         if ledger_handle is not None:
             ledger_handle.close()
 
-    print(json.dumps({"catalog_count": len(actors), "processed": len(results), "ledger": str(ledger_path)}, indent=2))
+    print(
+        json.dumps(
+            {
+                "catalog_count": len(actors),
+                "processed": len(results),
+                "pending_remaining": max(len(pending) - len(results), 0),
+                "stopped_due_to_deadline": stopped_due_to_deadline,
+                "ledger": str(ledger_path),
+            },
+            indent=2,
+        )
+    )
     return 0
 
 

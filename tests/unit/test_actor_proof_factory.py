@@ -251,6 +251,51 @@ def test_proof_runner_writes_ledger_rows_immediately(tmp_path) -> None:
     assert row["proof_level"] == "fixture_replay_passed"
 
 
+def test_proof_runner_max_runtime_stops_at_checkpoint(monkeypatch, tmp_path, capsys) -> None:
+    import sys
+    import time
+
+    from scripts import run_actor_proof_factory as runner
+
+    ledger = tmp_path / "proof.jsonl"
+    actors = [{"id": f"a{i}", "name": f"Actor {i}", "route_strategy": "native_pipeline"} for i in range(5)]
+
+    def fake_load_catalog(_path):
+        return actors
+
+    def fake_prove_actor(actor, **_kwargs):
+        time.sleep(0.03)
+        return {"actor_id": actor["id"], "proof_level": "fixture_replay_passed", "failure_class": "none"}
+
+    monkeypatch.setattr(runner, "_load_catalog", fake_load_catalog)
+    monkeypatch.setattr(runner, "_prove_actor", fake_prove_actor)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "run_actor_proof_factory.py",
+            "--ledger",
+            str(ledger),
+            "--sample",
+            "5",
+            "--concurrency",
+            "1",
+            "--max-runtime-seconds",
+            "0.04",
+            "--write-ledger",
+        ],
+    )
+
+    assert runner.main() == 0
+
+    output = json.loads(capsys.readouterr().out)
+    written_rows = [json.loads(line) for line in ledger.read_text(encoding="utf-8").splitlines()]
+    assert 1 <= output["processed"] < 5
+    assert output["processed"] == len(written_rows)
+    assert output["pending_remaining"] == 5 - output["processed"]
+    assert output["stopped_due_to_deadline"] is True
+
+
 def test_actor_proof_api_records_manual_ui_route_proof() -> None:
     actor_id = _first_native_actor()
 
